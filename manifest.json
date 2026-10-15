@@ -1,0 +1,24 @@
+{
+  "short_name": "Control E. M.",
+  "name": "Sistema de Control Interno de Estacionamiento Medido",
+  "icons": [
+    {
+      "src": "https://hermesjs44.github.io/imagenes/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://hermesjs44.github.io/imagenes/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "scope": "./",
+  "background_color": "#0f3750",
+  "theme_color": "#0f3750",
+  "display": "standalone",
+  "orientation": "portrait"
+}
