@@ -3,13 +3,13 @@
   "name": "Sistema de Control Interno de Estacionamiento Medido",
   "icons": [
     {
-      "src": "../imagenes/icon-192.png",
+      "src": "../imagenes/icono-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "../imagenes/icon-512.png",
+      "src": "../imagenes/icono-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
