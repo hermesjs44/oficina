@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión y Control de Sábados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado Superior -->
+    <header class="bg-sky-700 text-white shadow-md z-10 no-print">
+        <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-calendar-day text-xl text-sky-200"></i>
+                <h2 class="text-base font-bold text-white uppercase tracking-wider">Módulo: Control de Sábados</h2>
+
+                <span id="firebase-status" class="bg-sky-900/60 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all">
+                    <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="firebase-status-text" class="font-medium">Conectando...</span>
+                </span>
+            </div>
+            
+            <div class="flex justify-center items-center">
+                <img src="../../imagenes/logoins.png" 
+                     alt="Logo Inspectores" 
+                     id="logoInspector"
+                     class="h-12 w-auto rounded-lg border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
+                     onclick="openModal('../../imagenes/logoins.png', 'Logo Inspectores')">
+            </div>
+
+            <div class="flex justify-end items-center">
+                <img src="../../imagenes/logoh.jpg" 
+                     alt="Logo Hermes Suares" 
+                     id="logoHermes"
+                     class="h-10 w-auto rounded border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                     onclick="openModal('../../imagenes/logoh.jpg', 'Logo Hermes Suares')">
+            </div>
+        </div>
+    </header>
+
+    <!-- Estructura Principal con Menú Lateral -->
+    <div class="flex flex-1 w-full">
+
+        <!-- Menú Lateral Izquierdo Actualizado -->
+        <aside class="w-64 bg-sky-600 text-white min-h-full flex flex-col justify-between shadow-lg no-print">
+            <div class="p-4 space-y-6">
+                <a href="../../index.html" class="bg-sky-800 hover:bg-sky-900 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+                </a>
+
+                <nav class="space-y-1">
+                    <p class="text-[10px] uppercase font-bold text-sky-200 px-3 mb-2 tracking-wider">Gestión de Sábados</p>
+                    
+                    <button onclick="showSection('gestion-sabado')" id="btn-gestion-sabado" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold hover:bg-sky-500 transition-colors bg-sky-500">
+                        <i class="fa-solid fa-calendar-check w-6 text-center mr-2"></i> 1. Sábados (Planilla)
+                    </button>
+
+                    <button onclick="showSection('listado-sabados')" id="btn-listado-sabados" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold hover:bg-sky-500 transition-colors">
+                        <i class="fa-solid fa-list-check w-6 text-center mr-2"></i> 2. Listado de Sábados
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Contenido Central -->
+        <main class="flex-1 p-8">
+            
+            <!-- SECCIÓN 1: SÁBADOS (CARGA Y PLANILLA DE ASISTENCIA) -->
+            <section id="gestion-sabado" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 no-print">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-sky-600"></i> Planilla de Control de Sábados
+                        </h2>
+                        <p class="text-xs text-slate-500">Cargue y gestione la nómina de personal que prestará servicio el día sábado seleccionado.</p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="imprimirPlanillaSabado()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Imprimir Planilla
+                        </button>
+                        <button onclick="guardarSabadoFirebase()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar en Firebase
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selección de Fecha Sábado -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-sky-50 p-4 rounded-xl border border-sky-200 no-print">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha del Sábado</label>
+                        <input type="date" id="fechaSabado" onchange="cargarPersonalObligatorioSabado()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Agregar Inspector Adicional de la Nómina -->
+                    <div class="md:col-span-2 flex items-end gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Agregar Inspector Adicional</label>
+                            <select id="selectAgregarInspector" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="">Cargando inspectores desde el módulo de Inspectores...</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="agregarInspectorAdicional()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-user-plus"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ÁREA IMPRIMIBLE DE LA PLANILLA DE SÁBADO -->
+                <div id="printableArea" class="bg-white p-4 border border-slate-200 rounded-xl">
+                    <div class="text-center mb-6 pb-4 border-b border-slate-300">
+                        <h1 class="text-2xl font-extrabold uppercase tracking-wide text-slate-900">Planilla de Asistencia - Servicio de Sábado</h1>
+                        <p class="text-sm font-semibold text-slate-700 mt-1">Control de Estacionamiento Medido - Fecha: <span id="lblFechaPlanilla" class="text-sky-800 font-extrabold">--/--/----</span></p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse border border-slate-300">
+                            <thead>
+                                <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
+                                    <th class="p-2.5 border border-slate-300">Legajo</th>
+                                    <th class="p-2.5 border border-slate-300">Apellido y Nombre</th>
+                                    <th class="p-2.5 border border-slate-300">Condición</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Horario Asignado</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Estado / Novedad</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Inspector de Reemplazo</th>
+                                    <th class="p-2.5 border border-slate-300 text-center w-48">Firma del Inspector</th>
+                                    <th class="p-2.5 border border-slate-300 text-center no-print">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaSabadoPersonal" class="divide-y divide-slate-300 text-slate-800">
+                                <tr>
+                                    <td colspan="8" class="p-4 text-center text-slate-400">Seleccione una fecha de sábado para cargar la nómina.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pie de firma de supervisión en impresión -->
+                    <div class="mt-12 pt-8 flex justify-between items-center text-xs text-slate-700 font-bold">
+                        <div class="text-center border-t border-slate-400 w-64 pt-2">
+                            Firma y Aclaración Responsable Turno
+                        </div>
+                        <div class="text-center border-t border-slate-400 w-64 pt-2">
+                            Firma Director / Encargado General
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: LISTADO DE SÁBADOS (HISTORIAL) -->
+            <section id="listado-sabados" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-6xl mx-auto hidden no-print">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-sky-600"></i> Historial de Sábados Registrados
+                        </h2>
+                        <p class="text-xs text-slate-500">Consulte, modifique o reimprima las planillas de asistencia de sábados anteriores.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Fecha Sábado</th>
+                                <th class="p-3">Personal Asignado</th>
+                                <th class="p-3">Presentes</th>
+                                <th class="p-3">Ausentes / Cambios</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaHistorialSabados" class="divide-y divide-slate-200 text-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Modal Lightbox para Ampliar Imágenes -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-all duration-300 no-print" onclick="closeModal()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute -top-10 right-0 text-white hover:text-red-400 text-2xl font-bold transition-colors focus:outline-none">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="modalImg" src="" alt="Imagen Ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-slate-700">
+        </div>
+    </div>
+
+    <!-- Script de Inicialización de Firebase & Firestore (Módulo ES6) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, setDoc, getDocs, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
+            authDomain: "medido-i.firebaseapp.com",
+            projectId: "medido-i",
+            storageBucket: "medido-i.firebasestorage.app",
+            messagingSenderId: "17396988314",
+            appId: "1:17396988314:web:8332b473254e0f2cb92223",
+            measurementId: "G-DKDNGY5YS0"
+        };
+
+        const statusContainer = document.getElementById("firebase-status");
+        const statusDot = document.getElementById("firebase-status-dot");
+        const statusText = document.getElementById("firebase-status-text");
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            window.db = db;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.getDoc = getDoc;
+            window.deleteDoc = deleteDoc;
+            window.collection = collection;
+            window.getDocs = getDocs;
+
+            statusContainer.className = "bg-sky-900/80 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Firestore Conectado";
+
+            if (typeof window.cargarDatosIniciales === 'function') {
+                window.cargarDatosIniciales();
+            }
+        } catch (error) {
+            console.error("Error al inicializar Firebase/Firestore:", error);
+            statusContainer.className = "bg-sky-900/80 text-rose-300 border border-rose-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-400";
+            statusText.textContent = "Error de Conexión";
+        }
+    </script>
+
+    <!-- Script de Lógica del Módulo de Sábados -->
+    <script>
+        let inspectoresNomina = [];
+        let personalSabado = [];
+        let historialSabados = [];
+
+        async function cargarDatosIniciales() {
+            await obtenerInspectoresNomina();
+            await obtenerHistorialSabados();
+            
+            // Establecer por defecto la fecha del próximo sábado
+            const hoy = new Date();
+            const proximoSabado = new Date(hoy);
+            proximoSabado.setDate(hoy.getDate() + ((6 - hoy.getDay() + 7) % 7));
+            document.getElementById('fechaSabado').value = proximoSabado.toISOString().split('T')[0];
+            cargarPersonalObligatorioSabado();
+        }
+        window.cargarDatosIniciales = cargarDatosIniciales;
+
+        // Alternar Secciones del Menú
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-sky-500'));
+            const btnActivo = document.getElementById(`btn-${sectionId}`);
+            if (btnActivo) btnActivo.classList.add('bg-sky-500');
+
+            if (sectionId === 'listado-sabados') obtenerHistorialSabados();
+        }
+
+        // Obtener Inspectores desde Firebase (Módulo Inspectores)
+        async function obtenerInspectoresNomina() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "inspectores"));
+                inspectoresNomina = [];
+                querySnapshot.forEach((docSnap) => {
+                    inspectoresNomina.push(docSnap.data());
+                });
+                poblarSelectInspectores();
+            } catch (error) {
+                console.error("Error al obtener nómina de inspectores:", error);
+            }
+        }
+
+        function poblarSelectInspectores() {
+            const select = document.getElementById('selectAgregarInspector');
+            select.innerHTML = '<option value="">-- Seleccionar Inspector para agregar --</option>';
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            ordenados.forEach(ins => {
+                select.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (Legajo: ${ins.legajo})</option>`;
+            });
+        }
+
+        // Cargar personal obligados o recuperar registro del sábado seleccionado
+        async function cargarPersonalObligatorioSabado() {
+            const fechaVal = document.getElementById('fechaSabado').value;
+            if (!fechaVal) return;
+
+            document.getElementById('lblFechaPlanilla').textContent = fechaVal.split('-').reverse().join('/');
+            personalSabado = [];
+
+            // 1. Verificar si ya existe registro guardado en Firebase para esta fecha
+            try {
+                const docSnap = await window.getDoc(window.doc(window.db, "planillas_sabados", fechaVal));
+                if (docSnap.exists()) {
+                    personalSabado = docSnap.data().personal || [];
+                    renderizarTablaSabado();
+                    return;
+                }
+            } catch (error) {
+                console.error("Error al buscar planilla en Firebase:", error);
+            }
+
+            // 2. Si no existe registro, obtener horarios del mes para filtrar quienes tienen asignado trabajo en sábado
+            const [anio, mes, dia] = fechaVal.split('-');
+            const numeroDia = parseInt(dia);
+
+            for (const ins of inspectoresNomina) {
+                try {
+                    const idHorario = `${ins.legajo}_${parseInt(anio)}_${parseInt(mes)}`;
+                    const horarioDoc = await window.getDoc(window.doc(window.db, "horarios_mensuales", idHorario));
+
+                    if (horarioDoc.exists()) {
+                        const datosDias = horarioDoc.data().dias || {};
+                        const configDia = datosDias[numeroDia];
+
+                        if (configDia && configDia.tipoTurno !== 'Sin Turno') {
+                            let horaDetalle = `${configDia.ingresoManana || '08:00'} a ${configDia.egresoManana || '12:00'} hs`;
+                            if (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') {
+                                horaDetalle += ` / ${configDia.ingresoTarde} a ${configDia.egresoTarde} hs`;
+                            }
+
+                            personalSabado.push({
+                                legajo: ins.legajo,
+                                nombre: ins.nombre,
+                                condicion: 'Obligatorio',
+                                horario: horaDetalle,
+                                estado: 'Presente',
+                                reemplazoLegajo: ''
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error al verificar horario mensual:", err);
+                }
+            }
+
+            renderizarTablaSabado();
+        }
+
+        function agregarInspectorAdicional() {
+            const legajo = document.getElementById('selectAgregarInspector').value;
+            if (!legajo) {
+                alert('Seleccione un inspector de la nómina.');
+                return;
+            }
+
+            if (personalSabado.some(p => p.legajo === legajo)) {
+                alert('El inspector ya se encuentra asignado a la planilla de este sábado.');
+                return;
+            }
+
+            const ins = inspectoresNomina.find(i => i.legajo === legajo);
+            if (!ins) return;
+
+            personalSabado.push({
+                legajo: ins.legajo,
+                nombre: ins.nombre,
+                condición: 'Adicional / Voluntario',
+                horario: '08:00 a 12:00 hs',
+                estado: 'Presente',
+                reemplazoLegajo: ''
+            });
+
+            renderizarTablaSabado();
+            document.getElementById('selectAgregarInspector').value = '';
+        }
+
+        function renderizarTablaSabado() {
+            const tbody = document.getElementById('tablaSabadoPersonal');
+            tbody.innerHTML = '';
+
+            if (personalSabado.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">No hay personal asignado obligatoriamente para esta fecha. Puede agregar inspectores adicionales.</td></tr>`;
+                return;
+            }
+
+            personalSabado.forEach((p, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+
+                // Opciones de reemplazo
+                let selectReemplazoOptions = `<option value="">-- Sin Reemplazo --</option>`;
+                inspectoresNomina.forEach(ins => {
+                    if (ins.legajo !== p.legajo) {
+                        const sel = (p.reemplazoLegajo === ins.legajo) ? 'selected' : '';
+                        selectReemplazoOptions += `<option value="${ins.legajo}" ${sel}>${ins.nombre}</option>`;
+                    }
+                });
+
+                tr.innerHTML = `
+                    <td class="p-2.5 border border-slate-300 font-bold text-sky-800">${p.legajo}</td>
+                    <td class="p-2.5 border border-slate-300 font-bold">${p.nombre}</td>
+                    <td class="p-2.5 border border-slate-300"><span class="px-2 py-0.5 bg-sky-100 text-sky-900 rounded text-[10px] font-bold">${p.condicion || 'Obligatorio'}</span></td>
+                    <td class="p-2.5 border border-slate-300 text-center">
+                        <input type="text" value="${p.horario}" onchange="actualizarDatoPersonal(${idx}, 'horario', this.value)" class="w-full px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold">
+                    </td>
+                    <td class="p-2.5 border border-slate-300 text-center">
+                        <select onchange="actualizarDatoPersonal(${idx}, 'estado', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs font-bold">
+                            <option value="Presente" ${p.estado === 'Presente' ? 'selected' : ''}>Presente</option>
+                            <option value="Ausente" ${p.estado === 'Ausente' ? 'selected' : ''}>Ausente / Falto</option>
+                            <option value="Cambio / Reemplazo" ${p.estado === 'Cambio / Reemplazo' ? 'selected' : ''}>Cambio por Reemplazo</option>
+                            <option value="Justificado" ${p.estado === 'Justificado' ? 'selected' : ''}>Ausencia Justificada</option>
+                        </select>
+                    </td>
+                    <td class="p-2.5 border border-slate-300 text-center">
+                        <select onchange="actualizarDatoPersonal(${idx}, 'reemplazoLegajo', this.value)" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                            ${selectReemplazoOptions}
+                        </select>
+                    </td>
+                    <td class="p-2.5 border border-slate-300 text-center">
+                        <div class="h-8 border-b border-dashed border-slate-400"></div>
+                    </td>
+                    <td class="p-2.5 border border-slate-300 text-center no-print">
+                        <button onclick="quitarInspectorSabado(${idx})" class="text-rose-600 hover:text-rose-800 text-xs font-bold"><i class="fa-solid fa-trash"></i> Quitar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function actualizarDatoPersonal(idx, campo, valor) {
+            personalSabado[idx][campo] = valor;
+        }
+
+        function quitarInspectorSabado(idx) {
+            personalSabado.splice(idx, 1);
+            renderizarTablaSabado();
+        }
+
+        async function guardarSabadoFirebase() {
+            const fechaVal = document.getElementById('fechaSabado').value;
+            if (!fechaVal) return;
+
+            const datosGuardar = {
+                fecha: fechaVal,
+                totalPersonal: personalSabado.length,
+                presentes: personalSabado.filter(p => p.estado === 'Presente').length,
+                ausentes: personalSabado.filter(p => p.estado !== 'Presente').length,
+                personal: personalSabado
+            };
+
+            try {
+                await window.setDoc(window.doc(window.db, "planillas_sabados", fechaVal), datosGuardar);
+                alert("Planilla de sábado guardada con éxito en Firebase.");
+                obtenerHistorialSabados();
+            } catch (error) {
+                alert("Error al guardar en Firebase: " + error.message);
+            }
+        }
+
+        async function obtenerHistorialSabados() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "planillas_sabados"));
+                historialSabados = [];
+                querySnapshot.forEach((docSnap) => {
+                    historialSabados.push(docSnap.data());
+                });
+                renderizarHistorialSabados();
+            } catch (error) {
+                console.error("Error al obtener historial de sábados:", error);
+            }
+        }
+
+        function renderizarHistorialSabados() {
+            const tbody = document.getElementById('tablaHistorialSabados');
+            tbody.innerHTML = '';
+
+            if (historialSabados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay planillas de sábados guardadas.</td></tr>`;
+                return;
+            }
+
+            historialSabados.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+            historialSabados.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-sky-800">${s.fecha.split('-').reverse().join('/')}</td>
+                    <td class="p-3 font-bold">${s.totalPersonal} inspectores</td>
+                    <td class="p-3 text-emerald-700 font-bold">${s.presentes} presentes</td>
+                    <td class="p-3 text-rose-700 font-bold">${s.ausentes} nov.</td>
+                    <td class="p-3 text-center flex justify-center gap-2">
+                        <button onclick="cargarSabadoHistorial('${s.fecha}')" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded text-xs font-bold"><i class="fa-solid fa-pen-to-square"></i> Ver / Modificar</button>
+                        <button onclick="eliminarPlanillaSabado('${s.fecha}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function cargarSabadoHistorial(fecha) {
+            document.getElementById('fechaSabado').value = fecha;
+            cargarPersonalObligatorioSabado();
+            showSection('gestion-sabado');
+        }
+
+        async function eliminarPlanillaSabado(fecha) {
+            if (!confirm(`¿Está seguro de eliminar la planilla del sábado ${fecha}?`)) return;
+            try {
+                await window.deleteDoc(window.doc(window.db, "planillas_sabados", fecha));
+                await obtenerHistorialSabados();
+            } catch (error) {
+                alert("Error al eliminar: " + error.message);
+            }
+        }
+
+        function imprimirPlanillaSabado() {
+            window.print();
+        }
+
+        function openModal(imageSrc, altText) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = imageSrc;
+            modalImg.alt = altText;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

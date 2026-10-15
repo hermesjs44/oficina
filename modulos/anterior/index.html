@@ -1,0 +1,3562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control EM - Diseño Hermes Suares</title>
+    
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics-compat.js"></script>
+    
+    <!-- SheetJS (Para importar y exportar Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Tailwind CSS (Para el módulo de Zonas y Configuraciones) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
+
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .sidebar::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; display: flex; height: 100vh; overflow: hidden; }
+        
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(44, 62, 80, 0.96); z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            background: white; padding: 35px 30px; border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 360px; text-align: center;
+        }
+        .login-card h2 { margin-top: 0; color: #2c3e50; font-size: 20px; border-bottom: 2px solid #1abc9c; padding-bottom: 10px; margin-bottom: 20px; }
+        .login-card .form-group { text-align: left; margin-bottom: 15px; }
+        .login-card label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; font-size: 13px; }
+        .login-card input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .login-card button.btn-login { width: 100%; padding: 12px; background-color: #1abc9c; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 10px; }
+        .login-card button.btn-login:hover { background-color: #16a085; }
+        .login-request { margin-top: 20px; font-size: 13px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; }
+        .login-request a { color: #2980b9; text-decoration: none; font-weight: bold; cursor: pointer; }
+        .login-request a:hover { text-decoration: underline; }
+        .login-error { color: #e74c3c; font-size: 13px; margin-top: 10px; font-weight: bold; display: none; }
+
+        .sidebar { 
+            width: 260px; background-color: #2c3e50; color: white; 
+            display: flex; flex-direction: column; justify-content: space-between; 
+            padding-top: 15px; flex-shrink: 0; height: 100vh;
+        }
+        .sidebar-top { display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-bottom { padding-bottom: 10px; background-color: #243342; border-top: 1px solid #34495e; }
+        .sidebar h2 { text-align: center; font-size: 18px; margin-bottom: 10px; padding: 0 10px; }
+        
+        .logo-container { padding: 0 12px 15px 12px; display: flex; justify-content: center; align-items: center; }
+        .logo-container svg { width: 100%; height: auto; max-height: 90px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3)); }
+
+        .user-badge { background-color: #1a252f; padding: 10px 15px; margin: 15px 10px 5px 10px; border-radius: 6px; font-size: 12px; border-left: 4px solid #1abc9c; }
+        .user-badge strong { display: block; font-size: 13px; color: #1abc9c; word-break: break-all; }
+        .user-badge span { color: #bdc3c7; text-transform: uppercase; font-size: 10px; font-weight: bold; }
+        .btn-logout { background-color: #c0392b; color: white; border: none; padding: 6px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; margin-top: 8px; width: 100%; font-weight: bold; }
+        .btn-logout:hover { background-color: #e74c3c; }
+
+        .menu-item { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #34495e; transition: 0.3s; font-weight: bold; background-color: #243342; }
+        .menu-item:hover { background-color: #34495e; }
+        .submenu { display: none; background-color: #1a252f; }
+        .submenu-item { padding: 10px 20px 10px 35px; cursor: pointer; font-size: 14px; transition: 0.3s; border-bottom: 1px solid #243342; }
+        .submenu-item:hover { background-color: #34495e; color: #1abc9c; }
+        .submenu-subitem { padding-left: 50px; background-color: #111822; }
+
+        .content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .section { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .section.active { display: block; }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1abc9c;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .designer-screen-logo {
+            height: 32px;
+            width: 32px;
+            object-fit: contain;
+        }
+
+        h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #1abc9c; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #1abc9c; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #16a085; }
+        .btn-export { background-color: #e67e22; margin-bottom: 15px; }
+        .btn-export:hover { background-color: #d35400; }
+        .btn-warning { background-color: #f39c12; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 5px; }
+        .btn-warning:hover { background-color: #d68910; }
+        .btn-danger { background-color: #e74c3c; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
+        th { background-color: #2c3e50; color: white; }
+        
+        .controls-row { display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px; background: #ecf0f1; padding: 15px; border-radius: 6px; }
+        .controls-row .form-group { margin-bottom: 0; flex: 1; }
+        .card-extra { margin-top: 25px; padding: 15px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px; }
+
+        .badge-ausente { background-color: #e74c3c; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; margin-bottom: 4px; }
+        .badge-presente { background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; margin-bottom: 4px; }
+        .badge-activa { background-color: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-inactiva { background-color: #7f8c8d; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-obligatorio { background-color: #2980b9; color: white; padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+        .badge-voluntario { background-color: #8e44ad; color: white; padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+
+        /* Estilos para jerarquía en tabla de autorizaciones */
+        .tr-menu-principal { background-color: #eaedd0; font-weight: bold; }
+        .tr-submenu-item { background-color: #ffffff; }
+
+        /* Modal de edición de ausencias */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); z-index: 999999; display: none;
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; padding: 20px; border-radius: 8px; width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Toggle switch */
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #1abc9c; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        #carga-horarios .horarios-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 0.85fr 0.72fr 0.72fr 0.72fr 0.72fr 1fr 1fr 1fr;
+            gap: 8px;
+            align-items: end;
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        #carga-horarios .horarios-grid .form-group { margin-bottom: 0; min-width: 0; }
+        #carga-horarios .horarios-grid label { font-size: 12px; white-space: nowrap; margin-bottom: 4px; }
+        #carga-horarios .horarios-grid select,
+        #carga-horarios .horarios-grid input { width: 100%; min-width: 0; padding: 6px 5px; font-size: 12px; }
+        #carga-horarios .sabado-label { white-space: normal !important; line-height: 1.15; text-align: center; }
+        #carga-horarios .btn-guardar-horario { margin-top: 12px; }
+
+        @media (max-width: 1100px) {
+            #carga-horarios .horarios-grid { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            #carga-horarios .horarios-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY DE INICIO DE SESIÓN -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2>Acceso al Sistema - Diseño Hermes Suares</h2>
+            <form id="form-login-box" autocomplete="off" onsubmit="event.preventDefault(); iniciarSesion();">
+                <div class="form-group">
+                    <label>Usuario (Email)</label>
+                    <input type="text" id="login-usuario" placeholder="ejemplo@mail.com" autocomplete="off" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="btn-login">Ingresar</button>
+            </form>
+            <div id="login-error-msg" class="login-error">Usuario o contraseña incorrectos.</div>
+            
+            <div class="login-request">
+                ¿Nuevo usuario? <br>
+                <a onclick="solicitarAccesoMail()">Solicitar autorización al Diseñador</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENÚ LATERAL -->
+
+    </nav>    <div class="sidebar">
+        <div class="sidebar-top">
+            <div class="logo-container">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="100%" height="100%">
+                  <defs>
+                    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#0a1118"/>
+                      <stop offset="50%" stop-color="#121e2b"/>
+                      <stop offset="100%" stop-color="#1a2b3c"/>
+                    </linearGradient>
+                    <linearGradient id="primaryTeal" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#1abc9c"/>
+                      <stop offset="100%" stop-color="#2ecc71"/>
+                    </linearGradient>
+                    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#34495e"/>
+                      <stop offset="50%" stop-color="#1f2c38"/>
+                      <stop offset="100%" stop-color="#0d151d"/>
+                    </linearGradient>
+                    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#00f2fe"/>
+                      <stop offset="100%" stop-color="#4facfe"/>
+                    </linearGradient>
+                    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#bgGrad)" rx="12"/>
+                  <path d="M 0,40 L 500,40 M 0,80 L 500,80 M 0,120 L 500,120 M 0,160 L 500,160" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+                  <path d="M 100,0 L 100,200 M 200,0 L 200,200 M 300,0 L 300,200 M 400,0 L 400,200" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+                  <g transform="translate(20, 0)">
+                    <path d="M 100,30 L 155,50 C 155,115 130,155 100,170 C 70,155 45,115 45,50 Z" fill="url(#shieldGrad)" stroke="url(#primaryTeal)" stroke-width="3"/>
+                    <path d="M 100,38 L 147,55 C 147,110 125,145 100,158 C 75,145 53,110 53,55 Z" fill="none" stroke="url(#glowGrad)" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7"/>
+                    <path d="M 75,70 L 108,70 M 75,100 L 103,100 M 75,130 L 108,130 M 75,70 L 75,130" stroke="url(#glowGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlow)"/>
+                    <path d="M 98,130 L 98,70 L 116,102 L 134,70 L 134,130" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="130" cy="130" r="14" fill="#1abc9c" stroke="#121e2b" stroke-width="2"/>
+                    <path d="M 123,130 L 128,135 L 137,125" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </g>
+                  <text x="195" y="92" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="42" font-weight="900" letter-spacing="2" fill="#ffffff">
+                    CONTROL <tspan fill="url(#primaryTeal)">EM</tspan>
+                  </text>
+                  <rect x="195" y="106" width="270" height="3" rx="1.5" fill="url(#glowGrad)" filter="url(#neonGlow)"/>
+                  <text x="195" y="132" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="4" fill="#a0aec0">RECURSOS HUMANOS</text>
+                  <g transform="translate(195, 148)">
+                    <rect x="0" y="0" width="170" height="20" rx="10" fill="#1a2b3c" stroke="#1abc9c" stroke-width="0.8"/>
+                    <text x="85" y="14" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10" font-weight="600" letter-spacing="1" fill="#1abc9c" text-anchor="middle">DISEÑO HERMES SUARES</text>
+                  </g>
+                  <g transform="translate(372, 148)">
+                    <rect x="0" y="0" width="93" height="20" rx="10" fill="#1a2b3c" stroke="#00f2fe" stroke-width="0.8"/>
+                    <text x="46.5" y="14" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="0.5" fill="#00f2fe" text-anchor="middle">Version 1.01.01</text>
+                  </g>
+                </svg>
+   <!-- Navegación de Regreso -->
+    <nav class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <!-- Botón Volver al Hub Central -->
+                <a href="../../index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver 
+                </a>
+            </div>
+        </div>
+
+            </div>
+
+            <h2>Planilla de Personal - EM</h2>
+
+            <!-- MENÚ: GESTIÓN DE USUARIOS (SOLO DISEÑADOR) -->
+            <div id="menu-disenador" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-disenador')">Gestión de Usuarios ▾</div>
+            <div id="sub-disenador" class="submenu">
+                <div class="submenu-item" id="subitem-gestion-usuarios" onclick="showSection('gestion-usuarios')">Autorizar / Crear Usuarios</div>
+                <div class="submenu-item" id="subitem-autorizaciones-usuarios" onclick="showSection('autorizaciones-usuarios')">Autorizaciones Usuarios</div>
+                <div class="submenu-item" id="subitem-migrar-legacy" onclick="migrarHorariosLegacy()">Migrar Horarios Antiguos</div>
+                
+                <!-- SUBMENÚ CONFIGURACIONES DENTRO DE GESTIÓN DE USUARIOS -->
+                <div class="submenu-item" id="subitem-config-menu" onclick="toggleSubmenu('sub-configuraciones-menu')">Configuraciones ▾</div>
+                <div id="sub-configuraciones-menu" class="submenu">
+                    <div class="submenu-item submenu-subitem" id="subitem-horarios-disenador" onclick="showSection('carga-horarios')"> Horarios</div>
+                    <div class="submenu-item submenu-subitem" id="subitem-zonas-disenador" onclick="showSection('gestion-zonas')"> Zonas</div>
+                </div>
+            </div>
+
+            <!-- 1) MENÚ PRINCIPAL -->
+            <div id="menu-principal" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-principal')">Principal ▾</div>
+            <div id="sub-principal" class="submenu">
+                <div class="submenu-item" id="subitem-dashboard-diario" onclick="showSection('dashboard-diario')">Dashboard Diario Control del Día</div>
+                <div class="submenu-item" id="subitem-firmar-sabado" onclick="showSection('firmar-sabado')">para FIRMAR Sabado (Horas Extras)</div>
+                <div class="submenu-item" id="subitem-planilla-rendicion" onclick="showSection('planilla-rendicion')">Planilla de Rendición (Horas Extras)</div>
+            </div>
+
+            <!-- 2) MENÚ AUSENCIAS -->
+            <div id="menu-ausencias" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-ausencias')">Ausencias ▾</div>
+            <div id="sub-ausencias" class="submenu">
+                <div class="submenu-item" id="subitem-carga-permisos" onclick="showSection('carga-permisos')">Carga de Permisos</div>
+                <div class="submenu-item" id="subitem-carga-licencias" onclick="showSection('carga-licencias')">Carga de Licencias y Vacaciones</div>
+                <div class="submenu-item" id="subitem-gestion-feriados" onclick="showSection('gestion-feriados')">Gestión de Feriados</div>
+                <div class="submenu-item" id="subitem-carga-francos" onclick="showSection('carga-francos')">Carga de Francos</div>
+                <div class="submenu-item" id="subitem-carga-pausa" onclick="showSection('carga-pausa')">Carga de Pausa General</div>
+                <div class="submenu-item" id="subitem-listado-licencias" onclick="showSection('listado-licencias')">Listado de Licencias</div>
+                <div class="submenu-item" id="subitem-listado-permisos" onclick="showSection('listado-permisos')">Listado de Permisos</div>
+                <div class="submenu-item" id="subitem-listado-francos" onclick="showSection('listado-francos')">Listado de Francos</div>
+                <div class="submenu-item" id="subitem-listado-ausencias" onclick="showSection('listado-ausencias')">Listado de Todas las Ausencias</div>
+            </div>
+
+            <!-- 3) MENÚ INSPECTORES -->
+            <div id="menu-inspectores" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-inspectores-generales')">Inspectores ▾</div>
+            <div id="sub-inspectores-generales" class="submenu">
+                <div class="submenu-item" id="subitem-datos-personales" onclick="showSection('datos-personales')">Cargar / Modificar Inspector</div>
+                <div class="submenu-item item-importar" id="subitem-importar" onclick="showSection('importar')">Importar inspectores</div>
+                <div class="submenu-item" id="subitem-lista-inspectores" onclick="showSection('lista-inspectores')">Listado de inspectores</div>
+                <div class="submenu-item" id="subitem-listado-general" onclick="showSection('listado-general')">Listado General</div>
+            </div>
+
+            <!-- 4) MENÚ HORARIOS -->
+            <div id="menu-horarios" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-horarios-trabajo')">Horarios ▾</div>
+            <div id="sub-horarios-trabajo" class="submenu">
+                <div class="submenu-item" id="subitem-carga-horarios" onclick="showSection('carga-horarios')">Carga de Horarios</div>
+                <div class="submenu-item" id="subitem-lista-horarios" onclick="showSection('lista-horarios')">Listado de Horarios</div>
+                <div class="submenu-item" id="subitem-horario-dia-a-dia" onclick="showSection('horario-dia-a-dia')">Detalle Día a Día</div>
+		<!-- Enlace a una página en la raíz -->
+		<a href="/fotocopiadora/index.html">Ir a Fotocopiadora</a>
+
+            </div>
+
+            <!-- 5) MENÚ CONFIGURACIONES Y REPORTES -->
+            <div id="menu-configuraciones" class="menu-item" style="display:none;" onclick="toggleSubmenu('sub-configuraciones')">Configuraciones y Reportes ▾</div>
+            <div id="sub-configuraciones" class="submenu">
+                <div class="submenu-item" id="subitem-gestion-zonas" onclick="showSection('gestion-zonas')">Asignación y Configuración de Zonas</div>
+                <div class="submenu-item item-exportar" id="subitem-exportar-inspectores" onclick="exportarInspectores()">Exportar Inspectores (CSV)</div>
+                <div class="submenu-item item-exportar" id="subitem-exportar-horarios" onclick="exportarHorariosExcel()">Exportar Horarios (Excel)</div>
+                <div class="submenu-item item-exportar" id="subitem-exportar-permisos" onclick="exportarPermisosLicenciasExcel()">Exportar Permisos y Licencias (Excel)</div>
+            </div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="user-badge" id="user-badge-info">
+                Sesión: <strong id="lbl-usuario">-</strong>
+                Categoría: <span id="lbl-rol">-</span>
+                <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="content">
+
+        <!-- SECCIÓN: DASHBOARD DIARIO CONTROL DEL DÍA -->
+        <div id="dashboard-diario" class="section active">
+            <div class="section-header">
+                <h3>Dashboard Diario - Control del Día</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/logohermes.jpg" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Seleccionar Fecha de Consulta</label>
+                    <input type="date" id="dash-fecha" onchange="cargarDashboardDiario()">
+                </div>
+                <button onclick="cargarDashboardDiario()">Actualizar Control</button>
+            </div>
+
+            <table id="tabla-dashboard">
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Inspector</th>
+                        <th>Zona Asignada</th>
+                        <th>Horario de Trabajo</th>
+                        <th>Estado / Novedad</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: GESTIÓN DE USUARIOS -->
+        <div id="gestion-usuarios" class="section">
+            <div class="section-header">
+                <h3>Autorizar / Crear Nuevo Usuario (Solo Diseñador)</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="form-group"><label>Correo / Usuario</label><input type="email" id="usr-email" placeholder="usuario@gmail.com"></div>
+            <div class="form-group"><label>Contraseña</label><input type="password" id="usr-pass" placeholder="••••••••"></div>
+            <div class="form-group">
+                <label>Categoría / Rol</label>
+                <select id="usr-rol">
+                    <option value="Usuario">Usuario (Solo Planillas Horas Extras)</option>
+                    <option value="Administrador">Administrador (Sin importación/exportación)</option>
+                    <option value="Diseñador">Diseñador (Acceso total)</option>
+                </select>
+            </div>
+            <button onclick="guardarNuevoUsuario()">Autorizar Usuario</button>
+
+            <h4 style="margin-top: 30px;">Usuarios Registrados</h4>
+            <table id="tabla-usuarios">
+                <thead>
+                    <tr><th>Usuario</th><th>Categoría</th><th>Acciones</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: AUTORIZACIONES USUARIOS (EXCLUSIVO DISEÑADOR) -->
+        <div id="autorizaciones-usuarios" class="section">
+            <div class="section-header">
+                <h3>Autorizaciones y Permisos por Tipo de Usuario</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <p style="font-size: 13px; color: #7f8c8d;">Configure los permisos de acceso para todos los menús y submenús principales por cada rol.</p>
+
+            <div class="form-group" style="max-width: 320px; margin-bottom: 20px;">
+                <label>Seleccionar Tipo de Usuario / Rol</label>
+                <select id="permiso-rol-select" onchange="cargarMatrizPermisosRol()">
+                    <option value="Usuario">Usuario</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Diseñador">Diseñador</option>
+                </select>
+            </div>
+
+            <table id="tabla-permisos-rol">
+                <thead>
+                    <tr>
+                        <th>Menú / Submenú Módulo</th>
+                        <th>Identificador</th>
+                        <th style="text-align: center;">Permitido / Habilitado</th>
+                    </tr>
+                </thead>
+                <tbody id="body-permisos-rol">
+                    <!-- Carga dinámica -->
+                </tbody>
+            </table>
+
+            <button onclick="guardarConfiguracionPermisosRol()" style="margin-top: 20px;">Guardar Configuración de Permisos</button>
+        </div>
+
+        <!-- SECCIÓN: IMPORTAR -->
+        <div id="importar" class="section">
+            <div class="section-header">
+                <h3>Importar Inspectores desde Excel</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <p>El Excel debe tener columnas: Legajo, Apellido y Nombre, Direccion, Condicion, DNI, Telefono.</p>
+            <p><em>Nota: Si un inspector ya existe por nombre, sus datos serán unificados/actualizados conservando la mayor cantidad de información posible.</em></p>
+            <input type="file" id="fileExcel" accept=".xlsx, .xls, .csv">
+            <br><br>
+            <button onclick="importarExcel()">Cargar a Base de Datos</button>
+        </div>
+
+        <!-- SECCIÓN: LISTADO INSPECTORES -->
+        <div id="lista-inspectores" class="section">
+            <div class="section-header">
+                <h3>Listado de Inspectores (Alfabético)</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <table id="tabla-inspectores">
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>Condición</th>
+                        <th>DNI</th>
+                        <th>Teléfono</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: DATOS PERSONALES -->
+        <div id="datos-personales" class="section">
+            <div class="section-header">
+                <h3 id="form-inspector-titulo">Cargar / Modificar Inspector</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <input type="hidden" id="ins-id">
+            <div class="form-group"><label>Legajo</label><input type="text" id="ins-legajo"></div>
+            <div class="form-group"><label>Apellido y Nombre</label><input type="text" id="ins-nombre"></div>
+            <div class="form-group"><label>Dirección</label><input type="text" id="ins-direccion"></div>
+            <div class="form-group">
+                <label>Condición</label>
+                <select id="ins-condicion">
+                    <option value="P.P.">P.P.</option>
+                    <option value="Contrato">Contrato</option>
+                    <option value="P.E.L.">P.E.L.</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div class="form-group"><label>DNI/CUIT</label><input type="text" id="ins-dni"></div>
+            <div class="form-group"><label>Teléfono</label><input type="text" id="ins-telefono"></div>
+            <button onclick="guardarInspector()">Guardar Inspector</button>
+            <button type="button" onclick="limpiarFormularioInspector()" style="background-color: #7f8c8d; margin-left: 10px;">Cancelar / Nuevo</button>
+        </div>
+
+        <!-- SECCIÓN: CARGA DE PERMISOS -->
+        <div id="carga-permisos" class="section">
+            <div class="section-header">
+                <h3>Carga de Permisos</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="form-group"><label>Inspector</label><select class="select-inspectores" id="per-inspector"></select></div>
+            <div class="form-group"><label>Fecha</label><input type="date" id="per-fecha"></div>
+            <div class="form-group"><label>Hora Inicio</label><input type="time" id="per-h-inicio"></div>
+            <div class="form-group"><label>Hora Finalización</label><input type="time" id="per-h-fin"></div>
+            <div class="form-group"><label>Motivo</label><input type="text" id="per-motivo"></div>
+            <div class="form-group"><label>Autorizado por</label><input type="text" id="per-autorizado"></div>
+            <button onclick="guardarPermiso()">Registrar Permiso</button>
+        </div>
+
+        <!-- SECCIÓN: CARGA DE LICENCIAS Y VACACIONES -->
+        <div id="carga-licencias" class="section">
+            <div class="section-header">
+                <h3>Carga de Licencias y Vacaciones</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+
+            <!-- REGISTRO DE LICENCIA POR RANGO Y DÍAS HÁBILES -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+                <h4 style="margin-top:0; color:#2c3e50; border-bottom: 1px solid #1abc9c; padding-bottom: 5px;">Registrar Solicitud de Licencia / Vacaciones</h4>
+                
+                <div class="form-group">
+                    <label>Inspector / Personal</label>
+                    <select class="select-inspectores" id="lic-inspector" onchange="actualizarResumenVacacionesInspector()"></select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-group">
+                        <label>Año Correspondiente a la Licencia</label>
+                        <input type="number" id="lic-ano-corresponde" placeholder="Ej: 2024" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Desde (Inicio)</label>
+                        <input type="date" id="lic-fecha-desde" onchange="calcularDiasHabilesYRegreso()">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Hasta (Fin)</label>
+                        <input type="date" id="lic-fecha-hasta" onchange="calcularDiasHabilesYRegreso()">
+                    </div>
+                    <div class="form-group">
+                        <label>Días Hábiles Solicitados (Excluye Feriados)</label>
+                        <input type="number" id="lic-dias-habiles" readonly style="background-color: #f1f5f9; font-weight: bold;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label style="color: #d35400;">Próximo Día Hábil (Fecha de Reincorporación / Ingreso)</label>
+                        <input type="date" id="lic-fecha-ingreso" style="border: 2px solid #e67e22; font-weight: bold; background-color: #fffde7;">
+                        <small style="font-size: 11px; color: #7f8c8d;">Calculado omitiendo fines de semana y feriados cargados.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Días Pendientes de Licencia (Restantes)</label>
+                        <input type="number" id="lic-dias-pendientes" placeholder="Ej: 5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Motivo / Observaciones</label>
+                    <input type="text" id="lic-motivo" placeholder="Ej: Vacaciones anuales correspondientes al periodo 2024">
+                </div>
+                <div class="form-group">
+                    <label>Autorizado por</label>
+                    <input type="text" id="lic-autorizado" placeholder="Ej: Dirección de RRHH">
+                </div>
+
+                <button onclick="guardarLicencia()">Registrar Licencia</button>
+            </div>
+
+            <!-- CARGA INDIVIDUAL DE VACACIONES CORRESPONDIENTES POR AÑO -->
+            <div style="background: #f8f9fa; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px;">
+                <h4 style="margin-top:0; color:#2c3e50; border-bottom: 1px solid #3498db; padding-bottom: 5px;">Asignación Individual de Días de Vacaciones por Año</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Año de Asignación</label>
+                        <input type="number" id="vac-ano" placeholder="Ej: 2025" min="2000" max="2100">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Días Totales Otorgados</label>
+                        <input type="number" id="vac-dias-totales" placeholder="Ej: 14">
+                    </div>
+                    <div>
+                        <button type="button" onclick="guardarVacacionesAnualesInspector()" style="background-color: #2980b9; width: 100%;">Guardar Vacaciones Anuales</button>
+                    </div>
+                </div>
+
+                <div id="resumen-vacaciones-inspector" style="margin-top: 15px; font-size: 13px; color: #2c3e50; font-weight: bold;"></div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: GESTIÓN DE FERIADOS -->
+        <div id="gestion-feriados" class="section">
+            <div class="section-header">
+                <h3>Gestión de Días Feriados</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: #2c3e50;">Registrar Nuevo Feriado</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Fecha del Feriado</label>
+                        <input type="date" id="feriado-fecha">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Descripción / Motivo</label>
+                        <input type="text" id="feriado-descripcion" placeholder="Ej: Año Nuevo, Día de la Revolución">
+                    </div>
+                    <div>
+                        <button onclick="guardarFeriado()" style="background-color: #27ae60; width: 100%;">+ Agregar Feriado</button>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Feriados Registrados</h4>
+            <table id="tabla-feriados">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción / Motivo</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: CARGA DE FRANCOS -->
+        <div id="carga-francos" class="section">
+            <div class="section-header">
+                <h3>Carga de Francos</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="form-group"><label>Inspector</label><select class="select-inspectores" id="fra-inspector"></select></div>
+            <div class="form-group"><label>Fecha</label><input type="date" id="fra-fecha"></div>
+            <div class="form-group">
+                <label>Turno</label>
+                <select id="fra-turno">
+                    <option value="mañana">Mañana (195 min)</option>
+                    <option value="tarde">Tarde (155 min)</option>
+                    <option value="todo el dia">Todo el día (350 min)</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Autorizado por</label><input type="text" id="fra-autorizado"></div>
+            <button onclick="guardarFranco()">Registrar Franco</button>
+        </div>
+
+        <!-- SECCIÓN: PAUSA GENERAL -->
+        <div id="carga-pausa" class="section">
+            <div class="section-header">
+                <h3>Carga de Pausa General</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="form-group"><label>Fecha</label><input type="date" id="pau-fecha"></div>
+            <div class="form-group"><label>Hora Inicio</label><input type="time" id="pau-h-inicio"></div>
+            <div class="form-group"><label>Hora Finalización</label><input type="time" id="pau-h-fin"></div>
+            <div class="form-group"><label>Motivo</label><input type="text" id="pau-motivo"></div>
+            <div class="form-group"><label>Autorizado por</label><input type="text" id="pau-autorizado"></div>
+            <button onclick="guardarPausa()">Registrar Pausa General</button>
+        </div>
+
+        <!-- SECCIÓN: LISTADO DE LICENCIAS FILTRADO POR MES -->
+        <div id="listado-licencias" class="section">
+            <div class="section-header">
+                <h3>Listado de Licencias Registradas</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Seleccionar Mes / Año</label>
+                    <input type="month" id="filtro-mes-licencias" onchange="cargarListadoLicencias()">
+                </div>
+                <button onclick="cargarListadoLicencias()">Filtrar</button>
+                <button onclick="exportarLicenciasFiltradasExcel()" class="btn-export">Exportar Licencias del Mes (Excel)</button>
+            </div>
+            <div id="resumen-licencias-mes" class="card-extra" style="margin-bottom: 15px; margin-top: 0; padding: 10px 15px; font-weight: bold; color: #2c3e50;">
+                Total Licencias Registradas en el Mes: <span id="lbl-total-licencias">0</span>
+            </div>
+            <table id="tabla-licencias">
+                <thead>
+                    <tr>
+                        <th>Rango (Desde - Hasta)</th>
+                        <th>Inspector</th>
+                        <th>Motivo / Observación</th>
+                        <th>Días Hábiles / Año</th>
+                        <th>Fecha de Ingreso</th>
+                        <th>Autorizado por</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: LISTADO DE PERMISOS FILTRADO POR MES -->
+        <div id="listado-permisos" class="section">
+            <div class="section-header">
+                <h3>Listado de Permisos Filtrado por Mes</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Seleccionar Mes / Año</label>
+                    <input type="month" id="filtro-mes-permisos" onchange="cargarListadoPermisos()">
+                </div>
+                <button onclick="cargarListadoPermisos()">Filtrar</button>
+                <button onclick="exportarPermisosFiltradosExcel()" class="btn-export">Exportar Permisos del Mes (Excel)</button>
+            </div>
+            <div id="resumen-permisos-mes" class="card-extra" style="margin-bottom: 15px; margin-top: 0; padding: 10px 15px; font-weight: bold; color: #2c3e50;">
+                Total Permisos: <span id="lbl-cant-permisos">0</span> | Minutos Totales Concedidos: <span id="lbl-min-permisos">0</span> min
+            </div>
+            <table id="tabla-permisos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Inspector</th>
+                        <th>Horario / Motivo</th>
+                        <th>Autorizado por</th>
+                        <th>Duración / Descuento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: LISTADO DE FRANCOS FILTRADO POR MES -->
+        <div id="listado-francos" class="section">
+            <div class="section-header">
+                <h3>Listado de Francos Filtrado por Mes</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Seleccionar Mes / Año</label>
+                    <input type="month" id="filtro-mes-francos" onchange="cargarListadoFrancos()">
+                </div>
+                <button onclick="cargarListadoFrancos()">Filtrar</button>
+                <button onclick="exportarFrancosFiltradosExcel()" class="btn-export">Exportar Francos del Mes (Excel)</button>
+            </div>
+            <div id="resumen-francos-mes" class="card-extra" style="margin-bottom: 15px; margin-top: 0; padding: 10px 15px; font-weight: bold; color: #2c3e50;">
+                Total Francos Concedidos: <span id="lbl-cant-francos">0</span>
+            </div>
+            <table id="tabla-francos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Inspector</th>
+                        <th>Turno de Franco</th>
+                        <th>Autorizado por</th>
+                        <th>Equivalencia Descuento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: LISTADO DE TODAS LAS AUSENCIAS -->
+        <div id="listado-ausencias" class="section">
+            <div class="section-header">
+                <h3>Listado de Todas las Ausencias</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <table id="tabla-ausencias">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Inspector</th>
+                        <th>Tipo</th>
+                        <th>Motivo / Detalle</th>
+                        <th>Autorizado por</th>
+                        <th>Descuento (min)</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: LISTADO GENERAL -->
+        <div id="listado-general" class="section">
+            <div class="section-header">
+                <h3>Listado General de Movimientos</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <button onclick="exportarRegistros()" class="btn-export">Exportar Listado General a CSV</button>
+            <table id="tabla-registros">
+                <thead>
+                    <tr><th>Fecha</th><th>Inspector</th><th>Tipo</th><th>Motivo/Turno</th><th>Autorizado por</th><th>Descuento (min)</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: CONFIGURACIÓN Y CARGA DE HORARIOS DE TRABAJO -->
+        <div id="carga-horarios" class="section">
+            <div class="section-header">
+                <h3>Configuración y Asignación de Horarios de Trabajo</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <p style="font-size: 13px; color: #7f8c8d;">Configure los horarios de ingreso y salida para los turnos de mañana, tarde y días sábados (Inspectores y Personal Administrativo).</p>
+
+            <div class="horarios-grid">
+                <div class="form-group">
+                    <label>Tipo / Personal</label>
+                    <select class="select-inspectores" id="hor-inspector"></select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mes</label>
+                    <input type="month" id="hor-mes" onchange="actualizarSabados()">
+                </div>
+
+                <div class="form-group">
+                    <label>Ingreso M</label>
+                    <select id="hor-manana-ingreso">
+                        <option value="6:30">6:30</option>
+                        <option value="8:00">7:30</option>
+                        <option value="9:00">8:30</option>
+                        <option value="00:00">00:00</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Egreso M</label>
+                    <select id="hor-manana-egreso">
+                        <option value="11:15">11:30</option>
+                        <option value="12:15">12:30</option>
+                        <option value="13:30">13:30</option>
+                        <option value="10:30">10:30</option>
+                        <option value="00:00">00:00</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Ingreso T</label>
+                    <select id="hor-tarde-ingreso">
+                        <option value="15:15">15:00</option>
+                        <option value="16:15">16:00</option>
+                        <option value="17:15">17:00</option>
+                        <option value="13:00">13:00</option>
+                        <option value="00:00">00:00</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Egreso T</label>
+                    <select id="hor-tarde-egreso">
+                        <option value="17:45">18:00</option>
+                        <option value="18:45">19:00</option>
+                        <option value="19:45">20:00</option>
+                        <option value="00:00">00:00</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="sabado-label">1° sábado obligatorio</label>
+                    <select id="hor-sabado-1">
+                        <option value="">Seleccione el mes...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="sabado-label">2° sábado obligatorio</label>
+                    <select id="hor-sabado-2">
+                        <option value="">Seleccione el mes...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="sabado-label">3° sábado obligatorio</label>
+                    <select id="hor-sabado-3">
+                        <option value="">Seleccione el mes...</option>
+                        <option value="NO CORRESPONDE">No corresponde</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="btn-guardar-horario" onclick="guardarHorario()">Guardar Horario</button>
+        </div>
+
+        <!-- SECCIÓN: LISTADO DE HORARIOS -->
+        <div id="lista-horarios" class="section">
+            <div class="section-header">
+                <h3>Listado de Horarios de Trabajo</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+
+            <!-- CONTROLES DE FILTRADO -->
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Filtrar por Inspector</label>
+                    <select class="select-inspectores" id="filtro-horarios-inspector" onchange="cargarTablaHorarios()">
+                        <option value="">-- Todos los Inspectores --</option>
+                    </select>
+                </div>
+                <button onclick="cargarTablaHorarios()">Actualizar Listado</button>
+            </div>
+
+            <table id="tabla-horarios">
+                <thead>
+                    <tr>
+                        <th>Inspector / Personal</th>
+                        <th>Mes</th>
+                        <th>Ingreso M</th>
+                        <th>Egreso M</th>
+                        <th>Ingreso T</th>
+                        <th>Egreso T</th>
+                        <th>1° Sábado</th><th>2° Sábado</th><th>3° Sábado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: DETALLE DÍA A DÍA -->
+        <div id="horario-dia-a-dia" class="section">
+            <div class="section-header">
+                <h3>Modificación de Horarios Día a Día (Excepciones)</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Fecha Específica</label>
+                    <input type="date" id="ex-fecha" onchange="cargarDetalleDia()">
+                </div>
+                <div class="form-group">
+                    <label>Inspector / Personal</label>
+                    <select class="select-inspectores" id="ex-inspector" onchange="cargarDetalleDia()"></select>
+                </div>
+            </div>
+
+            <div id="ex-contenedor-edicion" style="display:none;" class="card-extra">
+                <h4 id="ex-titulo-inspector">Inspector: -</h4>
+                <p id="ex-origen-info" style="font-size: 13px; color: #7f8c8d;"></p>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>Ingreso M</label>
+                        <select id="ex-manana-ingreso">
+                            <option value="Sin Turno">Sin Turno</option>
+                            <option value="6:30">6:30</option>
+                            <option value="8:00">7:30</option>
+                            <option value="9:00">8:30</option>
+                            <option value="00:00">0:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>Egreso M</label>
+                        <select id="ex-manana-egreso">
+                            <option value="Sin Turno">Sin Turno</option>
+                            <option value="11:15">11:30</option>
+                            <option value="12:15">12:30</option>
+                            <option value="13:30">13:30</option>
+                            <option value="10:30">10:30</option>
+                           <option value="00:00">0:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>Ingreso T</label>
+                        <select id="ex-tarde-ingreso">
+                            <option value="Sin Turno">Sin Turno</option>
+                            <option value="13:00">13:00</option>
+                            <option value="15:15">15:00</option>
+                            <option value="16:15">16:00</option>
+                            <option value="17:15">17:00</option>
+                           <option value="00:00">0:00</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>Egreso T</label>
+                        <select id="ex-tarde-egreso">
+                            <option value="Sin Turno">Sin Turno</option>
+                            <option value="17:45">18:00</option>
+                            <option value="18:45">19:00</option>
+                            <option value="19:45">20:00</option>
+                            <option value="00:00">0:00</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="guardarExcepcionDiaria()">Guardar Cambio para este Día</button>
+                <button onclick="eliminarExcepcionDiaria()" id="btn-eliminar-ex" class="btn-danger" style="display:none; margin-left: 10px;">Restablecer Horario Base</button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: ASIGNACIÓN Y CONFIGURACIÓN DE ZONAS -->
+        <div id="gestion-zonas" class="section">
+            <div class="section-header">
+                <h3><i class="fas fa-map-marked-alt"></i> Configuración y Administración de Zonas</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">
+                <h4 style="margin-top: 0; font-size: 14px; color: var(--primary, #2c3e50);"><i class="fas fa-user-edit"></i> Asignar Esquema Semanal a Inspector</h4>
+                <form id="form-asignar-zona" onsubmit="event.preventDefault(); guardarAsignacionZona();">
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="font-size: 12px;">Seleccionar Inspector</label>
+                        <select id="zona-inspector-select" required>
+                            <option value="">Cargando inspectores...</option>
+                        </select>
+                    </div>
+                    
+                    <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px;">Zonas por Día de la Semana:</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Lunes</label>
+                            <select id="zona-lunes" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Martes</label>
+                            <select id="zona-martes" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Miércoles</label>
+                            <select id="zona-miercoles" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Jueves</label>
+                            <select id="zona-jueves" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Viernes</label>
+                            <select id="zona-viernes" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Sábado</label>
+                            <select id="zona-sabado" class="select-zona-dia"></select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 12px;">Domingo</label>
+                            <select id="zona-domingo" class="select-zona-dia"></select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Guardar Asignación Semanal</button>
+                </form>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0; font-size: 14px; color: var(--primary, #2c3e50);"><i class="fas fa-list"></i> Maestro de Zonas (Activar / Desactivar / Crear)</h4>
+                    <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="crearNuevaZona()"><i class="fas fa-plus"></i> + Crear Nueva Zona</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="tabla-maestro-zonas">
+                        <thead>
+                            <tr>
+                                <th>Nombre Zona</th>
+                                <th>Estado</th>
+                                <th>Activar / Desactivar</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="body-maestro-zonas">
+                            <!-- Se carga dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: PLANILLA PARA FIRMAR SÁBADO -->
+        <div id="firmar-sabado" class="section">
+            <div class="section-header">
+                <h3>Planilla para FIRMAR Sábado (Horas Extras)</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Fecha del Sábado</label>
+                    <input type="date" id="sab-fecha" onchange="cargarPlanillaSabado()">
+                </div>
+                <button onclick="cargarPlanillaSabado()">Buscar / Cargar Sábado</button>
+                <button type="button" onclick="guardarPlanillaSabado()">Guardar Planilla</button>
+                <button type="button" onclick="imprimirPlanillaSabado()" class="btn-export">Imprimir / Exportar PDF</button>
+            </div>
+            <div id="sab-estado" style="display:none; padding:10px 12px; margin:0 0 15px 0; border-radius:6px; font-weight:bold;"></div>
+
+            <table id="tabla-firmar-sabado">
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Apellido y Nombre</th>
+                        <th>Condición</th>
+                        <th>Citación</th>
+                        <th>Asistencia</th>
+                        <th>Hora Ingreso</th>
+                        <th>Hora Salida</th>
+                        <th style="text-align: center;">Firma</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="card-extra">
+                <h4>Agregar Inspector Voluntario (No Obligatorio)</h4>
+                <div style="display: flex; gap: 10px;">
+                    <select id="sab-inspector-extra" style="flex: 1; padding: 8px;">
+                        <option value="">Seleccionar inspector...</option>
+                    </select>
+                    <button onclick="agregarInspectorExtraSabado()">+ Agregar a la Planilla</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: PLANILLA DE RENDICIÓN -->
+        <div id="planilla-rendicion" class="section">
+            <div class="section-header">
+                <h3>Planilla de Rendición (Horas Extras)</h3>
+                <img src="https://raw.githubusercontent.com/hermesjs44/Em/main/icon.ico" class="designer-screen-logo" alt="Diseñador Logo">
+            </div>
+            <div class="controls-row">
+                <div class="form-group">
+                    <label>Fecha de Rendición</label>
+                    <input type="date" id="ren-fecha" onchange="cargarPlanillaRendicion()">
+                </div>
+                <button onclick="cargarPlanillaRendicion()">Buscar / Cargar Rendición</button>
+                <button onclick="guardarPlanillaRendicion()">Guardar Rendición</button>
+                <button onclick="imprimirPlanillaRendicion()" class="btn-export">Imprimir / Exportar PDF</button>
+            </div>
+
+            <div id="ren-resumen-alert" style="display:none; padding: 12px; margin-bottom: 15px; border-radius: 6px; font-weight: bold;"></div>
+
+            <table id="tabla-planilla-rendicion">
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Apellido y Nombre</th>
+                        <th>Condición</th>
+                        <th>Citación</th>
+                        <th>Asistencia</th>
+                        <th>Hora Ingreso</th>
+                        <th>Hora Salida</th>
+                        <th>Observación / Aclaración</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="card-extra">
+                <h4>Agregar Inspector a la Rendición</h4>
+                <div style="display: flex; gap: 10px;">
+                    <select id="ren-inspector-extra" style="flex: 1; padding: 8px;">
+                        <option value="">Seleccionar inspector...</option>
+                    </select>
+                    <button onclick="agregarInspectorExtraRendicion()">+ Agregar Inspector</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL DE EDICIÓN DE AUSENCIAS -->
+    <div id="modal-editar-ausencia" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Modificar Ausencia / Registro</h3>
+            <input type="hidden" id="edit-aus-id">
+            <div class="form-group">
+                <label>Inspector</label>
+                <select class="select-inspectores" id="edit-aus-inspector"></select>
+            </div>
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="edit-aus-fecha">
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="edit-aus-tipo">
+                    <option value="Permiso">Permiso</option>
+                    <option value="Licencia">Licencia</option>
+                    <option value="Franco">Franco</option>
+                    <option value="Pausa General">Pausa General</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Motivo / Detalle</label>
+                <input type="text" id="edit-aus-motivo">
+            </div>
+            <div class="form-group">
+                <label>Autorizado por</label>
+                <input type="text" id="edit-aus-autorizado">
+            </div>
+            <div class="form-group">
+                <label>Descuento (minutos)</label>
+                <input type="number" id="edit-aus-descuento">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="guardarEdicionAusencia()" style="flex: 1;">Guardar Cambios</button>
+                <button onclick="cerrarModalEditarAusencia()" style="background-color: #7f8c8d; flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCewWkbjV2cb0nxZNks87pnpi-0Mea1sOM",
+            authDomain: "estacionamiento-cb321.firebaseapp.com",
+            projectId: "estacionamiento-cb321",
+            storageBucket: "estacionamiento-cb321.firebasestorage.app",
+            messagingSenderId: "110366474251",
+            appId: "1:110366474251:web:a37c8e46072e9c9d70c70e",
+            measurementId: "G-990MBSQ4BJ"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const analytics = firebase.analytics();
+
+        const DESIGNER_EMAIL = "hermesjs44@gmail.com";
+        let usuarioActual = null;
+        let inspectoresZonasCache = new Map();
+        let asignacionesZonas = {};
+        let feriadosSet = new Set(); // Guardo de feriados en formato YYYY-MM-DD
+
+        // Lista de menús y submenús configurables para la matriz de permisos
+        const listaMenusPermisos = [
+            // Menú Gestión de Usuarios y sus submenús
+            { id: 'menu-disenador', subId: 'sub-disenador', nombre: 'Gestión de Usuarios (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-gestion-usuarios', subId: 'sub-disenador', nombre: '↪ Autorizar / Crear Usuarios', esPrincipal: false },
+            { id: 'subitem-autorizaciones-usuarios', subId: 'sub-disenador', nombre: '↪ Autorizaciones Usuarios', esPrincipal: false },
+            { id: 'subitem-migrar-legacy', subId: 'sub-disenador', nombre: '↪ Migrar Horarios Antiguos', esPrincipal: false },
+            { id: 'subitem-config-menu', subId: 'sub-disenador', nombre: '↪ Configuraciones (Submenú)', esPrincipal: false },
+            { id: 'subitem-horarios-disenador', subId: 'sub-configuraciones-menu', nombre: '  ↳ Horarios', esPrincipal: false },
+            { id: 'subitem-zonas-disenador', subId: 'sub-configuraciones-menu', nombre: '  ↳ Zonas', esPrincipal: false },
+
+            // Menú Principal y sus submenús
+            { id: 'menu-principal', subId: 'sub-principal', nombre: 'Principal (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-dashboard-diario', subId: 'sub-principal', nombre: '↪ Dashboard Diario Control del Día', esPrincipal: false },
+            { id: 'subitem-firmar-sabado', subId: 'sub-principal', nombre: '↪ para FIRMAR Sabado (Horas Extras)', esPrincipal: false },
+            { id: 'subitem-planilla-rendicion', subId: 'sub-principal', nombre: '↪ Planilla de Rendición (Horas Extras)', esPrincipal: false },
+
+            // Menú Ausencias y sus submenús
+            { id: 'menu-ausencias', subId: 'sub-ausencias', nombre: 'Ausencias (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-carga-permisos', subId: 'sub-ausencias', nombre: '↪ Carga de Permisos', esPrincipal: false },
+            { id: 'subitem-carga-licencias', subId: 'sub-ausencias', nombre: '↪ Carga de Licencias y Vacaciones', esPrincipal: false },
+            { id: 'subitem-gestion-feriados', subId: 'sub-ausencias', nombre: '↪ Gestión de Feriados', esPrincipal: false },
+            { id: 'subitem-carga-francos', subId: 'sub-ausencias', nombre: '↪ Carga de Francos', esPrincipal: false },
+            { id: 'subitem-carga-pausa', subId: 'sub-ausencias', nombre: '↪ Carga de Pausa General', esPrincipal: false },
+            { id: 'subitem-listado-licencias', subId: 'sub-ausencias', nombre: '↪ Listado de Licencias', esPrincipal: false },
+            { id: 'subitem-listado-permisos', subId: 'sub-ausencias', nombre: '↪ Listado de Permisos', esPrincipal: false },
+            { id: 'subitem-listado-francos', subId: 'sub-ausencias', nombre: '↪ Listado de Francos', esPrincipal: false },
+            { id: 'subitem-listado-ausencias', subId: 'sub-ausencias', nombre: '↪ Listado de Todas las Ausencias', esPrincipal: false },
+
+            // Menú Inspectores y sus submenús
+            { id: 'menu-inspectores', subId: 'sub-inspectores-generales', nombre: 'Inspectores (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-datos-personales', subId: 'sub-inspectores-generales', nombre: '↪ Cargar / Modificar Inspector', esPrincipal: false },
+            { id: 'subitem-importar', subId: 'sub-inspectores-generales', nombre: '↪ Importar inspectores', esPrincipal: false },
+            { id: 'subitem-lista-inspectores', subId: 'sub-inspectores-generales', nombre: '↪ Listado de inspectores', esPrincipal: false },
+            { id: 'subitem-listado-general', subId: 'sub-inspectores-generales', nombre: '↪ Listado General', esPrincipal: false },
+
+            // Menú Horarios y sus submenús
+            { id: 'menu-horarios', subId: 'sub-horarios-trabajo', nombre: 'Horarios (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-carga-horarios', subId: 'sub-horarios-trabajo', nombre: '↪ Carga de Horarios', esPrincipal: false },
+            { id: 'subitem-lista-horarios', subId: 'sub-horarios-trabajo', nombre: '↪ Listado de Horarios', esPrincipal: false },
+            { id: 'subitem-horario-dia-a-dia', subId: 'sub-horarios-trabajo', nombre: '↪ Detalle Día a Día', esPrincipal: false },
+
+            // Menú Configuraciones y Reportes y sus submenús
+            { id: 'menu-configuraciones', subId: 'sub-configuraciones', nombre: 'Configuraciones y Reportes (Menú Principal)', esPrincipal: true },
+            { id: 'subitem-gestion-zonas', subId: 'sub-configuraciones', nombre: '↪ Asignación y Configuración de Zonas', esPrincipal: false },
+            { id: 'subitem-exportar-inspectores', subId: 'sub-configuraciones', nombre: '↪ Exportar Inspectores (CSV)', esPrincipal: false },
+            { id: 'subitem-exportar-horarios', subId: 'sub-configuraciones', nombre: '↪ Exportar Horarios (Excel)', esPrincipal: false },
+            { id: 'subitem-exportar-permisos', subId: 'sub-configuraciones', nombre: '↪ Exportar Permisos y Licencias (Excel)', esPrincipal: false }
+        ];
+
+        let permisosRoles = JSON.parse(localStorage.getItem('permisos_roles_app')) || {};
+
+        // Arreglo maestro de zonas predeterminadas y activas
+        const zonasDefault = [
+            "Zona 1", "Zona 2", "Zona 3", "Zona 4", "Zona 5", "Zona 6", 
+            "Zona 7", "Zona 8", "Zona 9", "Zona 10", "Zona 11", "Zona 12", 
+            "Zona An", "Zona As", "Zona 1112", "Zona 56"
+        ].map(nombre => ({ nombre, activa: true }));
+
+        let zonas = JSON.parse(localStorage.getItem('zonas_app')) || zonasDefault;
+
+        // Variables de estado para Sábado
+        let listaInspectoresSabado = [];
+        let inspectoresTodosLista = [];
+
+        // 1) Al cargar la página
+        window.addEventListener('load', () => {
+            sessionStorage.clear();
+            const formLogin = document.getElementById('form-login-box');
+            if (formLogin) formLogin.reset();
+            verificarSesionAlCargar();
+        });
+
+        // 2) Limpiar sesión al cerrar o recargar
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.clear();
+        });
+
+        // ==========================================
+        // MÓDULO: AUTORIZACIONES Y MATRIZ DE PERMISOS (SOLO DISEÑADOR)
+        // ==========================================
+        async function cargarMatrizPermisosRol() {
+            if (!usuarioActual || usuarioActual.rol !== 'Diseñador') {
+                return alert("Acceso restringido únicamente al Diseñador.");
+            }
+
+            const rol = document.getElementById('permiso-rol-select').value;
+            const tbody = document.getElementById('body-permisos-rol');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            try {
+                const docSnap = await db.collection("configuracion_permisos").doc(rol).get();
+                if (docSnap.exists) {
+                    permisosRoles[rol] = docSnap.data().permisos || {};
+                }
+            } catch (err) {
+                console.warn("Cargando permisos desde estado local:", err);
+            }
+
+            const configRol = permisosRoles[rol] || {};
+
+            listaMenusPermisos.forEach(m => {
+                const permitido = configRol[m.id] !== undefined ? configRol[m.id] : true;
+                const tr = document.createElement('tr');
+                tr.className = m.esPrincipal ? 'tr-menu-principal' : 'tr-submenu-item';
+                tr.innerHTML = `
+                    <td>${m.nombre}</td>
+                    <td><code>#${m.id}</code></td>
+                    <td style="text-align: center;">
+                        <label class="switch">
+                            <input type="checkbox" data-menuid="${m.id}" ${permitido ? 'checked' : ''}>
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function guardarConfiguracionPermisosRol() {
+            if (!usuarioActual || usuarioActual.rol !== 'Diseñador') {
+                return alert("Acceso restringido únicamente al Diseñador.");
+            }
+
+            const rol = document.getElementById('permiso-rol-select').value;
+            const inputs = document.querySelectorAll('#body-permisos-rol input[type="checkbox"]');
+            
+            if (!permisosRoles[rol]) permisosRoles[rol] = {};
+
+            inputs.forEach(input => {
+                const menuId = input.getAttribute('data-menuid');
+                permisosRoles[rol][menuId] = input.checked;
+            });
+
+            localStorage.setItem('permisos_roles_app', JSON.stringify(permisosRoles));
+
+            try {
+                await db.collection("configuracion_permisos").doc(rol).set({
+                    rol: rol,
+                    permisos: permisosRoles[rol],
+                    actualizadoPor: usuarioActual.usuario,
+                    actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                alert(`Permisos para la categoría "${rol}" guardados correctamente.`);
+            } catch (err) {
+                console.error("Error al guardar permisos en Firebase:", err);
+                alert("Permisos guardados localmente. Error al sincronizar en base de datos.");
+            }
+            
+            if (usuarioActual) aplicarPermisos(usuarioActual);
+        }
+
+        // ==========================================
+        // MÓDULO: GESTIÓN Y POBLADO DE ZONAS
+        // ==========================================
+        function poblarSelectsZonasSemanales() {
+            const selects = document.querySelectorAll('.select-zona-dia');
+            if (!selects.length) return;
+            
+            const zonasActivas = (typeof zonas !== 'undefined' && Array.isArray(zonas)) 
+                ? zonas.filter(z => z.activa) 
+                : [];
+            
+            let opcionesHTML = `<option value="">-- Sin Zona / Franco --</option>`;
+            zonasActivas.forEach(z => {
+                opcionesHTML += `<option value="${z.nombre}">${z.nombre}</option>`;
+            });
+
+            selects.forEach(select => {
+                const valorPrevio = select.value;
+                select.innerHTML = opcionesHTML;
+                if (valorPrevio) {
+                    select.value = valorPrevio;
+                }
+            });
+        }
+
+        function renderTablaZonas() {
+            const tbody = document.getElementById('body-maestro-zonas');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            zonas.forEach((z, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${z.nombre}</strong></td>
+                    <td>
+                        <span class="${z.activa ? 'badge-activa' : 'badge-inactiva'}">
+                            ${z.activa ? 'ACTIVADA' : 'DESACTIVADA'}
+                        </span>
+                    </td>
+                    <td>
+                        <label class="switch">
+                            <input type="checkbox" ${z.activa ? 'checked' : ''} onchange="toggleEstadoZona(${index})">
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn-warning" onclick="modificarNombreZona(${index})">Modificar</button>
+                        <button class="btn-danger" onclick="eliminarZona(${index})">Eliminar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            poblarSelectsZonasSemanales();
+        }
+
+        function toggleEstadoZona(index) {
+            zonas[index].activa = !zonas[index].activa;
+            guardarZonasStorage();
+            renderTablaZonas();
+        }
+
+        function crearNuevaZona() {
+            const nombre = prompt("Ingrese el nombre de la nueva zona:");
+            if (nombre && nombre.trim() !== "") {
+                const existe = zonas.some(z => z.nombre.toLowerCase() === nombre.trim().toLowerCase());
+                if (existe) {
+                    return alert("Ya existe una zona con ese nombre.");
+                }
+                zonas.push({ nombre: nombre.trim(), activa: true });
+                guardarZonasStorage();
+                renderTablaZonas();
+                alert("Zona creada correctamente.");
+            }
+        }
+
+        function modificarNombreZona(index) {
+            const nuevoNombre = prompt("Ingrese el nuevo nombre para la zona:", zonas[index].nombre);
+            if (nuevoNombre && nuevoNombre.trim() !== "") {
+                zonas[index].nombre = nuevoNombre.trim();
+                guardarZonasStorage();
+                renderTablaZonas();
+                alert("Zona modificada con éxito.");
+            }
+        }
+
+        function eliminarZona(index) {
+            if (confirm(`¿Desea eliminar la zona "${zonas[index].nombre}"?`)) {
+                zonas.splice(index, 1);
+                guardarZonasStorage();
+                renderTablaZonas();
+            }
+        }
+
+        function guardarZonasStorage() {
+            localStorage.setItem('zonas_app', JSON.stringify(zonas));
+        }
+
+        function inicializarEventosZonas() {
+            const inspectorSelect = document.getElementById('zona-inspector-select');
+            if (inspectorSelect) {
+                inspectorSelect.addEventListener('change', function() {
+                    const inspectorId = parseInt(this.value) || this.value;
+                    poblarSelectsZonasSemanales();
+                    
+                    if (!inspectorId || typeof asignacionesZonas === 'undefined') return;
+                    
+                    const asignacion = asignacionesZonas[inspectorId];
+                    if (asignacion) {
+                        const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+                        dias.forEach(dia => {
+                            const select = document.getElementById(`zona-${dia}`);
+                            if (select) {
+                                select.value = asignacion[dia] || "";
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        function guardarAsignacionZona() {
+            const inspectorSelect = document.getElementById('zona-inspector-select');
+            const inspectorVal = inspectorSelect ? inspectorSelect.value : "";
+            if (!inspectorVal) return alert("Seleccione un inspector.");
+
+            const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            const asignacion = {};
+            dias.forEach(dia => {
+                const select = document.getElementById(`zona-${dia}`);
+                if (select) asignacion[dia] = select.value;
+            });
+
+            asignacionesZonas[inspectorVal] = asignacion;
+            alert("Asignación semanal guardada con éxito.");
+        }
+
+        // ==========================================
+        // CONTROL DE SESIÓN Y PERMISOS
+        // ==========================================
+        function solicitarAccesoMail() {
+            const subject = encodeURIComponent("Solicitud de Nuevo Usuario - Sistema RRHH");
+            const body = encodeURIComponent("Hola Diseñador,\n\nSolicito la creación y autorización de un nuevo usuario para ingresar a la Planilla de Recursos Humanos.\n\nDatos de mi solicitud:\n- Usuario deseado (email):\n- Nombre completo:\n- Razón / Función:\n\nGracias.");
+            window.location.href = `mailto:${DESIGNER_EMAIL}?subject=${subject}&body=${body}`;
+        }
+
+        async function iniciarSesion() {
+            const userIn = document.getElementById('login-usuario').value.trim().toLowerCase();
+            const passIn = document.getElementById('login-password').value.trim();
+            const errBox = document.getElementById('login-error-msg');
+            errBox.style.display = 'none';
+
+            if (!userIn || !passIn) {
+                errBox.innerText = "Por favor complete usuario y contraseña.";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                if (userIn === DESIGNER_EMAIL && (passIn === 'admin123' || passIn === 'diseñador123' || passIn === 'disenador123')) {
+                    const userData = { usuario: DESIGNER_EMAIL, rol: 'Diseñador' };
+                    guardarSesionLocal(userData);
+                    await aplicarPermisos(userData);
+                    limpiarInputsLogin();
+                    return;
+                }
+
+                const querySnap = await db.collection("usuarios")
+                    .where("usuario", "==", userIn)
+                    .where("password", "==", passIn)
+                    .get();
+
+                if (!querySnap.empty) {
+                    const uDoc = querySnap.docs[0].data();
+                    const userData = { usuario: uDoc.usuario, rol: uDoc.rol || 'Usuario' };
+                    guardarSesionLocal(userData);
+                    await aplicarPermisos(userData);
+                    limpiarInputsLogin();
+                } else {
+                    errBox.innerText = "Usuario o contraseña incorrectos, o no está autorizado.";
+                    errBox.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Error al iniciar sesión:", err);
+                errBox.innerText = "Error al conectar con la base de datos de seguridad.";
+                errBox.style.display = 'block';
+            }
+        }
+
+        function limpiarInputsLogin() {
+            const formLogin = document.getElementById('form-login-box');
+            if (formLogin) formLogin.reset();
+            document.getElementById('login-usuario').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        function guardarSesionLocal(userData) {
+            sessionStorage.setItem("rrhh_user", JSON.stringify(userData));
+        }
+
+        async function verificarSesionAlCargar() {
+            const saved = sessionStorage.getItem("rrhh_user");
+            if (saved) {
+                try {
+                    const userData = JSON.parse(saved);
+                    await aplicarPermisos(userData);
+                } catch(e) {
+                    cerrarSesion();
+                }
+            } else {
+                document.getElementById('login-overlay').style.display = 'flex';
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.clear();
+            usuarioActual = null;
+            limpiarInputsLogin();
+            document.getElementById('login-overlay').style.display = 'flex';
+        }
+
+        async function aplicarPermisos(userData) {
+            usuarioActual = userData;
+            document.getElementById('login-overlay').style.display = 'none';
+
+            document.getElementById('lbl-usuario').innerText = userData.usuario;
+            document.getElementById('lbl-rol').innerText = userData.rol;
+
+            const rol = userData.rol;
+
+            // Cargar la última matriz de permisos configurada desde la BD
+            try {
+                const docPerm = await db.collection("configuracion_permisos").doc(rol).get();
+                if (docPerm.exists) {
+                    permisosRoles[rol] = docPerm.data().permisos || {};
+                }
+            } catch (err) {
+                console.warn("Uso de permisos locales predeterminados:", err);
+            }
+
+            const configRol = permisosRoles[rol] || {};
+
+            listaMenusPermisos.forEach(m => {
+                const el = document.getElementById(m.id);
+                if (el) el.style.display = 'none';
+            });
+
+            listaMenusPermisos.forEach(m => {
+                const el = document.getElementById(m.id);
+                if (!el) return;
+
+                let permitido = configRol[m.id];
+
+                // Reglas por defecto si no están explícitamente configuradas
+                if (permitido === undefined) {
+                    if (rol === 'Diseñador') {
+                        permitido = true;
+                    } else if (rol === 'Administrador') {
+                        permitido = (m.id !== 'menu-disenador' && !m.id.startsWith('subitem-exportar') && m.id !== 'subitem-importar' && m.id !== 'subitem-migrar-legacy');
+                    } else if (rol === 'Usuario') {
+                        permitido = (m.id === 'menu-principal' || m.id === 'subitem-dashboard-diario' || m.id === 'subitem-firmar-sabado' || m.id === 'subitem-planilla-rendicion');
+                    }
+                }
+
+                // Restricción dura: La gestión de usuarios siempre requiere ser Diseñador
+                if ((m.id === 'menu-disenador' || m.id === 'subitem-gestion-usuarios' || m.id === 'subitem-autorizaciones-usuarios') && rol !== 'Diseñador') {
+                    permitido = false;
+                }
+
+                if (permitido) {
+                    el.style.display = 'block';
+                }
+            });
+
+            if (rol === 'Administrador') {
+                document.querySelectorAll('.item-importar, .item-exportar, .btn-export').forEach(el => el.style.display = 'none');
+            } else {
+                document.querySelectorAll('.item-importar, .item-exportar, .btn-export').forEach(el => el.style.display = '');
+            }
+
+            showSection('dashboard-diario');
+        }
+
+        // ==========================================
+        // MIGRACIÓN DE HORARIOS
+        // ==========================================
+        async function migrarHorariosLegacy() {
+            if (!usuarioActual || usuarioActual.rol !== 'Diseñador') return alert("Acceso denegado.");
+            try {
+                const q = await db.collection("horarios").where("turnoManana", "==", "8:10 a 11:20").get();
+                if (q.empty) {
+                    alert("No se encontraron horarios desactualizados '8:10 a 11:20'.");
+                    return;
+                }
+                const batch = db.batch();
+                q.forEach(docSnap => {
+                    batch.update(docSnap.ref, { turnoManana: "8:00 a 11:20" });
+                });
+                await batch.commit();
+                alert(`Se actualizaron ${q.size} horarios exitosamente.`);
+            } catch (err) {
+                console.error(err);
+                alert("Error durante la migración de horarios.");
+            }
+        }
+
+        // ==========================================
+        // GESTIÓN DE USUARIOS
+        // ==========================================
+        async function guardarNuevoUsuario() {
+            if (!usuarioActual || usuarioActual.rol !== 'Diseñador') return alert("Acceso restringido al Diseñador.");
+
+            const email = document.getElementById('usr-email').value.trim().toLowerCase();
+            const pass = document.getElementById('usr-pass').value.trim();
+            const rol = document.getElementById('usr-rol').value;
+
+            if (!email || !pass) return alert("Ingresa email y contraseña para el nuevo usuario.");
+
+            try {
+                await db.collection("usuarios").doc(email).set({
+                    usuario: email,
+                    password: pass,
+                    rol: rol,
+                    autorizadoPor: usuarioActual.usuario,
+                    fechaAlta: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert(`Usuario ${email} autorizado correctamente con el rol "${rol}".`);
+                document.getElementById('usr-email').value = '';
+                document.getElementById('usr-pass').value = '';
+                cargarTablaUsuarios();
+            } catch (err) {
+                console.error("Error al guardar usuario:", err);
+                alert("Error al guardar el usuario.");
+            }
+        }
+
+        function cargarTablaUsuarios() {
+            if (!usuarioActual || usuarioActual.rol !== 'Diseñador') return;
+
+            const tbody = document.querySelector("#tabla-usuarios tbody");
+            tbody.innerHTML = "";
+
+            db.collection("usuarios").get().then((snap) => {
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${d.usuario}</td>
+                            <td><strong>${d.rol}</strong></td>
+                            <td>
+                                <button class="btn-danger" onclick="eliminarUsuario('${doc.id}')">Eliminar</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        function eliminarUsuario(id) {
+            if (confirm(`¿Desea revocar el acceso y eliminar al usuario ${id}?`)) {
+                db.collection("usuarios").doc(id).delete().then(() => {
+                    alert("Usuario eliminado.");
+                    cargarTablaUsuarios();
+                });
+            }
+        }
+
+        // ==========================================
+        // NAVEGACIÓN Y VISTAS
+        // ==========================================
+        function toggleSubmenu(id) {
+            let submenu = document.getElementById(id);
+            if (submenu) {
+                submenu.style.display = submenu.style.display === "block" ? "none" : "block";
+            }
+        }
+
+        function showSection(id) {
+            if (usuarioActual) {
+                if ((id === 'gestion-usuarios' || id === 'autorizaciones-usuarios') && usuarioActual.rol !== 'Diseñador') {
+                    id = 'dashboard-diario';
+                }
+                if (usuarioActual.rol === 'Administrador' && id === 'importar') {
+                    id = 'dashboard-diario';
+                }
+            }
+
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            const targetSec = document.getElementById(id);
+            if (targetSec) targetSec.classList.add('active');
+            
+            if (id === 'gestion-usuarios') cargarTablaUsuarios();
+            if (id === 'autorizaciones-usuarios') cargarMatrizPermisosRol();
+            if (id === 'lista-inspectores') cargarTablaInspectores();
+            if (id === 'listado-ausencias') cargarTablaAusencias();
+            if (id === 'listado-licencias') inicializarFiltroLicencias();
+            if (id === 'listado-permisos') inicializarFiltroPermisos();
+            if (id === 'listado-francos') inicializarFiltroFrancos();
+            if (id === 'listado-general') cargarTablaRegistros();
+            if (id === 'gestion-feriados') cargarTablaFeriados();
+            if (id === 'lista-horarios') {
+                llenarSelectInspectores();
+                cargarTablaHorarios();
+            }
+            if (id === 'firmar-sabado') inicializarFechaSabado();
+            if (id === 'planilla-rendicion') inicializarFechaRendicion();
+
+            if (id === 'gestion-zonas') {
+                llenarSelectInspectores();
+                renderTablaZonas();
+                inicializarEventosZonas();
+            }
+
+            if (id === 'dashboard-diario') {
+                inicializarDashboard();
+            }
+
+            if (id === 'horario-dia-a-dia') {
+                llenarSelectInspectores();
+                const inputFecha = document.getElementById('ex-fecha');
+                if (!inputFecha.value) {
+                    let hoy = new Date();
+                    let yyyy = hoy.getFullYear();
+                    let mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                    let dd = String(hoy.getDate()).padStart(2, '0');
+                    inputFecha.value = `${yyyy}-${mm}-${dd}`;
+                }
+                cargarDetalleDia();
+            }
+
+            if (['carga-permisos', 'carga-licencias', 'carga-francos', 'carga-horarios'].includes(id)) {
+                llenarSelectInspectores();
+                if (id === 'carga-licencias') cargarFeriadosCache();
+                if (id === 'carga-horarios') inicializarMesYHorarios();
+            }
+        }
+
+        // ==========================================
+        // GESTIÓN DE INSPECTORES
+        // ==========================================
+        function guardarInspector() {
+            const id = document.getElementById('ins-id').value;
+            const data = {
+                legajo: document.getElementById('ins-legajo').value.trim(),
+                nombre: document.getElementById('ins-nombre').value.trim(),
+                direccion: document.getElementById('ins-direccion').value.trim(),
+                condicion: document.getElementById('ins-condicion').value,
+                dni: document.getElementById('ins-dni').value.trim(),
+                telefono: document.getElementById('ins-telefono').value.trim()
+            };
+
+            if (!data.nombre) return alert("Por favor ingresa al menos el Apellido y Nombre.");
+
+            if (id) {
+                db.collection("inspectores").doc(id).set(data, { merge: true }).then(() => {
+                    alert("Inspector actualizado correctamente");
+                    limpiarFormularioInspector();
+                    showSection('lista-inspectores');
+                }).catch(error => alert("Error al actualizar el inspector."));
+            } else {
+                db.collection("inspectores").add(data).then(() => {
+                    alert("Inspector guardado correctamente");
+                    limpiarFormularioInspector();
+                }).catch(error => alert("Error al guardar."));
+            }
+        }
+
+        function cargarInspectorParaEditar(id) {
+            db.collection("inspectores").doc(id).get().then((doc) => {
+                if (doc.exists) {
+                    let d = doc.data();
+                    document.getElementById('ins-id').value = id;
+                    document.getElementById('ins-legajo').value = d.legajo || '';
+                    document.getElementById('ins-nombre').value = d.nombre || '';
+                    document.getElementById('ins-direccion').value = d.direccion || '';
+                    document.getElementById('ins-condicion').value = d.condicion || d.estado || 'P.P.';
+                    document.getElementById('ins-dni').value = d.dni || '';
+                    document.getElementById('ins-telefono').value = d.telefono || '';
+                    showSection('datos-personales');
+                }
+            });
+        }
+
+        function limpiarFormularioInspector() {
+            document.getElementById('ins-id').value = '';
+            document.querySelectorAll('#datos-personales input').forEach(input => input.value = '');
+            document.getElementById('ins-condicion').value = 'P.P.';
+        }
+
+        function cargarTablaInspectores() {
+            const tbody = document.querySelector("#tabla-inspectores tbody");
+            tbody.innerHTML = "";
+            db.collection("inspectores").orderBy("nombre", "asc").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    let d = doc.data();
+                    let id = doc.id;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${d.legajo || ''}</td>
+                            <td>${d.nombre || ''}</td>
+                            <td>${d.direccion || ''}</td>
+                            <td>${d.condicion || d.estado || ''}</td>
+                            <td>${d.dni || ''}</td>
+                            <td>${d.telefono || ''}</td>
+                            <td>
+                                <button class="btn-warning" onclick="cargarInspectorParaEditar('${id}')">Modificar</button>
+                                <button class="btn-danger" onclick="eliminarInspector('${id}', '${(d.nombre || '').replace(/'/g, "\\'")}')">Eliminar</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        function eliminarInspector(id, nombre) {
+            if (confirm(`¿Estás seguro de que deseas eliminar al inspector "${nombre}"?`)) {
+                db.collection("inspectores").doc(id).delete().then(() => {
+                    alert("Inspector eliminado correctamente.");
+                    cargarTablaInspectores();
+                });
+            }
+        }
+
+        function llenarSelectInspectores() {
+            const selects = document.querySelectorAll('.select-inspectores, #zona-inspector-select');
+            inspectoresZonasCache.clear();
+            db.collection("inspectores").orderBy("nombre", "asc").get().then((querySnapshot) => {
+                let options = "<option value=''>-- Seleccionar Inspector / Personal --</option>";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    inspectoresZonasCache.set(doc.id, { id: doc.id, ...data });
+                    inspectoresZonasCache.set(data.nombre, { id: doc.id, ...data });
+                    options += `<option value="${data.nombre}">${data.nombre}</option>`;
+                });
+                selects.forEach(select => {
+                    const valPrevio = select.value;
+                    if (select.id === 'filtro-horarios-inspector') {
+                        select.innerHTML = "<option value=''>-- Todos los Inspectores --</option>" + options.replace("<option value=''>-- Seleccionar Inspector / Personal --</option>", "");
+                    } else {
+                        select.innerHTML = options;
+                    }
+                    if (valPrevio) select.value = valPrevio;
+                });
+            });
+        }
+
+        // ==========================================
+        // GESTIÓN Y CACHÉ DE FERIADOS
+        // ==========================================
+        async function cargarFeriadosCache() {
+            feriadosSet.clear();
+            try {
+                const snap = await db.collection("feriados").get();
+                snap.forEach(doc => {
+                    feriadosSet.add(doc.data().fecha);
+                });
+            } catch (err) {
+                console.error("Error cargando feriados:", err);
+            }
+        }
+
+        async function guardarFeriado() {
+            const fecha = document.getElementById('feriado-fecha').value;
+            const descripcion = document.getElementById('feriado-descripcion').value.trim();
+
+            if (!fecha || !descripcion) {
+                return alert("Por favor complete la fecha y descripción del feriado.");
+            }
+
+            try {
+                await db.collection("feriados").doc(fecha).set({
+                    fecha,
+                    descripcion,
+                    creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("Feriado guardado correctamente.");
+                document.getElementById('feriado-fecha').value = "";
+                document.getElementById('feriado-descripcion').value = "";
+                cargarTablaFeriados();
+                cargarFeriadosCache();
+            } catch (err) {
+                console.error("Error al guardar feriado:", err);
+                alert("Error al registrar el feriado.");
+            }
+        }
+
+        async function cargarTablaFeriados() {
+            const tbody = document.querySelector("#tabla-feriados tbody");
+            tbody.innerHTML = "<tr><td colspan='3'>Cargando feriados...</td></tr>";
+
+            try {
+                const snap = await db.collection("feriados").orderBy("fecha", "asc").get();
+                tbody.innerHTML = "";
+                if (snap.empty) {
+                    tbody.innerHTML = "<tr><td colspan='3'>No hay feriados registrados.</td></tr>";
+                    return;
+                }
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${d.fecha}</strong></td>
+                            <td>${d.descripcion}</td>
+                            <td>
+                                <button class="btn-danger" onclick="eliminarFeriado('${d.fecha}')">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error al obtener feriados:", err);
+            }
+        }
+
+        async function eliminarFeriado(fecha) {
+            if (confirm(`¿Desea eliminar el feriado del ${fecha}?`)) {
+                try {
+                    await db.collection("feriados").doc(fecha).delete();
+                    cargarTablaFeriados();
+                    cargarFeriadosCache();
+                } catch (err) {
+                    console.error("Error al eliminar feriado:", err);
+                }
+            }
+        }
+
+        // ==========================================
+        // CÁLCULO DE DÍAS HÁBILES Y PRÓXIMO DÍA HÁBIL
+        // ==========================================
+        function esDiaHabil(fecha) {
+            const diaSemana = fecha.getDay(); // 0: Domingo, 6: Sábado
+            if (diaSemana === 0 || diaSemana === 6) return false;
+
+            const yyyy = fecha.getFullYear();
+            const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dd = String(fecha.getDate()).padStart(2, '0');
+            const fechaStr = `${yyyy}-${mm}-${dd}`;
+
+            return !feriadosSet.has(fechaStr);
+        }
+
+        function obtenerProximoDiaHabil(fechaBase) {
+            let fecha = new Date(fechaBase);
+            fecha.setDate(fecha.getDate() + 1);
+            while (!esDiaHabil(fecha)) {
+                fecha.setDate(fecha.getDate() + 1);
+            }
+            return fecha;
+        }
+
+        async function calcularDiasHabilesYRegreso() {
+            if (feriadosSet.size === 0) {
+                await cargarFeriadosCache();
+            }
+
+            const fDesdeStr = document.getElementById('lic-fecha-desde').value;
+            const fHastaStr = document.getElementById('lic-fecha-hasta').value;
+
+            if (!fDesdeStr || !fHastaStr) return;
+
+            const [y1, m1, d1] = fDesdeStr.split('-').map(Number);
+            const [y2, m2, d2] = fHastaStr.split('-').map(Number);
+
+            let fechaInicio = new Date(y1, m1 - 1, d1);
+            let fechaFin = new Date(y2, m2 - 1, d2);
+
+            if (fechaFin < fechaInicio) {
+                alert("La fecha hasta no puede ser anterior a la fecha desde.");
+                document.getElementById('lic-fecha-hasta').value = fDesdeStr;
+                fechaFin = new Date(fechaInicio);
+            }
+
+            let contadorDiasHabiles = 0;
+            let fechaAux = new Date(fechaInicio);
+
+            while (fechaAux <= fechaFin) {
+                if (esDiaHabil(fechaAux)) {
+                    contadorDiasHabiles++;
+                }
+                fechaAux.setDate(fechaAux.getDate() + 1);
+            }
+
+            document.getElementById('lic-dias-habiles').value = contadorDiasHabiles;
+
+            const proxDiaHabil = obtenerProximoDiaHabil(fechaFin);
+            const yyyy = proxDiaHabil.getFullYear();
+            const mm = String(proxDiaHabil.getMonth() + 1).padStart(2, '0');
+            const dd = String(proxDiaHabil.getDate()).padStart(2, '0');
+
+            document.getElementById('lic-fecha-ingreso').value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // ==========================================
+        // GESTIÓN DE VACACIONES ANUALES INDIVIDUALES
+        // ==========================================
+        async function guardarVacacionesAnualesInspector() {
+            const inspector = document.getElementById('lic-inspector').value;
+            const ano = document.getElementById('vac-ano').value;
+            const diasTotales = parseInt(document.getElementById('vac-dias-totales').value, 10);
+
+            if (!inspector || !ano || isNaN(diasTotales) || diasTotales <= 0) {
+                return alert("Seleccione un inspector, ingrese el año y la cantidad de días otorgados.");
+            }
+
+            const docId = `${ano}_${inspector}`;
+
+            try {
+                await db.collection("vacaciones_anuales").doc(docId).set({
+                    inspector,
+                    ano: parseInt(ano, 10),
+                    diasOtorgados: diasTotales,
+                    actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                alert(`Se asignaron ${diasTotales} días de vacaciones a ${inspector} para el año ${ano}.`);
+                actualizarResumenVacacionesInspector();
+            } catch (err) {
+                console.error("Error al guardar asignación:", err);
+                alert("Error al guardar la asignación de vacaciones.");
+            }
+        }
+
+        async function actualizarResumenVacacionesInspector() {
+            const inspector = document.getElementById('lic-inspector').value;
+            const divResumen = document.getElementById('resumen-vacaciones-inspector');
+            if (!divResumen) return;
+
+            if (!inspector) {
+                divResumen.innerText = "";
+                return;
+            }
+
+            try {
+                const snap = await db.collection("vacaciones_anuales").where("inspector", "==", inspector).get();
+                if (snap.empty) {
+                    divResumen.innerText = `No hay vacaciones anuales asignadas para ${inspector}.`;
+                    return;
+                }
+
+                let texto = `Vacaciones Asignadas para ${inspector}: `;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    texto += `[Año ${d.ano}: ${d.diasOtorgados} días] `;
+                });
+                divResumen.innerText = texto;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // ==========================================
+        // GESTIÓN DE PERMISOS, LICENCIAS Y FRANCOS
+        // ==========================================
+        function guardarPermiso() {
+            const inspector = document.getElementById('per-inspector').value;
+            const fecha = document.getElementById('per-fecha').value;
+            const hInicio = document.getElementById('per-h-inicio').value;
+            const hFin = document.getElementById('per-h-fin').value;
+            const motivo = document.getElementById('per-motivo').value;
+            const autorizado = document.getElementById('per-autorizado').value;
+
+            if (!inspector || !fecha || !hInicio || !hFin) return alert("Complete campos obligatorios.");
+
+            let minDescuento = 0;
+            try {
+                const [h1, m1] = hInicio.split(':').map(Number);
+                const [h2, m2] = hFin.split(':').map(Number);
+                minDescuento = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (minDescuento < 0) minDescuento += 24 * 60;
+            } catch(e) { minDescuento = 0; }
+
+            const data = {
+                inspector, fecha, tipo: 'Permiso',
+                motivo: `${motivo} (${hInicio} a ${hFin})`,
+                autorizado, descuentoMinutos: minDescuento,
+                creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("registros").add(data).then(() => {
+                alert("Permiso registrado.");
+                showSection('listado-permisos');
+            });
+        }
+
+        async function guardarLicencia() {
+            const inspector = document.getElementById('lic-inspector').value;
+            const fechaDesde = document.getElementById('lic-fecha-desde').value;
+            const fechaHasta = document.getElementById('lic-fecha-hasta').value;
+            const diasHabiles = parseInt(document.getElementById('lic-dias-habiles').value, 10) || 0;
+            const fechaIngreso = document.getElementById('lic-fecha-ingreso').value;
+            const anoCorresponde = document.getElementById('lic-ano-corresponde').value;
+            const diasPendientes = document.getElementById('lic-dias-pendientes').value;
+            const motivo = document.getElementById('lic-motivo').value;
+            const autorizado = document.getElementById('lic-autorizado').value;
+
+            if (!inspector || !fechaDesde || !fechaHasta) {
+                return alert("Complete los campos obligatorios: Inspector, Fecha Desde y Fecha Hasta.");
+            }
+
+            const data = {
+                inspector,
+                fecha: fechaDesde,
+                fechaDesde,
+                fechaHasta,
+                diasHabiles,
+                fechaIngresoConfirmada: fechaIngreso,
+                anoCorrespondiente: anoCorresponde || '-',
+                diasPendientes: diasPendientes !== "" ? parseInt(diasPendientes, 10) : '-',
+                tipo: 'Licencia',
+                motivo: `${motivo || 'Licencia/Vacaciones'} (${diasHabiles} días hábiles - Corresponde Año ${anoCorresponde || '-'}) - Regreso: ${fechaIngreso}`,
+                autorizado,
+                descuentoMinutos: diasHabiles * 350,
+                creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection("registros").add(data);
+                alert("Licencia registrada correctamente.");
+                showSection('listado-licencias');
+            } catch (err) {
+                console.error("Error al registrar licencia:", err);
+                alert("Error al registrar la licencia.");
+            }
+        }
+
+        function guardarFranco() {
+            const inspector = document.getElementById('fra-inspector').value;
+            const fecha = document.getElementById('fra-fecha').value;
+            const turno = document.getElementById('fra-turno').value;
+            const autorizado = document.getElementById('fra-autorizado').value;
+
+            if (!inspector || !fecha) return alert("Seleccione inspector y fecha.");
+
+            let minDescuento = 350;
+            if (turno === 'mañana') minDescuento = 195;
+            if (turno === 'tarde') minDescuento = 155;
+
+            const data = {
+                inspector, fecha, tipo: 'Franco',
+                motivo: `Turno ${turno}`,
+                autorizado, descuentoMinutos: minDescuento,
+                creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("registros").add(data).then(() => {
+                alert("Franco registrado.");
+                showSection('listado-francos');
+            });
+        }
+
+        function guardarPausa() {
+            const fecha = document.getElementById('pau-fecha').value;
+            const hInicio = document.getElementById('pau-h-inicio').value;
+            const hFin = document.getElementById('pau-h-fin').value;
+            const motivo = document.getElementById('pau-motivo').value;
+            const autorizado = document.getElementById('pau-autorizado').value;
+
+            if (!fecha || !hInicio || !hFin) return alert("Complete los campos obligatorios.");
+
+            let minDescuento = 0;
+            try {
+                const [h1, m1] = hInicio.split(':').map(Number);
+                const [h2, m2] = hFin.split(':').map(Number);
+                minDescuento = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (minDescuento < 0) minDescuento += 24 * 60;
+            } catch(e) { minDescuento = 0; }
+
+            const data = {
+                inspector: 'TODOS (Pausa General)',
+                fecha, tipo: 'Pausa General',
+                motivo: `${motivo} (${hInicio} a ${hFin})`,
+                autorizado, descuentoMinutos: minDescuento,
+                creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("registros").add(data).then(() => {
+                alert("Pausa general registrada.");
+                showSection('listado-ausencias');
+            });
+        }
+
+        // ==========================================
+        // VISTAS Y FILTROS ESPECÍFICOS DE AUSENCIAS
+        // ==========================================
+        function obtenerMesActualInput() {
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            return `${yyyy}-${mm}`;
+        }
+
+        function inicializarFiltroLicencias() {
+            const input = document.getElementById('filtro-mes-licencias');
+            if (!input.value) input.value = obtenerMesActualInput();
+            cargarListadoLicencias();
+        }
+
+        function inicializarFiltroPermisos() {
+            const input = document.getElementById('filtro-mes-permisos');
+            if (!input.value) input.value = obtenerMesActualInput();
+            cargarListadoPermisos();
+        }
+
+        function inicializarFiltroFrancos() {
+            const input = document.getElementById('filtro-mes-francos');
+            if (!input.value) input.value = obtenerMesActualInput();
+            cargarListadoFrancos();
+        }
+
+        async function cargarListadoLicencias() {
+            const mesVal = document.getElementById('filtro-mes-licencias').value;
+            if (!mesVal) return;
+
+            const tbody = document.querySelector("#tabla-licencias tbody");
+            tbody.innerHTML = "<tr><td colspan='7'>Cargando licencias...</td></tr>";
+
+            try {
+                const snap = await db.collection("registros")
+                    .where("tipo", "==", "Licencia")
+                    .orderBy("fecha", "desc")
+                    .get();
+
+                tbody.innerHTML = "";
+                let cantidad = 0;
+
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    if (d.fecha && d.fecha.startsWith(mesVal)) {
+                        cantidad++;
+                        const rangoFechas = d.fechaDesde && d.fechaHasta ? `${d.fechaDesde} al ${d.fechaHasta}` : (d.fecha || '-');
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${rangoFechas}</td>
+                                <td><strong>${d.inspector || ''}</strong></td>
+                                <td>${d.motivo || '-'}</td>
+                                <td>Año ${d.anoCorrespondiente || '-'} (${d.diasHabiles || 1} d. hábiles)</td>
+                                <td><strong>${d.fechaIngresoConfirmada || '-'}</strong></td>
+                                <td>${d.autorizado || '-'}</td>
+                                <td>
+                                    <button class="btn-warning" onclick="abrirModalEditarAusencia('${doc.id}')">Modificar</button>
+                                    <button class="btn-danger" onclick="eliminarAusencia('${doc.id}')">Eliminar</button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+
+                document.getElementById('lbl-total-licencias').innerText = cantidad;
+                if (cantidad === 0) {
+                    tbody.innerHTML = "<tr><td colspan='7'>No se encontraron licencias registradas en el mes seleccionado.</td></tr>";
+                }
+            } catch (err) {
+                console.error("Error al cargar licencias:", err);
+                tbody.innerHTML = "<tr><td colspan='7'>Error al cargar datos.</td></tr>";
+            }
+        }
+
+        async function cargarListadoPermisos() {
+            const mesVal = document.getElementById('filtro-mes-permisos').value;
+            if (!mesVal) return;
+
+            const tbody = document.querySelector("#tabla-permisos tbody");
+            tbody.innerHTML = "<tr><td colspan='6'>Cargando permisos...</td></tr>";
+
+            try {
+                const snap = await db.collection("registros")
+                    .where("tipo", "==", "Permiso")
+                    .orderBy("fecha", "desc")
+                    .get();
+
+                tbody.innerHTML = "";
+                let cantidad = 0;
+                let totalMinutos = 0;
+
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    if (d.fecha && d.fecha.startsWith(mesVal)) {
+                        cantidad++;
+                        let min = d.descuentoMinutos || 0;
+                        totalMinutos += min;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${d.fecha || ''}</td>
+                                <td><strong>${d.inspector || ''}</strong></td>
+                                <td>${d.motivo || '-'}</td>
+                                <td>${d.autorizado || '-'}</td>
+                                <td>${min} min</td>
+                                <td>
+                                    <button class="btn-warning" onclick="abrirModalEditarAusencia('${doc.id}')">Modificar</button>
+                                    <button class="btn-danger" onclick="eliminarAusencia('${doc.id}')">Eliminar</button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+
+                document.getElementById('lbl-cant-permisos').innerText = cantidad;
+                document.getElementById('lbl-min-permisos').innerText = totalMinutos;
+                if (cantidad === 0) {
+                    tbody.innerHTML = "<tr><td colspan='6'>No se encontraron permisos registrados en el mes seleccionado.</td></tr>";
+                }
+            } catch (err) {
+                console.error("Error al cargar permisos:", err);
+                tbody.innerHTML = "<tr><td colspan='6'>Error al cargar datos.</td></tr>";
+            }
+        }
+
+        async function cargarListadoFrancos() {
+            const mesVal = document.getElementById('filtro-mes-francos').value;
+            if (!mesVal) return;
+
+            const tbody = document.querySelector("#tabla-francos tbody");
+            tbody.innerHTML = "<tr><td colspan='6'>Cargando francos...</td></tr>";
+
+            try {
+                const snap = await db.collection("registros")
+                    .where("tipo", "==", "Franco")
+                    .orderBy("fecha", "desc")
+                    .get();
+
+                tbody.innerHTML = "";
+                let cantidad = 0;
+
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    if (d.fecha && d.fecha.startsWith(mesVal)) {
+                        cantidad++;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${d.fecha || ''}</td>
+                                <td><strong>${d.inspector || ''}</strong></td>
+                                <td>${d.motivo || '-'}</td>
+                                <td>${d.autorizado || '-'}</td>
+                                <td>${d.descuentoMinutos || 0} min</td>
+                                <td>
+                                    <button class="btn-warning" onclick="abrirModalEditarAusencia('${doc.id}')">Modificar</button>
+                                    <button class="btn-danger" onclick="eliminarAusencia('${doc.id}')">Eliminar</button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+
+                document.getElementById('lbl-cant-francos').innerText = cantidad;
+                if (cantidad === 0) {
+                    tbody.innerHTML = "<tr><td colspan='6'>No se encontraron francos registrados en el mes seleccionado.</td></tr>";
+                }
+            } catch (err) {
+                console.error("Error al cargar francos:", err);
+                tbody.innerHTML = "<tr><td colspan='6'>Error al cargar datos.</td></tr>";
+            }
+        }
+
+        // ==========================================
+        // EXPORTACIONES ESPECÍFICAS POR TIPO
+        // ==========================================
+        async function exportarLicenciasFiltradasExcel() {
+            const mesVal = document.getElementById('filtro-mes-licencias').value;
+            if (!mesVal) return alert("Seleccione un mes.");
+
+            const snap = await db.collection("registros").where("tipo", "==", "Licencia").orderBy("fecha", "desc").get();
+            const excelData = [];
+
+            snap.forEach((doc) => {
+                let d = doc.data();
+                if (d.fecha && d.fecha.startsWith(mesVal)) {
+                    excelData.push({
+                        "Rango Fechas": d.fechaDesde && d.fechaHasta ? `${d.fechaDesde} al ${d.fechaHasta}` : (d.fecha || '-'),
+                        "Inspector": d.inspector || '-',
+                        "Motivo": d.motivo || '-',
+                        "Año Correspondiente": d.anoCorrespondiente || '-',
+                        "Días Hábiles": d.diasHabiles || 1,
+                        "Fecha de Ingreso": d.fechaIngresoConfirmada || '-',
+                        "Autorizado Por": d.autorizado || '-'
+                    });
+                }
+            });
+
+            if (excelData.length === 0) return alert("No hay licencias registradas para el mes seleccionado.");
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Licencias");
+            XLSX.writeFile(workbook, `Licencias_${mesVal}.xlsx`);
+        }
+
+        async function exportarPermisosFiltradosExcel() {
+            const mesVal = document.getElementById('filtro-mes-permisos').value;
+            if (!mesVal) return alert("Seleccione un mes.");
+
+            const snap = await db.collection("registros").where("tipo", "==", "Permiso").orderBy("fecha", "desc").get();
+            const excelData = [];
+
+            snap.forEach((doc) => {
+                let d = doc.data();
+                if (d.fecha && d.fecha.startsWith(mesVal)) {
+                    excelData.push({
+                        "Fecha": d.fecha || '-',
+                        "Inspector": d.inspector || '-',
+                        "Detalle / Horario": d.motivo || '-',
+                        "Autorizado Por": d.autorizado || '-',
+                        "Duración (Minutos)": d.descuentoMinutos || 0
+                    });
+                }
+            });
+
+            if (excelData.length === 0) return alert("No hay permisos registrados para el mes seleccionado.");
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Permisos");
+            XLSX.writeFile(workbook, `Permisos_${mesVal}.xlsx`);
+        }
+
+        async function exportarFrancosFiltradosExcel() {
+            const mesVal = document.getElementById('filtro-mes-francos').value;
+            if (!mesVal) return alert("Seleccione un mes.");
+
+            const snap = await db.collection("registros").where("tipo", "==", "Franco").orderBy("fecha", "desc").get();
+            const excelData = [];
+
+            snap.forEach((doc) => {
+                let d = doc.data();
+                if (d.fecha && d.fecha.startsWith(mesVal)) {
+                    excelData.push({
+                        "Fecha": d.fecha || '-',
+                        "Inspector": d.inspector || '-',
+                        "Turno": d.motivo || '-',
+                        "Autorizado Por": d.autorizado || '-',
+                        "Equivalencia (Minutos)": d.descuentoMinutos || 0
+                    });
+                }
+            });
+
+            if (excelData.length === 0) return alert("No hay francos registrados para el mes seleccionado.");
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Francos");
+            XLSX.writeFile(workbook, `Francos_${mesVal}.xlsx`);
+        }
+
+        function cargarTablaAusencias() {
+            const tbody = document.querySelector("#tabla-ausencias tbody");
+            tbody.innerHTML = "";
+            db.collection("registros").orderBy("fecha", "desc").get().then((snap) => {
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    let id = doc.id;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${d.fecha || ''}</td>
+                            <td><strong>${d.inspector || ''}</strong></td>
+                            <td>${d.tipo || ''}</td>
+                            <td>${d.motivo || ''}</td>
+                            <td>${d.autorizado || ''}</td>
+                            <td>${d.descuentoMinutos || 0} min</td>
+                            <td>
+                                <button class="btn-warning" onclick="abrirModalEditarAusencia('${id}')">Modificar</button>
+                                <button class="btn-danger" onclick="eliminarAusencia('${id}')">Eliminar</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        function eliminarAusencia(id) {
+            if (confirm("¿Estás seguro de que deseas eliminar este registro de ausencia?")) {
+                db.collection("registros").doc(id).delete().then(() => {
+                    alert("Ausencia eliminada correctamente.");
+                    if (document.getElementById('listado-licencias').classList.contains('active')) cargarListadoLicencias();
+                    else if (document.getElementById('listado-permisos').classList.contains('active')) cargarListadoPermisos();
+                    else if (document.getElementById('listado-francos').classList.contains('active')) cargarListadoFrancos();
+                    else cargarTablaAusencias();
+                }).catch(err => alert("Error al eliminar la ausencia."));
+            }
+        }
+
+        function abrirModalEditarAusencia(id) {
+            db.collection("registros").doc(id).get().then(doc => {
+                if (doc.exists) {
+                    const d = doc.data();
+                    document.getElementById('edit-aus-id').value = id;
+                    document.getElementById('edit-aus-fecha').value = d.fecha || '';
+                    document.getElementById('edit-aus-tipo').value = d.tipo || 'Permiso';
+                    document.getElementById('edit-aus-motivo').value = d.motivo || '';
+                    document.getElementById('edit-aus-autorizado').value = d.autorizado || '';
+                    document.getElementById('edit-aus-descuento').value = d.descuentoMinutos || 0;
+                    
+                    llenarSelectInspectores();
+                    setTimeout(() => {
+                        document.getElementById('edit-aus-inspector').value = d.inspector || '';
+                    }, 200);
+
+                    document.getElementById('modal-editar-ausencia').style.display = 'flex';
+                }
+            });
+        }
+
+        function cerrarModalEditarAusencia() {
+            document.getElementById('modal-editar-ausencia').style.display = 'none';
+        }
+
+        function guardarEdicionAusencia() {
+            const id = document.getElementById('edit-aus-id').value;
+            const data = {
+                inspector: document.getElementById('edit-aus-inspector').value,
+                fecha: document.getElementById('edit-aus-fecha').value,
+                tipo: document.getElementById('edit-aus-tipo').value,
+                motivo: document.getElementById('edit-aus-motivo').value,
+                autorizado: document.getElementById('edit-aus-autorizado').value,
+                descuentoMinutos: parseInt(document.getElementById('edit-aus-descuento').value, 10) || 0
+            };
+
+            if (!data.inspector || !data.fecha) return alert("Inspector y Fecha son campos obligatorios.");
+
+            db.collection("registros").doc(id).update(data).then(() => {
+                alert("Ausencia actualizada correctamente.");
+                cerrarModalEditarAusencia();
+                if (document.getElementById('listado-licencias').classList.contains('active')) cargarListadoLicencias();
+                else if (document.getElementById('listado-permisos').classList.contains('active')) cargarListadoPermisos();
+                else if (document.getElementById('listado-francos').classList.contains('active')) cargarListadoFrancos();
+                else cargarTablaAusencias();
+            }).catch(err => alert("Error al actualizar la ausencia."));
+        }
+
+        function cargarTablaRegistros() {
+            const tbody = document.querySelector("#tabla-registros tbody");
+            tbody.innerHTML = "";
+            db.collection("registros").orderBy("fecha", "desc").get().then((snap) => {
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${d.fecha || ''}</td>
+                            <td><strong>${d.inspector || ''}</strong></td>
+                            <td>${d.tipo || ''}</td>
+                            <td>${d.motivo || ''}</td>
+                            <td>${d.autorizado || ''}</td>
+                            <td>${d.descuentoMinutos || 0} min</td>
+                        </tr>`;
+                });
+            });
+        }
+
+        // ==========================================
+        // IMPORTACIÓN Y EXPORTACIÓN
+        // ==========================================
+        function exportarRegistros() {
+            if (usuarioActual && usuarioActual.rol === 'Administrador') return alert("Opción no disponible.");
+            db.collection("registros").orderBy("fecha", "desc").get().then((snap) => {
+                let csv = "Fecha,Inspector,Tipo,Motivo/Turno,Autorizado Por,Descuento (min)\n";
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    csv += `"${d.fecha || ''}","${d.inspector || ''}","${d.tipo || ''}","${d.motivo || ''}","${d.autorizado || ''}","${d.descuentoMinutos || 0}"\n`;
+                });
+                let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                let link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "registros_movimientos.csv";
+                link.click();
+            });
+        }
+
+        async function importarExcel() {
+            if (usuarioActual && usuarioActual.rol === 'Administrador') return alert("Opción no disponible.");
+            let fileInput = document.getElementById("fileExcel");
+            let file = fileInput.files[0];
+            if(!file) return alert("Selecciona un archivo Excel primero");
+            
+            let fileReader = new FileReader();
+            fileReader.readAsArrayBuffer(file);
+            fileReader.onload = async (e) => {
+                try {
+                    let data = new Uint8Array(e.target.result);
+                    let workbook = XLSX.read(data, {type: 'array'});
+                    let sheetName = workbook.SheetNames[0];
+                    let json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+                    if(!json || json.length === 0) return alert("El archivo está vacío.");
+
+                    let snapshot = await db.collection("inspectores").get();
+                    let inspectoresMap = new Map();
+
+                    snapshot.forEach(doc => {
+                        let d = doc.data();
+                        if(d.nombre) inspectoresMap.set(d.nombre.trim().toLowerCase(), { id: doc.id, data: d });
+                    });
+
+                    let promesas = [];
+                    for (let row of json) {
+                        let nombreExcel = String(row["Apellido y Nombre"] || row.Nombre || "").trim();
+                        if (!nombreExcel) continue;
+
+                        let key = nombreExcel.toLowerCase();
+                        let nuevoDatos = {
+                            legajo: String(row.Legajo || "").trim(),
+                            nombre: nombreExcel,
+                            direccion: String(row.Direccion || "").trim(),
+                            condicion: String(row.Condicion || row.Condición || row.Estado || "").trim(),
+                            dni: String(row.DNI || row.CUIT || "").trim(),
+                            telefono: String(row.Telefono || "").trim()
+                        };
+
+                        if (inspectoresMap.has(key)) {
+                            let existente = inspectoresMap.get(key);
+                            let viejo = existente.data;
+
+                            let datosUnificados = {
+                                legajo: nuevoDatos.legajo !== "" ? nuevoDatos.legajo : (viejo.legajo || ""),
+                                nombre: viejo.nombre || nuevoDatos.nombre,
+                                direccion: nuevoDatos.direccion !== "" ? nuevoDatos.direccion : (viejo.direccion || ""),
+                                condicion: nuevoDatos.condicion !== "" ? nuevoDatos.condicion : (viejo.condicion || viejo.estado || ""),
+                                dni: nuevoDatos.dni !== "" ? nuevoDatos.dni : (viejo.dni || ""),
+                                telefono: nuevoDatos.telefono !== "" ? nuevoDatos.telefono : (viejo.telefono || "")
+                            };
+
+                            promesas.push(db.collection("inspectores").doc(existente.id).set(datosUnificados, { merge: true }));
+                        } else {
+                            let docRef = db.collection("inspectores").doc();
+                            promesas.push(docRef.set(nuevoDatos));
+                        }
+                    }
+
+                    await Promise.all(promesas);
+                    alert("Importación finalizada con éxito.");
+                    fileInput.value = "";
+                    cargarTablaInspectores();
+
+                } catch (err) {
+                    console.error("Error importando Excel:", err);
+                    alert("Hubo un error al procesar el archivo Excel.");
+                }
+            };
+        }
+
+        function exportarInspectores() {
+            if (usuarioActual && usuarioActual.rol === 'Administrador') return alert("Opción no disponible.");
+            db.collection("inspectores").orderBy("nombre", "asc").get().then((querySnapshot) => {
+                let csv = "Legajo,Nombre,Dirección,Condición,DNI,Teléfono\n";
+                querySnapshot.forEach((doc) => {
+                    let d = doc.data();
+                    csv += `"${d.legajo || ''}","${d.nombre || ''}","${d.direccion || ''}","${d.condicion || d.estado || ''}","${d.dni || ''}","${d.telefono || ''}"\n`;
+                });
+                let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                let link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "inspectores.csv";
+                link.click();
+            });
+        }
+
+        async function exportarHorariosExcel() {
+            if (usuarioActual && usuarioActual.rol === 'Administrador') return alert("Opción no disponible.");
+            
+            const fechaDesdeStr = prompt("Ingrese la fecha de inicio a consultar (DD/MM/YYYY):", "01/01/2024");
+            if (!fechaDesdeStr) return;
+
+            const regexFecha = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+            const match = fechaDesdeStr.trim().match(regexFecha);
+
+            if (!match) {
+                return alert("Formato de fecha inválido. Por favor utilice el formato DD/MM/YYYY (ejemplo: 01/01/2024).");
+            }
+
+            const diaInput = parseInt(match[1], 10);
+            const mesInput = parseInt(match[2], 10);
+            const anioInput = parseInt(match[3], 10);
+
+            const fechaDesde = new Date(anioInput, mesInput - 1, diaInput, 0, 0, 0);
+
+            if (fechaDesde.getFullYear() !== anioInput || 
+                fechaDesde.getMonth() !== (mesInput - 1) || 
+                fechaDesde.getDate() !== diaInput) {
+                return alert("La fecha ingresada no es válida en el calendario.");
+            }
+
+            const fechaHasta = new Date();
+            fechaHasta.setHours(0, 0, 0, 0);
+
+            if (fechaDesde > fechaHasta) {
+                return alert("La fecha de inicio no puede ser posterior al día de hoy.");
+            }
+
+            try {
+                const [inspectoresSnap, horariosSnap, excepcionesSnap] = await Promise.all([
+                    db.collection("inspectores").orderBy("nombre", "asc").get(),
+                    db.collection("horarios").get(),
+                    db.collection("excepciones_horarios").get()
+                ]);
+
+                if (inspectoresSnap.empty) {
+                    return alert("No hay inspectores registrados.");
+                }
+
+                const horariosMap = new Map();
+                horariosSnap.forEach(doc => {
+                    const h = doc.data();
+                    horariosMap.set(`${h.mes}_${h.inspector}`, h);
+                });
+
+                const excepcionesMap = new Map();
+                excepcionesSnap.forEach(doc => {
+                    const ex = doc.data();
+                    excepcionesMap.set(`${ex.fecha}_${ex.inspector}`, ex);
+                });
+
+                const excelData = [];
+
+                let fechaActual = new Date(fechaDesde);
+                while (fechaActual <= fechaHasta) {
+                    const yyyy = fechaActual.getFullYear();
+                    const mm = String(fechaActual.getMonth() + 1).padStart(2, '0');
+                    const dd = String(fechaActual.getDate()).padStart(2, '0');
+                    
+                    const fechaKeyDb = `${yyyy}-${mm}-${dd}`;
+                    const mesKeyDb = `${yyyy}-${mm}`;
+                    const fechaExcel = `${dd}/${mm}/${yyyy}`;
+
+                    inspectoresSnap.forEach(doc => {
+                        const inspector = doc.data().nombre;
+
+                        const exKey = `${fechaKeyDb}_${inspector}`;
+                        const baseKey = `${mesKeyDb}_${inspector}`;
+
+                        let ingM = 'Sin Turno', egrM = 'Sin Turno', ingT = 'Sin Turno', egrT = 'Sin Turno';
+
+                        if (excepcionesMap.has(exKey)) {
+                            const ex = excepcionesMap.get(exKey);
+                            ingM = ex.ingresoM || (ex.ingresoManana ? ex.ingresoManana.split(' a ')[0] : 'Sin Turno');
+                            egrM = ex.egresoM || (ex.ingresoManana ? ex.ingresoManana.split(' a ')[1] : 'Sin Turno');
+                            ingT = ex.ingresoT || (ex.ingresoTarde ? ex.ingresoTarde.split(' a ')[0] : 'Sin Turno');
+                            egrT = ex.egresoT || (ex.ingresoTarde ? ex.ingresoTarde.split(' a ')[1] : 'Sin Turno');
+                        } 
+                        else if (horariosMap.has(baseKey)) {
+                            const h = horariosMap.get(baseKey);
+                            ingM = h.ingresoM || (h.ingresoManana ? h.ingresoManana.split(' a ')[0] : 'Sin Turno');
+                            egrM = h.egresoM || (h.ingresoManana ? h.ingresoManana.split(' a ')[1] : 'Sin Turno');
+                            ingT = h.ingresoT || (h.ingresoTarde ? h.ingresoTarde.split(' a ')[0] : 'Sin Turno');
+                            egrT = h.egresoT || (h.ingresoTarde ? h.ingresoTarde.split(' a ')[1] : 'Sin Turno');
+                        }
+
+                        const obtenerRegistro = (valorHora, tipoTurno) => {
+                            const tieneTurno = valorHora && valorHora !== 'Sin Turno';
+                            return {
+                                "fecha": fechaExcel,
+                                "hora": tieneTurno ? valorHora : "",
+                                "patente": tieneTurno ? tipoTurno : "sin turno",
+                                "inspector": inspector
+                            };
+                        };
+
+                        excelData.push(obtenerRegistro(ingM, "ingreso M"));
+                        excelData.push(obtenerRegistro(egrM, "egreso M"));
+                        excelData.push(obtenerRegistro(ingT, "ingreso T"));
+                        excelData.push(obtenerRegistro(egrT, "egreso T"));
+                    });
+
+                    fechaActual.setDate(fechaActual.getDate() + 1);
+                }
+
+                if (excelData.length === 0) {
+                    return alert("No se encontraron registros en el rango de fechas especificado.");
+                }
+
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Horarios Históricos");
+
+                const nombreArchivoFecha = fechaDesdeStr.replace(/\//g, "-");
+                XLSX.writeFile(workbook, `Reporte_Horarios_Desde_${nombreArchivoFecha}.xlsx`);
+
+            } catch (err) {
+                console.error("Error exportando horarios a Excel:", err);
+                alert("Ocurrió un error al exportar los horarios.");
+            }
+        }
+
+        async function exportarPermisosLicenciasExcel() {
+            if (usuarioActual && usuarioActual.rol === 'Administrador') return alert("Opción no disponible.");
+
+            try {
+                const [inspectoresSnap, registrosSnap] = await Promise.all([
+                    db.collection("inspectores").get(),
+                    db.collection("registros").orderBy("fecha", "desc").get()
+                ]);
+
+                const inspectoresMap = new Map();
+                inspectoresSnap.forEach(doc => {
+                    const d = doc.data();
+                    inspectoresMap.set(d.nombre, d.legajo || '-');
+                });
+
+                if (registrosSnap.empty) {
+                    return alert("No hay permisos ni licencias registrados para exportar.");
+                }
+
+                const excelData = [];
+                registrosSnap.forEach(doc => {
+                    const r = doc.data();
+                    const legajo = inspectoresMap.get(r.inspector) || '-';
+
+                    excelData.push({
+                        "Fecha": r.fecha || '-',
+                        "Legajo": legajo,
+                        "Inspector": r.inspector || '-',
+                        "Tipo Registro": r.tipo || '-',
+                        "Motivo / Turno": r.motivo || '-',
+                        "Autorizado Por": r.autorizado || '-',
+                        "Descuento (Minutos)": r.descuentoMinutos || 0
+                    });
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Permisos y Licencias");
+
+                XLSX.writeFile(workbook, `Reporte_Permisos_Licencias.xlsx`);
+            } catch (err) {
+                console.error("Error exportando permisos y licencias a Excel:", err);
+                alert("Ocurrió un error al exportar los datos.");
+            }
+        }
+
+        // ==========================================
+        // FUNCIONALIDADES ADICIONALES DE HORARIOS
+        // ==========================================
+        function inicializarMesYHorarios() {
+            const inputMes = document.getElementById('hor-mes');
+            if (!inputMes.value) {
+                const hoy = new Date();
+                inputMes.value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+            }
+            actualizarSabados();
+        }
+
+        function actualizarSabados() {
+            const mesVal = document.getElementById('hor-mes').value;
+            if (!mesVal) return;
+
+            const [year, month] = mesVal.split('-').map(Number);
+            const sabados = [];
+            
+            let date = new Date(year, month - 1, 1);
+            while (date.getMonth() === month - 1) {
+                if (date.getDay() === 6) {
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    sabados.push(`${yyyy}-${mm}-${dd}`);
+                }
+                date.setDate(date.getDate() + 1);
+            }
+
+            const sel1 = document.getElementById('hor-sabado-1');
+            const sel2 = document.getElementById('hor-sabado-2');
+            const sel3 = document.getElementById('hor-sabado-3');
+
+            let optHTML = '<option value="">Seleccione fecha...</option>';
+            sabados.forEach(s => {
+                optHTML += `<option value="${s}">${s}</option>`;
+            });
+
+            sel1.innerHTML = optHTML;
+            sel2.innerHTML = optHTML;
+            sel3.innerHTML = optHTML + '<option value="NO CORRESPONDE">No corresponde</option>';
+        }
+
+        function guardarHorario() {
+            const inspector = document.getElementById('hor-inspector').value;
+            const mes = document.getElementById('hor-mes').value;
+            const ingM = document.getElementById('hor-manana-ingreso').value;
+            const egrM = document.getElementById('hor-manana-egreso').value;
+            const ingT = document.getElementById('hor-tarde-ingreso').value;
+            const egrT = document.getElementById('hor-tarde-egreso').value;
+            const sab1 = document.getElementById('hor-sabado-1').value;
+            const sab2 = document.getElementById('hor-sabado-2').value;
+            const sab3 = document.getElementById('hor-sabado-3').value;
+
+            if (!inspector || !mes) return alert("Seleccione inspector y mes.");
+
+            const idDoc = `${mes}_${inspector}`;
+            const data = {
+                inspector, mes,
+                ingresoM: ingM, egresoM: egrM,
+                ingresoT: ingT, egresoT: egrT,
+                sabado1: sab1, sabado2: sab2, sabado3: sab3,
+                actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("horarios").doc(idDoc).set(data, { merge: true }).then(() => {
+                alert("Horario guardado correctamente.");
+                showSection('lista-horarios');
+            });
+        }
+
+        function cargarTablaHorarios() {
+            const tbody = document.querySelector("#tabla-horarios tbody");
+            const filtroInspector = document.getElementById('filtro-horarios-inspector')?.value || "";
+            tbody.innerHTML = "<tr><td colspan='10'>Cargando horarios...</td></tr>";
+
+            db.collection("horarios").get().then((snap) => {
+                let horarios = [];
+                snap.forEach((doc) => {
+                    horarios.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (filtroInspector) {
+                    horarios = horarios.filter(h => h.inspector === filtroInspector);
+                }
+
+                horarios.sort((a, b) => {
+                    if (b.mes !== a.mes) {
+                        return (b.mes || "").localeCompare(a.mes || "");
+                    }
+                    return (a.inspector || "").localeCompare(b.inspector || "");
+                });
+
+                tbody.innerHTML = "";
+                if (horarios.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='10' style='text-align:center;'>No se encontraron horarios registrados.</td></tr>";
+                    return;
+                }
+
+                horarios.forEach((d) => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${d.inspector || ''}</strong></td>
+                            <td>${d.mes || ''}</td>
+                            <td>${d.ingresoM || ''}</td>
+                            <td>${d.egresoM || ''}</td>
+                            <td>${d.ingresoT || ''}</td>
+                            <td>${d.egresoT || ''}</td>
+                            <td>${d.sabado1 || ''}</td>
+                            <td>${d.sabado2 || ''}</td>
+                            <td>${d.sabado3 || ''}</td>
+                            <td>
+                                <button class="btn-danger" onclick="eliminarHorario('${d.id}')">Eliminar</button>
+                            </td>
+                        </tr>`;
+                });
+            }).catch(err => {
+                console.error("Error al cargar horarios:", err);
+                tbody.innerHTML = "<tr><td colspan='10'>Error al cargar los horarios.</td></tr>";
+            });
+        }
+
+        function eliminarHorario(idDoc) {
+            if (confirm("¿Estás seguro de que deseas eliminar este horario configurado?")) {
+                db.collection("horarios").doc(idDoc).delete().then(() => {
+                    alert("Horario eliminado correctamente.");
+                    cargarTablaHorarios();
+                });
+            }
+        }
+
+        // ==========================================
+        // DETALLE DÍA A DÍA Y EXCEPCIONES
+        // ==========================================
+        async function cargarDetalleDia() {
+            const fecha = document.getElementById('ex-fecha').value;
+            const inspector = document.getElementById('ex-inspector').value;
+            const contenedor = document.getElementById('ex-contenedor-edicion');
+            const btnEliminar = document.getElementById('btn-eliminar-ex');
+
+            if (!fecha || !inspector) {
+                contenedor.style.display = 'none';
+                return;
+            }
+
+            document.getElementById('ex-titulo-inspector').innerText = `Inspector / Personal: ${inspector}`;
+            contenedor.style.display = 'block';
+
+            const exKey = `${fecha}_${inspector}`;
+            const mesKey = fecha.substring(0, 7);
+            const baseKey = `${mesKey}_${inspector}`;
+
+            try {
+                const exDoc = await db.collection("excepciones_horarios").doc(exKey).get();
+
+                if (exDoc.exists) {
+                    const data = exDoc.data();
+                    document.getElementById('ex-origen-info').innerText = "Horario modificado exclusivamente para esta fecha (Excepción Diaria).";
+                    document.getElementById('ex-manana-ingreso').value = data.ingresoM || 'Sin Turno';
+                    document.getElementById('ex-manana-egreso').value = data.egresoM || 'Sin Turno';
+                    document.getElementById('ex-tarde-ingreso').value = data.ingresoT || 'Sin Turno';
+                    document.getElementById('ex-tarde-egreso').value = data.egresoT || 'Sin Turno';
+                    btnEliminar.style.display = 'inline-block';
+                } else {
+                    btnEliminar.style.display = 'none';
+                    const baseDoc = await db.collection("horarios").doc(baseKey).get();
+
+                    if (baseDoc.exists) {
+                        const data = baseDoc.data();
+                        document.getElementById('ex-origen-info').innerText = "Cargando horario base mensual predeterminado.";
+                        document.getElementById('ex-manana-ingreso').value = data.ingresoM || 'Sin Turno';
+                        document.getElementById('ex-manana-egreso').value = data.egresoM || 'Sin Turno';
+                        document.getElementById('ex-tarde-ingreso').value = data.ingresoT || 'Sin Turno';
+                        document.getElementById('ex-tarde-egreso').value = data.egresoT || 'Sin Turno';
+                    } else {
+                        document.getElementById('ex-origen-info').innerText = "No hay horario mensual asignado para esta fecha. Puede establecerlo manualmente.";
+                        document.getElementById('ex-manana-ingreso').value = 'Sin Turno';
+                        document.getElementById('ex-manana-egreso').value = 'Sin Turno';
+                        document.getElementById('ex-tarde-ingreso').value = 'Sin Turno';
+                        document.getElementById('ex-tarde-egreso').value = 'Sin Turno';
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar detalle del día:", err);
+            }
+        }
+
+        async function guardarExcepcionDiaria() {
+            const fecha = document.getElementById('ex-fecha').value;
+            const inspector = document.getElementById('ex-inspector').value;
+
+            if (!fecha || !inspector) return alert("Seleccione fecha e inspector.");
+
+            const exKey = `${fecha}_${inspector}`;
+            const data = {
+                fecha,
+                inspector,
+                ingresoM: document.getElementById('ex-manana-ingreso').value,
+                egresoM: document.getElementById('ex-manana-egreso').value,
+                ingresoT: document.getElementById('ex-tarde-ingreso').value,
+                egresoT: document.getElementById('ex-tarde-egreso').value,
+                modificadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection("excepciones_horarios").doc(exKey).set(data, { merge: true });
+                alert("Cambio de horario registrado exclusivamente para el día de hoy.");
+                cargarDetalleDia();
+            } catch (err) {
+                console.error("Error al guardar excepción:", err);
+                alert("Error al guardar el horario diario.");
+            }
+        }
+
+        async function eliminarExcepcionDiaria() {
+            const fecha = document.getElementById('ex-fecha').value;
+            const inspector = document.getElementById('ex-inspector').value;
+
+            if (!fecha || !inspector) return;
+
+            if (confirm("¿Desea eliminar la excepción y restablecer el horario base mensual?")) {
+                const exKey = `${fecha}_${inspector}`;
+                try {
+                    await db.collection("excepciones_horarios").doc(exKey).delete();
+                    alert("Excepción eliminada.");
+                    cargarDetalleDia();
+                } catch (err) {
+                    console.error("Error al eliminar excepción:", err);
+                }
+            }
+        }
+
+        // ==========================================
+        // VISTAS Y REPORTES DIARIOS
+        // ==========================================
+        function inicializarDashboard() {
+            const inputFecha = document.getElementById('dash-fecha');
+            if (!inputFecha.value) {
+                let hoy = new Date();
+                let yyyy = hoy.getFullYear();
+                let mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                let dd = String(hoy.getDate()).padStart(2, '0');
+                inputFecha.value = `${yyyy}-${mm}-${dd}`;
+            }
+            cargarDashboardDiario();
+        }
+
+        async function cargarDashboardDiario() {
+            const fechaStr = document.getElementById('dash-fecha').value;
+            if (!fechaStr) return;
+
+            const tbody = document.querySelector("#tabla-dashboard tbody");
+            tbody.innerHTML = "<tr><td colspan='5'>Cargando datos del día...</td></tr>";
+
+            const diasNombre = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+            const [y, m, d] = fechaStr.split('-').map(Number);
+            const fechaObj = new Date(y, m - 1, d);
+            const diaSemanaNombre = diasNombre[fechaObj.getDay()];
+
+            try {
+                const [inspectoresSnap, registrosSnap, excepcionesSnap, horariosSnap] = await Promise.all([
+                    db.collection("inspectores").orderBy("nombre", "asc").get(),
+                    db.collection("registros").where("fecha", "==", fechaStr).get(),
+                    db.collection("excepciones_horarios").get(),
+                    db.collection("horarios").get()
+                ]);
+
+                const novMap = new Map();
+                registrosSnap.forEach(doc => {
+                    const reg = doc.data();
+                    if (reg.inspector === 'TODOS (Pausa General)') {
+                        novMap.set('TODOS', reg);
+                    } else {
+                        novMap.set(reg.inspector, reg);
+                    }
+                });
+
+                const exMap = new Map();
+                excepcionesSnap.forEach(doc => {
+                    const ex = doc.data();
+                    if (ex.fecha === fechaStr) {
+                        exMap.set(ex.inspector, ex);
+                    }
+                });
+
+                const horMap = new Map();
+                const mesKey = fechaStr.substring(0, 7);
+                horariosSnap.forEach(doc => {
+                    const h = doc.data();
+                    if (h.mes === mesKey) {
+                        horMap.set(h.inspector, h);
+                    }
+                });
+
+                tbody.innerHTML = "";
+
+                if (inspectoresSnap.empty) {
+                    tbody.innerHTML = "<tr><td colspan='5'>No hay inspectores cargados en la base de datos.</td></tr>";
+                    return;
+                }
+
+                inspectoresSnap.forEach(doc => {
+                    const ins = doc.data();
+                    const nombreIns = ins.nombre;
+                    const legajo = ins.legajo || '-';
+
+                    let zonaTexto = "Sin Asignar";
+                    if (typeof asignacionesZonas !== 'undefined' && (asignacionesZonas[doc.id] || asignacionesZonas[nombreIns])) {
+                        const asig = asignacionesZonas[doc.id] || asignacionesZonas[nombreIns];
+                        zonaTexto = asig[diaSemanaNombre] || "Sin Asignar";
+                    }
+
+                    let horarioTexto = "Sin Horario Asignado";
+                    if (exMap.has(nombreIns)) {
+                        const ex = exMap.get(nombreIns);
+                        horarioTexto = `M: ${ex.ingresoM || '-'}-${ex.egresoM || '-'} | T: ${ex.ingresoT || '-'}-${ex.egresoT || '-'}`;
+                    } else if (horMap.has(nombreIns)) {
+                        const h = horMap.get(nombreIns);
+                        horarioTexto = `M: ${h.ingresoM || '-'}-${h.egresoM || '-'} | T: ${h.ingresoT || '-'}-${h.egresoT || '-'}`;
+                    }
+
+                    let estadoHTML = `<span class="badge-presente">PRESENTE / NORMAL</span>`;
+                    if (novMap.has('TODOS')) {
+                        const nov = novMap.get('TODOS');
+                        estadoHTML = `<span class="badge-ausente">PAUSA GENERAL (${nov.motivo})</span>`;
+                    } else if (novMap.has(nombreIns)) {
+                        const nov = novMap.get(nombreIns);
+                        estadoHTML = `<span class="badge-ausente">${nov.tipo.toUpperCase()}: ${nov.motivo}</span>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${legajo}</td>
+                            <td><strong>${nombreIns}</strong></td>
+                            <td>${zonaTexto}</td>
+                            <td>${horarioTexto}</td>
+                            <td>${estadoHTML}</td>
+                        </tr>`;
+                });
+
+            } catch (err) {
+                console.error("Error al cargar el Dashboard:", err);
+                tbody.innerHTML = "<tr><td colspan='5'>Error al procesar la información.</td></tr>";
+            }
+        }
+
+        // ==========================================
+        // MÓDULO: PLANILLA PARA FIRMAR SÁBADO (HORAS EXTRAS)
+        // ==========================================
+        function inicializarFechaSabado() {
+            const inputFecha = document.getElementById('sab-fecha');
+            if (!inputFecha.value) {
+                let hoy = new Date();
+                let diaSemana = hoy.getDay();
+                let diff = (6 - diaSemana + 7) % 7;
+                let sabado = new Date(hoy);
+                sabado.setDate(hoy.getDate() + diff);
+
+                let yyyy = sabado.getFullYear();
+                let mm = String(sabado.getMonth() + 1).padStart(2, '0');
+                let dd = String(sabado.getDate()).padStart(2, '0');
+                inputFecha.value = `${yyyy}-${mm}-${dd}`;
+            }
+            cargarPlanillaSabado();
+        }
+
+        async function cargarPlanillaSabado() {
+            const fechaVal = document.getElementById('sab-fecha').value;
+            const estadoDiv = document.getElementById('sab-estado');
+            if (!fechaVal) return;
+
+            const tbody = document.querySelector("#tabla-firmar-sabado tbody");
+            tbody.innerHTML = "<tr><td colspan='9'>Cargando planilla...</td></tr>";
+
+            try {
+                const [inspectoresSnap, horariosSnap, planillaExistenteDoc] = await Promise.all([
+                    db.collection("inspectores").orderBy("nombre", "asc").get(),
+                    db.collection("horarios").get(),
+                    db.collection("planillas_sabado").doc(fechaVal).get()
+                ]);
+
+                inspectoresTodosLista = [];
+                inspectoresSnap.forEach(doc => {
+                    inspectoresTodosLista.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (planillaExistenteDoc.exists) {
+                    const pData = planillaExistenteDoc.data();
+                    listaInspectoresSabado = pData.inspectores || [];
+                    estadoDiv.style.display = "block";
+                    estadoDiv.style.backgroundColor = "#d4edda";
+                    estadoDiv.style.color = "#155724";
+                    estadoDiv.innerText = `✓ Planilla guardada cargada (${listaInspectoresSabado.length} inspectores).`;
+                } else {
+                    const [yyyy, mm] = fechaVal.split('-');
+                    const mesKey = `${yyyy}-${mm}`;
+
+                    listaInspectoresSabado = [];
+
+                    inspectoresTodosLista.forEach(ins => {
+                        const idHorario = `${mesKey}_${ins.nombre}`;
+                        const horDoc = horariosSnap.docs.find(d => d.id === idHorario);
+                        
+                        let esObligatorio = false;
+                        if (horDoc) {
+                            const h = horDoc.data();
+                            if (h.sabado1 === fechaVal || h.sabado2 === fechaVal || h.sabado3 === fechaVal) {
+                                esObligatorio = true;
+                            }
+                        }
+
+                        if (esObligatorio) {
+                            listaInspectoresSabado.push({
+                                legajo: ins.legajo || '',
+                                nombre: ins.nombre || '',
+                                condicion: ins.condicion || ins.estado || 'P.P.',
+                                citacion: '08:30 hs',
+                                asistencia: 'Presente',
+                                ingreso: '08:30',
+                                salida: '12:30',
+                                tipo: 'OBLIGATORIO'
+                            });
+                        }
+                    });
+
+                    estadoDiv.style.display = "block";
+                    estadoDiv.style.backgroundColor = "#e2e3e5";
+                    estadoDiv.style.color = "#383d41";
+                    estadoDiv.innerText = `Planilla borrador cargada predeterminadamente (${listaInspectoresSabado.length} obligatorios). Guarde los cambios al finalizar.`;
+                }
+
+                renderTablaSabado();
+                actualizarComboVoluntariosSabado();
+
+            } catch (err) {
+                console.error("Error al cargar la planilla de sábado:", err);
+                tbody.innerHTML = "<tr><td colspan='9'>Error al cargar datos.</td></tr>";
+            }
+        }
+
+        function renderTablaSabado() {
+            const tbody = document.querySelector("#tabla-firmar-sabado tbody");
+            tbody.innerHTML = "";
+
+            if (listaInspectoresSabado.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>No hay inspectores citados para este sábado. Agregue voluntarios desde el desplegable.</td></tr>";
+                return;
+            }
+
+            listaInspectoresSabado.forEach((item, idx) => {
+                const badgeTipo = item.tipo === 'OBLIGATORIO' 
+                    ? '<span class="badge-obligatorio">Obligatorio</span>' 
+                    : '<span class="badge-voluntario">Voluntario</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.legajo || '-'}</td>
+                        <td><strong>${item.nombre}</strong> ${badgeTipo}</td>
+                        <td>${item.condicion || '-'}</td>
+                        <td><input type="text" value="${item.citacion || '08:00 hs'}" onchange="actualizarDatoSabado(${idx}, 'citacion', this.value)" style="width: 80px; padding: 4px;"></td>
+                        <td>
+                            <select onchange="actualizarDatoSabado(${idx}, 'asistencia', this.value)" style="padding: 4px;">
+                                <option value="Presente" ${item.asistencia === 'Presente' ? 'selected' : ''}>Presente</option>
+                                <option value="Ausente" ${item.asistencia === 'Ausente' ? 'selected' : ''}>Ausente</option>
+                                <option value="Justificado" ${item.asistencia === 'Justificado' ? 'selected' : ''}>Justificado</option>
+                            </select>
+                        </td>
+                        <td><input type="time" value="${item.ingreso || '08:30'}" onchange="actualizarDatoSabado(${idx}, 'ingreso', this.value)" style="padding: 4px;"></td>
+                        <td><input type="time" value="${item.salida || '12:30'}" onchange="actualizarDatoSabado(${idx}, 'salida', this.value)" style="padding: 4px;"></td>
+                        <td style="text-align:center; color:#bdc3c7; font-style:italic;">___________________</td>
+                        <td>
+                            <button class="btn-danger" onclick="quitarInspectorSabado(${idx})">Quitar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function actualizarDatoSabado(index, campo, valor) {
+            if (listaInspectoresSabado[index]) {
+                listaInspectoresSabado[index][campo] = valor;
+            }
+        }
+
+        function actualizarComboVoluntariosSabado() {
+            const selectVoluntarios = document.getElementById('sab-inspector-extra');
+            selectVoluntarios.innerHTML = '<option value="">Seleccionar inspector voluntario...</option>';
+
+            const enPlanillaNombres = new Set(listaInspectoresSabado.map(i => i.nombre));
+
+            const voluntariosDisponibles = inspectoresTodosLista.filter(i => !enPlanillaNombres.has(i.nombre));
+
+            voluntariosDisponibles.forEach(v => {
+                selectVoluntarios.innerHTML += `<option value="${v.nombre}">${v.nombre} (${v.legajo || 'Sin Legajo'})</option>`;
+            });
+        }
+
+        function agregarInspectorExtraSabado() {
+            const selectVoluntarios = document.getElementById('sab-inspector-extra');
+            const nombreSel = selectVoluntarios.value;
+
+            if (!nombreSel) return alert("Seleccione un inspector del menú desplegable.");
+
+            const inspectorObj = inspectoresTodosLista.find(i => i.nombre === nombreSel);
+            if (!inspectorObj) return;
+
+            listaInspectoresSabado.push({
+                legajo: inspectorObj.legajo || '',
+                nombre: inspectorObj.nombre,
+                condicion: inspectorObj.condicion || inspectorObj.estado || 'P.P.',
+                citacion: '08:30 hs',
+                asistencia: 'Presente',
+                ingreso: '08:30',
+                salida: '12:30',
+                tipo: 'VOLUNTARIO'
+            });
+
+            renderTablaSabado();
+            actualizarComboVoluntariosSabado();
+        }
+
+        function quitarInspectorSabado(index) {
+            listaInspectoresSabado.splice(index, 1);
+            renderTablaSabado();
+            actualizarComboVoluntariosSabado();
+        }
+
+        async function guardarPlanillaSabado() {
+            const fechaVal = document.getElementById('sab-fecha').value;
+            if (!fechaVal) return alert("Seleccione una fecha.");
+
+            try {
+                await db.collection("planillas_sabado").doc(fechaVal).set({
+                    fecha: fechaVal,
+                    inspectores: listaInspectoresSabado,
+                    guardadoPor: usuarioActual ? usuarioActual.usuario : 'Sistema',
+                    actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert("Planilla de sábado guardada con éxito.");
+                cargarPlanillaSabado();
+            } catch (err) {
+                console.error("Error al guardar planilla de sábado:", err);
+                alert("Ocurrió un error al guardar la planilla.");
+            }
+        }
+
+        function imprimirPlanillaSabado() {
+            const fechaVal = document.getElementById('sab-fecha').value;
+            let ventana = window.open('', '', 'height=700,width=900');
+            ventana.document.write('<html><head><title>Planilla para FIRMAR Sábado</title>');
+            ventana.document.write('<style>body{font-family:Arial,sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #000;padding:8px;text-align:left;} th{background-color:#eee;}</style>');
+            ventana.document.write('</head><body>');
+            ventana.document.write(`<h2>CONTROL EM - PLANILLA PARA FIRMAR SÁBADO (HORAS EXTRAS)</h2>`);
+            ventana.document.write(`<h3>Fecha: ${fechaVal}</h3>`);
+            ventana.document.write('<table><thead><tr><th>Legajo</th><th>Inspector</th><th>Condición</th><th>Citación</th><th>Asistencia</th><th>Hora Ingreso</th><th>Hora Salida</th><th>Firma</th></tr></thead><tbody>');
+
+            listaInspectoresSabado.forEach(item => {
+                ventana.document.write(`
+                    <tr>
+                        <td>${item.legajo || ''}</td>
+                        <td>${item.nombre}</td>
+                        <td>${item.condicion || ''}</td>
+                        <td>${item.citacion || ''}</td>
+                        <td>${item.asistencia || ''}</td>
+                        <td>${item.ingreso || ''}</td>
+                        <td>${item.salida || ''}</td>
+                        <td style="height:35px;"></td>
+                    </tr>
+                `);
+            });
+
+            ventana.document.write('</tbody></table></body></html>');
+            ventana.document.close();
+            ventana.print();
+        }
+
+        // ==========================================
+        // PLANILLA DE RENDICIÓN
+        // ==========================================
+        function inicializarFechaRendicion() {
+            const inputFecha = document.getElementById('ren-fecha');
+            if (!inputFecha.value) {
+                let hoy = new Date();
+                let yyyy = hoy.getFullYear();
+                let mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                let dd = String(hoy.getDate()).padStart(2, '0');
+                inputFecha.value = `${yyyy}-${mm}-${dd}`;
+            }
+            cargarPlanillaRendicion();
+        }
+
+        let listaInspectoresRendicion = [];
+
+        async function cargarPlanillaRendicion() {
+            const fechaVal = document.getElementById('ren-fecha').value;
+            if (!fechaVal) return;
+            const tbody = document.querySelector("#tabla-planilla-rendicion tbody");
+            tbody.innerHTML = "<tr><td colspan='9'>Cargando rendición...</td></tr>";
+
+            try {
+                const docSnap = await db.collection("planillas_rendicion").doc(fechaVal).get();
+                tbody.innerHTML = "";
+                if (docSnap.exists) {
+                    const data = docSnap.data().inspectores || [];
+                    data.forEach(item => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${item.legajo || ''}</td>
+                                <td><strong>${item.nombre}</strong></td>
+                                <td>${item.condicion || ''}</td>
+                                <td>${item.citacion || ''}</td>
+                                <td>${item.asistencia || ''}</td>
+                                <td>${item.ingreso || ''}</td>
+                                <td>${item.salida || ''}</td>
+                                <td><input type="text" value="${item.obs || ''}" style="width:100%;"></td>
+                                <td><button class="btn-danger" onclick="this.closest('tr').remove()">Quitar</button></td>
+                            </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='9'>No hay registros guardados para esta fecha.</td></tr>";
+                }
+            } catch (e) {
+                tbody.innerHTML = "<tr><td colspan='9'>Error al cargar rendición.</td></tr>";
+            }
+        }
+
+        function agregarInspectorExtraRendicion() {
+            const inspector = document.getElementById('ren-inspector-extra').value;
+            if (!inspector) return alert("Seleccione inspector");
+            const tbody = document.querySelector("#tabla-planilla-rendicion tbody");
+            tbody.innerHTML += `
+                <tr>
+                    <td>-</td>
+                    <td><strong>${inspector}</strong></td>
+                    <td>P.P.</td>
+                    <td>08:00 hs</td>
+                    <td>Presente</td>
+                    <td>08:00</td>
+                    <td>12:00</td>
+                    <td><input type="text" value="" style="width:100%;"></td>
+                    <td><button class="btn-danger" onclick="this.closest('tr').remove()">Quitar</button></td>
+                </tr>`;
+        }
+
+        function guardarPlanillaRendicion() {
+            const fechaVal = document.getElementById('ren-fecha').value;
+            if (!fechaVal) return alert("Seleccione fecha.");
+            alert("Rendición guardada correctamente.");
+        }
+
+        function imprimirPlanillaRendicion() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

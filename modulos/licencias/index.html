@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licencias, Permisos y No Trabajado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-stone-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado Superior -->
+    <header class="bg-amber-800 text-amber-50 shadow-md z-10 border-b border-amber-900">
+        <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
+            <!-- Título del Módulo y Conexión -->
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-umbrella-beach text-xl text-amber-300"></i>
+                <h2 class="text-base font-bold text-amber-100 uppercase tracking-wider">Módulo: Licencias y Control de Ausentismo</h2>
+
+                <!-- Estado Conexión Firebase -->
+                <span id="firebase-status" class="bg-amber-950/60 text-amber-300 border border-amber-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all">
+                    <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="firebase-status-text" class="font-medium">Conectando...</span>
+                </span>
+            </div>
+            
+            <!-- Logo Central Superior -->
+            <div class="flex justify-center items-center">
+                <img src="../../imagenes/logovac.jpg" 
+                     alt="Logo Vacaciones" 
+                     id="logoInspector"
+                     class="h-12 w-auto rounded-lg border border-amber-300/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
+                     onclick="openModal('../../imagenes/logovac.jpg', 'Logo Vacaciones')">
+            </div>
+
+            <!-- Logo Hermes Suares -->
+            <div class="flex justify-end items-center">
+                <img src="../../imagenes/logoh.jpg" 
+                     alt="Logo Hermes Suares" 
+                     id="logoHermes"
+                     class="h-10 w-auto rounded border border-amber-300/50 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                     onclick="openModal('../../imagenes/logoh.jpg', 'Logo Hermes Suares')">
+            </div>
+        </div>
+    </header>
+
+    <!-- Estructura Principal con Menú Lateral Izquierdo -->
+    <div class="flex flex-1 w-full">
+
+        <!-- Menú Lateral Izquierdo -->
+        <aside class="w-64 bg-amber-200 text-amber-950 min-h-full flex flex-col justify-between shadow-lg border-r border-amber-300">
+            <div class="p-4 space-y-6">
+                <!-- Botón Volver al Panel Central -->
+                <a href="../../index.html" class="bg-amber-800 hover:bg-amber-900 text-amber-50 px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+                </a>
+
+                <!-- Menú de Licencias -->
+                <nav class="space-y-1">
+                    <p class="text-[10px] uppercase font-bold text-amber-800 px-3 mb-2 tracking-wider">Menú de Licencias</p>
+                    
+                    <button onclick="showSection('cargar-licencia')" id="btn-cargar-licencia" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors bg-amber-300">
+                        <i class="fa-solid fa-file-circle-plus w-6 text-center mr-2 text-amber-800"></i> 1. Cargar Licencias
+                    </button>
+                    <button onclick="showSection('visualizar-licencias')" id="btn-visualizar-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-calendar-check w-6 text-center mr-2 text-amber-800"></i> 2. Visualizar Licencias
+                    </button>
+                    <button onclick="showSection('configuracion-licencias')" id="btn-configuracion-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-sliders w-6 text-center mr-2 text-amber-800"></i> 3. Configuración Licencias
+                    </button>
+                </nav>
+
+                <!-- Menú No Trabajado -->
+                <nav class="space-y-1 pt-2 border-t border-amber-300">
+                    <p class="text-[10px] uppercase font-bold text-amber-800 px-3 mb-2 tracking-wider">Menú: No Trabajado</p>
+                    
+                    <button onclick="showSection('ausencia-sin-aviso')" id="btn-ausencia-sin-aviso" class="nav-btn w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-user-slash w-6 text-center mr-2 text-amber-800"></i> Ausencia sin aviso
+                    </button>
+                    <button onclick="showSection('causas-no-trabajado')" id="btn-causas-no-trabajado" class="nav-btn w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-list-check w-6 text-center mr-2 text-amber-800"></i> Causas No Trabajado
+                    </button>
+                    <button onclick="showSection('carga-pausa')" id="btn-carga-pausa" class="nav-btn w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-clock-rotate-left w-6 text-center mr-2 text-amber-800"></i> Justificación de Pausa
+                    </button>
+                    <button onclick="showSection('listado-pausas')" id="btn-listado-pausas" class="nav-btn w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-table-list w-6 text-center mr-2 text-amber-800"></i> Listado de Pausas
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Contenido Central del Módulo -->
+        <main class="flex-1 p-8">
+            
+            <!-- SECCIÓN 1: CARGAR / EDITAR LICENCIAS -->
+            <section id="cargar-licencia" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto">
+                <h2 id="titulo-form" class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-file-circle-plus text-amber-700"></i> Solicitud y Carga de Licencia
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Seleccione el inspector desde los datos sincronizados con Firebase. Los días consumidos descuentan únicamente <strong>días hábiles</strong>.</p>
+
+                <form id="formLicencia" onsubmit="guardarLicencia(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <input type="hidden" id="editLicenciaId" value="">
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspector" required onchange="cargarDatosInspector()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="">Cargando inspectores desde Firebase...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Legajo</label>
+                        <input type="text" id="legajoInspector" readonly class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs bg-stone-100 font-semibold text-stone-600">
+                    </div>
+
+                    <div class="md:col-span-3 bg-amber-50 border border-amber-200 p-3.5 rounded-lg flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <span class="text-xs font-bold uppercase text-amber-900 block">Estado del Inspector</span>
+                            <span id="infoAntiguedad" class="text-xs text-stone-600">Seleccione un inspector...</span>
+                        </div>
+                        <div class="bg-amber-800 text-white px-4 py-1.5 rounded-lg text-center shadow-sm">
+                            <span class="text-[10px] uppercase font-bold block text-amber-200">Días / Cupos Restantes</span>
+                            <span id="diasRestantesText" class="text-base font-extrabold">-</span>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3 lg:col-span-1">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Tipo de Licencia</label>
+                        <select id="tipoLicencia" required onchange="actualizarInterfazTipoLicencia()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="Licencia Ordinaria">Licencia Ordinaria (Vacaciones)</option>
+                            <option value="Licencia Enfermedad">Licencia Enfermedad</option>
+                            <option value="Licencia Enfermedad Familiar">Licencia Enfermedad Familiar</option>
+                            <option value="Franco Compensatorio">Franco Compensatorio</option>
+                            <option value="Permiso">Permiso Especial</option>
+                        </select>
+                    </div>
+
+                    <div id="bloqueFechas" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Inicio (Desde)</label>
+                            <input type="date" id="fechaDesde" onchange="calcularDiasHabilesYRegreso()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Fin (Hasta)</label>
+                            <input type="date" id="fechaHasta" onchange="calcularDiasHabilesYRegreso()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div id="bloqueDiasHabiles">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Días Hábiles a Descontar</label>
+                        <input type="number" id="diasHabiles" readonly value="0" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs bg-amber-50 font-bold text-amber-900">
+                    </div>
+
+                    <div id="bloqueReincorporacion" class="md:col-span-2">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Día que debe ingresar a trabajar (Editable)</label>
+                        <input type="date" id="fechaReincorporacion" class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-lg text-xs font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div id="bloqueFranco" class="md:col-span-3 hidden bg-stone-50 border border-stone-200 p-4 rounded-lg space-y-3">
+                        <h4 class="text-xs font-bold uppercase text-amber-800 flex items-center gap-1">
+                            <i class="fa-solid fa-clock"></i> Configuración de Franco Compensatorio
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Modalidad Franco</label>
+                                <select id="francoModalidad" onchange="toggleHorasFranco()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                    <option value="Turno Mañana">Turno Mañana</option>
+                                    <option value="Turno Tarde">Turno Tarde</option>
+                                    <option value="Todo el dia">Todo el día</option>
+                                    <option value="Horarios Específicos">Desde Hora / Hasta Hora</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Franco</label>
+                                <input type="date" id="fechaFranco" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div id="horariosFranco" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Desde Hora</label>
+                                <input type="time" id="francoHoraDesde" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Hasta Hora</label>
+                                <input type="time" id="francoHoraHasta" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bloquePermiso" class="md:col-span-3 hidden bg-stone-50 border border-stone-200 p-4 rounded-lg space-y-3">
+                        <h4 class="text-xs font-bold uppercase text-amber-800 flex items-center gap-1">
+                            <i class="fa-solid fa-id-card-clip"></i> Detalle Permiso Especial
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Permiso</label>
+                                <input type="date" id="fechaPermiso" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Desde Hora</label>
+                                <input type="time" id="permisoHoraDesde" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Hasta Hora</label>
+                                <input type="time" id="permisoHoraHasta" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Motivo</label>
+                                <input type="text" id="permisoMotivo" placeholder="Ej: Trámite personal / Asistencia médica..." class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Autorizado Por</label>
+                                <input type="text" id="permisoAutorizadoPor" placeholder="Nombre / Cargo de quien autoriza" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bloqueObservaciones" class="md:col-span-3">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Observaciones / Detalles Adicionales</label>
+                        <textarea id="observaciones" rows="2" placeholder="Detalle adicional opcional..." class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="md:col-span-3 flex justify-end gap-3 mt-2">
+                        <button type="button" id="btnCancelarEdicion" onclick="cancelarEdicionLicencia()" class="hidden bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold px-4 py-2.5 rounded-lg text-xs transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnGuardarLicencia" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> <span id="btnGuardarText">Registrar Licencia en Firebase</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 2: VISUALIZAR LICENCIAS -->
+            <section id="visualizar-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check text-amber-700"></i> Historial de Licencias por Año e Inspector
+                        </h2>
+                        <p class="text-xs text-stone-500">Filtre, modifique o elimine las licencias guardadas en Firebase seleccionando el año o inspector.</p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <select id="filtroAnio" onchange="filtrarLicencias()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                            <option value="2026">Año 2026</option>
+                            <option value="2025">Año 2025</option>
+                            <option value="Todos">Todos los años</option>
+                        </select>
+                        <select id="filtroInspector" onchange="filtrarLicencias()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                            <option value="Todos">Todos los inspectores</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-amber-800 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Legajo</th>
+                                <th class="p-3">Inspector</th>
+                                <th class="p-3">Tipo Licencia</th>
+                                <th class="p-3">Detalle / Horario</th>
+                                <th class="p-3">Desde</th>
+                                <th class="p-3">Hasta / Ingreso</th>
+                                <th class="p-3">Consumo</th>
+                                <th class="p-3">Estado</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaLicencias" class="divide-y divide-stone-200 text-stone-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: CONFIGURACIÓN DE LICENCIAS -->
+            <section id="configuracion-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-4xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-700"></i> Parámetros y Configuración de Licencias
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Ajuste los topes de días asignados al año o por mes para cada tipo de licencia.</p>
+
+                <form id="formConfiguracion" onsubmit="guardarConfiguracion(event)" class="space-y-4">
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Ordinaria (Vacaciones)</h4>
+                            <p class="text-[11px] text-stone-500">Calculada automáticamente según antigüedad laboral.</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded font-bold text-xs">Según Antigüedad</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia por Enfermedad</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días hábiles asignados por año.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgEnfermedad" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Enfermedad Familiar</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días asignados por año.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Franco Compensatorio</h4>
+                            <p class="text-[11px] text-stone-500">Tope máximo de francos por mes.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgFrancoCompensatorio" value="2" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Permiso Especial</h4>
+                            <p class="text-[11px] text-stone-500">Tope anual en días para permisos generales.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgPermiso" value="12" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-3">
+                        <button type="submit" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Guardar Modificaciones
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SUBMENÚ NO TRABAJADO 1: AUSENCIA SIN AVISO -->
+            <section id="ausencia-sin-aviso" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-user-slash text-amber-700"></i> Registro de Ausencia sin Aviso
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Registre las ausencias imprevistas y actualice la presentación de certificados médicos o justificativos.</p>
+
+                <form id="formAusencia" onsubmit="guardarAusencia(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <input type="hidden" id="editAusenciaId" value="">
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Inspector</label>
+                        <select id="ausenciaInspector" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="">Seleccione Inspector...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha</label>
+                        <input type="date" id="ausenciaFecha" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Certificado / Justificativo</label>
+                        <select id="ausenciaCertificado" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="Pendiente">Pendiente de presentación</option>
+                            <option value="Presentado">Presentado (Justificado)</option>
+                            <option value="No Presenta">No presentó (Injustificado)</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Motivo / Observaciones</label>
+                        <input type="text" id="ausenciaMotivo" placeholder="Ej: No responde llamadas / Inasistencia sin previo aviso" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-3 flex justify-end gap-2">
+                        <button type="button" id="btnCancelarAusencia" onclick="cancelarEdicionAusencia()" class="hidden bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors">Cancelar</button>
+                        <button type="submit" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2 rounded-lg text-xs shadow transition-colors">
+                            Guardar Registro
+                        </button>
+                    </div>
+                </form>
+
+                <h3 class="text-sm font-bold text-stone-800 uppercase mb-3">Historial de Ausencias Registradas</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-amber-800 text-white uppercase text-[11px]">
+                                <th class="p-3 rounded-tl-lg">Fecha</th>
+                                <th class="p-3">Inspector</th>
+                                <th class="p-3">Motivo</th>
+                                <th class="p-3">Estado Certificado</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAusencias" class="divide-y divide-stone-200 text-stone-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SUBMENÚ NO TRABAJADO 2: CAUSAS POR LAS QUE NO SE TRABAJÓ -->
+            <section id="causas-no-trabajado" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-4xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-amber-700"></i> Causas por las que no se Trabajó
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Administre los motivos generales que justifican la suspensión general de tareas (Lluvia, Asamblea, Falla de Sistema, etc.).</p>
+
+                <form id="formCausa" onsubmit="guardarCausa(event)" class="flex gap-3 mb-6">
+                    <input type="text" id="nuevaCausa" placeholder="Ej: Lluvia, Asamblea, Falla del Sistema..." required class="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <button type="submit" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Agregar Causa
+                    </button>
+                </form>
+
+                <div class="bg-stone-50 border border-stone-200 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-stone-700 uppercase mb-3">Motivos Habilitados</h3>
+                    <ul id="listaCausas" class="space-y-2 text-xs">
+                        <!-- Lista dinámica -->
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SUBMENÚ NO TRABAJADO 3: CARGA DE JUSTIFICACIÓN DE PAUSA -->
+            <section id="carga-pausa" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-4xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-700"></i> Carga de Justificación de Pausa
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Registre pausas o interrupciones operativas en la jornada de trabajo.</p>
+
+                <form id="formPausa" onsubmit="guardarPausa(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha</label>
+                        <input type="date" id="pausaFecha" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Motivo</label>
+                        <select id="pausaMotivo" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <!-- Opciones cargadas desde "Causas por las que no se trabajó" -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Desde Hora</label>
+                        <input type="time" id="pausaHoraDesde" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Hasta Hora</label>
+                        <input type="time" id="pausaHoraHasta" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Autorizado por</label>
+                        <input type="text" id="pausaAutorizadoPor" placeholder="Nombre / Cargo del responsable" required class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-2 flex justify-end pt-2">
+                        <button type="submit" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Registrar Pausa
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SUBMENÚ NO TRABAJADO 4: LISTADO DE PAUSAS -->
+            <section id="listado-pausas" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-6xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-table-list text-amber-700"></i> Listado de Pausas
+                        </h2>
+                        <p class="text-xs text-stone-500">Consulte las pausas registradas con opción de filtrado mensual.</p>
+                    </div>
+
+                    <div>
+                        <input type="month" id="filtroMesPausa" onchange="filtrarPausas()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-amber-800 text-white uppercase text-[11px]">
+                                <th class="p-3 rounded-tl-lg">Fecha</th>
+                                <th class="p-3">Motivo</th>
+                                <th class="p-3">Horario (Desde - Hasta)</th>
+                                <th class="p-3">Autorizado por</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaPausas" class="divide-y divide-stone-200 text-stone-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Modal Lightbox -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeModal()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute -top-10 right-0 text-white hover:text-red-400 text-2xl font-bold">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="modalImg" src="" alt="Imagen Ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-stone-700">
+        </div>
+    </div>
+
+    <!-- Script de Inicialización de Firebase & Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, setDoc, getDocs, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
+            authDomain: "medido-i.firebaseapp.com",
+            projectId: "medido-i",
+            storageBucket: "medido-i.firebasestorage.app",
+            messagingSenderId: "17396988314",
+            appId: "1:17396988314:web:8332b473254e0f2cb92223",
+            measurementId: "G-DKDNGY5YS0"
+        };
+
+        const statusContainer = document.getElementById("firebase-status");
+        const statusDot = document.getElementById("firebase-status-dot");
+        const statusText = document.getElementById("firebase-status-text");
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            window.db = db;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.addDoc = addDoc;
+            window.getDoc = getDoc;
+            window.updateDoc = updateDoc;
+            window.deleteDoc = deleteDoc;
+            window.collection = collection;
+            window.getDocs = getDocs;
+
+            statusContainer.className = "bg-amber-950/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Firestore Conectado";
+
+            if (typeof window.cargarDatosIniciales === 'function') {
+                window.cargarDatosIniciales();
+            }
+        } catch (error) {
+            console.error("Error de conexión Firebase:", error);
+            statusContainer.className = "bg-amber-950/60 text-rose-300 border border-rose-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-400";
+            statusText.textContent = "Error Conexión";
+        }
+    </script>
+
+    <!-- Script de lógica e interacción -->
+    <script>
+        let inspectores = [];
+        let licencias = [];
+        let ausencias = [];
+        let causas = ["Lluvia", "Asamblea", "Falla del Sistema"];
+        let pausas = [];
+        let configLicencias = {
+            enfermedad: 30,
+            enfermedadFamiliar: 20,
+            francoCompensatorio: 2,
+            permiso: 12
+        };
+
+        async function cargarDatosIniciales() {
+            await obtenerInspectoresFirebase();
+            await obtenerLicenciasFirebase();
+            await obtenerConfiguracionFirebase();
+            await obtenerAusenciasFirebase();
+            await obtenerCausasFirebase();
+            await obtenerPausasFirebase();
+        }
+        window.cargarDatosIniciales = cargarDatosIniciales;
+
+        // --- MANEJO DE SECCIONES ---
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-amber-300'));
+            const activeBtn = document.getElementById(`btn-${sectionId}`);
+            if (activeBtn) activeBtn.classList.add('bg-amber-300');
+
+            if (sectionId === 'visualizar-licencias') obtenerLicenciasFirebase();
+            if (sectionId === 'ausencia-sin-aviso') obtenerAusenciasFirebase();
+            if (sectionId === 'causas-no-trabajado') obtenerCausasFirebase();
+            if (sectionId === 'carga-pausa') renderSelectCausas();
+            if (sectionId === 'listado-pausas') obtenerPausasFirebase();
+        }
+
+        // --- FIREBASE LICENCIAS ---
+        async function obtenerInspectoresFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "inspectores"));
+                inspectores = [];
+                querySnapshot.forEach((docSnap) => inspectores.push(docSnap.data()));
+                poblarSelectInspectores();
+            } catch (error) {
+                console.error("Error al obtener inspectores:", error);
+            }
+        }
+
+        async function obtenerLicenciasFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "licencias"));
+                licencias = [];
+                querySnapshot.forEach((docSnap) => licencias.push({ id: docSnap.id, ...docSnap.data() }));
+                filtrarLicencias();
+                calcularDiasRestantes();
+            } catch (error) {
+                console.error("Error al obtener licencias:", error);
+            }
+        }
+
+        async function obtenerConfiguracionFirebase() {
+            if (!window.db) return;
+            try {
+                const cfgDoc = await window.getDoc(window.doc(window.db, "config_licencias", "general"));
+                if (cfgDoc.exists()) {
+                    configLicencias = cfgDoc.data();
+                    document.getElementById('cfgEnfermedad').value = configLicencias.enfermedad || 30;
+                    document.getElementById('cfgEnfermedadFamiliar').value = configLicencias.enfermedadFamiliar || 20;
+                    document.getElementById('cfgFrancoCompensatorio').value = configLicencias.francoCompensatorio || 2;
+                    document.getElementById('cfgPermiso').value = configLicencias.permiso || 12;
+                }
+            } catch (error) {
+                console.error("Error al obtener configuración:", error);
+            }
+        }
+
+        function poblarSelectInspectores() {
+            const select = document.getElementById('selectInspector');
+            const filtroInspector = document.getElementById('filtroInspector');
+            const ausenciaInspector = document.getElementById('ausenciaInspector');
+            
+            select.innerHTML = '<option value="">-- Seleccione un Inspector --</option>';
+            filtroInspector.innerHTML = '<option value="Todos">Todos los inspectores</option>';
+            ausenciaInspector.innerHTML = '<option value="">Seleccione Inspector...</option>';
+
+            const ordenados = [...inspectores].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            ordenados.forEach(ins => {
+                select.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (Legajo: ${ins.legajo})</option>`;
+                filtroInspector.innerHTML += `<option value="${ins.legajo}">${ins.nombre}</option>`;
+                ausenciaInspector.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (${ins.legajo})</option>`;
+            });
+        }
+
+        function cargarDatosInspector() {
+            const legajo = document.getElementById('selectInspector').value;
+            document.getElementById('legajoInspector').value = legajo || '';
+            const inspector = inspectores.find(i => i.legajo === legajo);
+            document.getElementById('infoAntiguedad').textContent = inspector ? `Antigüedad: ${inspector.antiguedad || 0} años | Tarea: ${inspector.tarea || 'General'}` : `Seleccione un inspector...`;
+            calcularDiasRestantes();
+        }
+
+        function actualizarInterfazTipoLicencia() {
+            const tipo = document.getElementById('tipoLicencia').value;
+            document.getElementById('bloqueFechas').classList.toggle('hidden', tipo === 'Franco Compensatorio' || tipo === 'Permiso');
+            document.getElementById('bloqueDiasHabiles').classList.toggle('hidden', tipo === 'Franco Compensatorio' || tipo === 'Permiso');
+            document.getElementById('bloqueReincorporacion').classList.toggle('hidden', tipo === 'Franco Compensatorio' || tipo === 'Permiso');
+            document.getElementById('bloqueFranco').classList.toggle('hidden', tipo !== 'Franco Compensatorio');
+            document.getElementById('bloquePermiso').classList.toggle('hidden', tipo !== 'Permiso');
+            calcularDiasRestantes();
+        }
+
+        function toggleHorasFranco() {
+            const mod = document.getElementById('francoModalidad').value;
+            document.getElementById('horariosFranco').classList.toggle('hidden', mod !== 'Horarios Específicos');
+        }
+
+        function calcularDiasRestantes() {
+            const legajo = document.getElementById('legajoInspector').value;
+            const tipo = document.getElementById('tipoLicencia').value;
+            const labelSpan = document.getElementById('diasRestantesText');
+
+            if (!legajo) { labelSpan.textContent = "-"; return; }
+
+            const inspector = inspectores.find(i => i.legajo === legajo);
+            let topeAnual = 0;
+
+            if (tipo === 'Licencia Ordinaria') {
+                const antiguedad = inspector ? parseInt(inspector.antiguedad || 0) : 0;
+                topeAnual = 15 + (Math.floor(antiguedad / 5) * 5);
+            } else if (tipo === 'Licencia Enfermedad') topeAnual = configLicencias.enfermedad;
+            else if (tipo === 'Licencia Enfermedad Familiar') topeAnual = configLicencias.enfermedadFamiliar;
+            else if (tipo === 'Franco Compensatorio') topeAnual = configLicencias.francoCompensatorio;
+            else if (tipo === 'Permiso') topeAnual = configLicencias.permiso;
+
+            let consumidos = 0;
+            const editId = document.getElementById('editLicenciaId').value;
+            licencias.forEach(lic => {
+                if (lic.legajo === legajo && lic.tipo === tipo && lic.id !== editId) {
+                    consumidos += (tipo === 'Franco Compensatorio' || tipo === 'Permiso') ? 1 : parseInt(lic.diasHabiles || 0);
+                }
+            });
+
+            labelSpan.textContent = `${topeAnual - consumidos} ${tipo === 'Franco Compensatorio' ? 'Francos/mes' : 'días'}`;
+        }
+
+        function calcularDiasHabilesYRegreso() {
+            const desdeVal = document.getElementById('fechaDesde').value;
+            const hastaVal = document.getElementById('fechaHasta').value;
+            if (!desdeVal || !hastaVal) return;
+
+            let fechaInicio = new Date(desdeVal + 'T00:00:00');
+            let fechaFin = new Date(hastaVal + 'T00:00:00');
+
+            if (fechaFin < fechaInicio) {
+                document.getElementById('diasHabiles').value = 0;
+                return;
+            }
+
+            let diasHabiles = 0;
+            let cur = new Date(fechaInicio);
+            while (cur <= fechaFin) {
+                if (cur.getDay() !== 0 && cur.getDay() !== 6) diasHabiles++;
+                cur.setDate(cur.getDate() + 1);
+            }
+            document.getElementById('diasHabiles').value = diasHabiles;
+
+            let fechaRegreso = new Date(fechaFin);
+            fechaRegreso.setDate(fechaRegreso.getDate() + 1);
+            while (fechaRegreso.getDay() === 0 || fechaRegreso.getDay() === 6) fechaRegreso.setDate(fechaRegreso.getDate() + 1);
+
+            document.getElementById('fechaReincorporacion').value = fechaRegreso.toISOString().split('T')[0];
+        }
+
+        async function guardarLicencia(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editLicenciaId').value;
+            const selectIns = document.getElementById('selectInspector');
+            const inspectorNombre = selectIns.options[selectIns.selectedIndex].text.split(' (Legajo:')[0];
+            const legajo = document.getElementById('legajoInspector').value;
+            const tipo = document.getElementById('tipoLicencia').value;
+
+            let datos = {
+                legajo, inspector: inspectorNombre, tipo,
+                observaciones: document.getElementById('observaciones').value,
+                estado: "Aprobada"
+            };
+
+            if (tipo === 'Franco Compensatorio') {
+                const fechaF = document.getElementById('fechaFranco').value;
+                const mod = document.getElementById('francoModalidad').value;
+                datos.desde = fechaF; datos.hasta = fechaF;
+                datos.detalleHorario = mod === 'Horarios Específicos' ? `${document.getElementById('francoHoraDesde').value} a ${document.getElementById('francoHoraHasta').value} hs` : mod;
+                datos.diasHabiles = 1; datos.anio = fechaF.substring(0, 4);
+            } else if (tipo === 'Permiso') {
+                const fechaP = document.getElementById('fechaPermiso').value;
+                datos.desde = fechaP; datos.hasta = fechaP;
+                datos.detalleHorario = `${document.getElementById('permisoHoraDesde').value} a ${document.getElementById('permisoHoraHasta').value} hs`;
+                datos.motivo = document.getElementById('permisoMotivo').value;
+                datos.autorizadoPor = document.getElementById('permisoAutorizadoPor').value;
+                datos.diasHabiles = 0; datos.anio = fechaP.substring(0, 4);
+            } else {
+                const desde = document.getElementById('fechaDesde').value;
+                datos.desde = desde; datos.hasta = document.getElementById('fechaHasta').value;
+                datos.diasHabiles = parseInt(document.getElementById('diasHabiles').value);
+                datos.fechaIngreso = document.getElementById('fechaReincorporacion').value;
+                datos.anio = desde.substring(0, 4);
+            }
+
+            try {
+                if (editId) await window.updateDoc(window.doc(window.db, "licencias", editId), datos);
+                else await window.addDoc(window.collection(window.db, "licencias"), datos);
+                alert('Licencia guardada correctamente.');
+                cancelarEdicionLicencia();
+                showSection('visualizar-licencias');
+            } catch (error) {
+                alert("Error al guardar: " + error.message);
+            }
+        }
+
+        function editarLicencia(id) {
+            const lic = licencias.find(l => l.id === id);
+            if (!lic) return;
+
+            document.getElementById('editLicenciaId').value = lic.id;
+            document.getElementById('selectInspector').value = lic.legajo;
+            cargarDatosInspector();
+            document.getElementById('tipoLicencia').value = lic.tipo;
+            actualizarInterfazTipoLicencia();
+
+            if (lic.tipo === 'Franco Compensatorio') {
+                document.getElementById('fechaFranco').value = lic.desde || '';
+                document.getElementById('francoModalidad').value = lic.detalleHorario.includes('hs') ? 'Horarios Específicos' : lic.detalleHorario;
+                toggleHorasFranco();
+            } else if (lic.tipo === 'Permiso') {
+                document.getElementById('fechaPermiso').value = lic.desde || '';
+                document.getElementById('permisoMotivo').value = lic.motivo || '';
+                document.getElementById('permisoAutorizadoPor').value = lic.autorizadoPor || '';
+            } else {
+                document.getElementById('fechaDesde').value = lic.desde || '';
+                document.getElementById('fechaHasta').value = lic.hasta || '';
+                document.getElementById('diasHabiles').value = lic.diasHabiles || 0;
+                document.getElementById('fechaReincorporacion').value = lic.fechaIngreso || '';
+            }
+
+            document.getElementById('observaciones').value = lic.observaciones || '';
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-700"></i> Modificar Licencia`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Cambios";
+            document.getElementById('btnCancelarEdicion').classList.remove('hidden');
+
+            showSection('cargar-licencia');
+        }
+
+        function cancelarEdicionLicencia() {
+            document.getElementById('formLicencia').reset();
+            document.getElementById('editLicenciaId').value = '';
+            document.getElementById('legajoInspector').value = '';
+            document.getElementById('infoAntiguedad').textContent = 'Seleccione un inspector...';
+            document.getElementById('diasRestantesText').textContent = '-';
+            actualizarInterfazTipoLicencia();
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-file-circle-plus text-amber-700"></i> Solicitud y Carga de Licencia`;
+            document.getElementById('btnGuardarText').textContent = "Registrar Licencia en Firebase";
+            document.getElementById('btnCancelarEdicion').classList.add('hidden');
+        }
+
+        async function eliminarLicencia(id) {
+            if (!confirm("¿Está seguro de eliminar esta licencia?")) return;
+            try {
+                await window.deleteDoc(window.doc(window.db, "licencias", id));
+                await obtenerLicenciasFirebase();
+            } catch (error) {
+                alert("Error al eliminar: " + error.message);
+            }
+        }
+
+        function filtrarLicencias() {
+            const anio = document.getElementById('filtroAnio').value;
+            const legajo = document.getElementById('filtroInspector').value;
+            const tbody = document.getElementById('tablaLicencias');
+            tbody.innerHTML = '';
+
+            let resultado = licencias.filter(lic => (anio === 'Todos' || lic.anio === anio) && (legajo === 'Todos' || lic.legajo === legajo));
+
+            if (resultado.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-stone-400">No hay licencias registradas.</td></tr>`;
+                return;
+            }
+
+            resultado.forEach(lic => {
+                let consumoStr = lic.tipo === 'Franco Compensatorio' ? '1 Franco' : (lic.tipo === 'Permiso' ? 'Permiso Horas' : `${lic.diasHabiles} háb.`);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-stone-50 transition-colors">
+                        <td class="p-3 font-semibold text-amber-800">${lic.legajo}</td>
+                        <td class="p-3 font-bold text-stone-800">${lic.inspector}</td>
+                        <td class="p-3 font-medium">${lic.tipo}</td>
+                        <td class="p-3 text-stone-600">${lic.detalleHorario || lic.motivo || '-'}</td>
+                        <td class="p-3">${lic.desde}</td>
+                        <td class="p-3 font-bold text-emerald-700">${lic.fechaIngreso || lic.hasta || '-'}</td>
+                        <td class="p-3 font-bold text-amber-900">${consumoStr}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">Aprobada</span></td>
+                        <td class="p-3 text-center">
+                            <div class="flex justify-center items-center gap-1.5">
+                                <button onclick="editarLicencia('${lic.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="eliminarLicencia('${lic.id}')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function guardarConfiguracion(e) {
+            e.preventDefault();
+            const nuevaCfg = {
+                enfermedad: parseInt(document.getElementById('cfgEnfermedad').value),
+                enfermedadFamiliar: parseInt(document.getElementById('cfgEnfermedadFamiliar').value),
+                francoCompensatorio: parseInt(document.getElementById('cfgFrancoCompensatorio').value),
+                permiso: parseInt(document.getElementById('cfgPermiso').value)
+            };
+            try {
+                await window.setDoc(window.doc(window.db, "config_licencias", "general"), nuevaCfg);
+                configLicencias = nuevaCfg;
+                alert('Configuración guardada correctamente.');
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        }
+
+        // --- SUBMÓDULO: AUSENCIA SIN AVISO ---
+        async function obtenerAusenciasFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "ausencias"));
+                ausencias = [];
+                querySnapshot.forEach((docSnap) => ausencias.push({ id: docSnap.id, ...docSnap.data() }));
+                renderAusencias();
+            } catch (error) {
+                console.error("Error al obtener ausencias:", error);
+            }
+        }
+
+        async function guardarAusencia(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editAusenciaId').value;
+            const selectIns = document.getElementById('ausenciaInspector');
+            const legajo = selectIns.value;
+            const inspectorNombre = selectIns.options[selectIns.selectedIndex].text;
+
+            const datos = {
+                legajo,
+                inspector: inspectorNombre,
+                fecha: document.getElementById('ausenciaFecha').value,
+                motivo: document.getElementById('ausenciaMotivo').value,
+                certificado: document.getElementById('ausenciaCertificado').value
+            };
+
+            try {
+                if (editId) await window.updateDoc(window.doc(window.db, "ausencias", editId), datos);
+                else await window.addDoc(window.collection(window.db, "ausencias"), datos);
+                alert("Ausencia registrada correctamente.");
+                cancelarEdicionAusencia();
+                await obtenerAusenciasFirebase();
+            } catch (error) {
+                alert("Error al guardar ausencia: " + error.message);
+            }
+        }
+
+        function renderAusencias() {
+            const tbody = document.getElementById('tablaAusencias');
+            tbody.innerHTML = '';
+            if (ausencias.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No existen ausencias registradas.</td></tr>`;
+                return;
+            }
+            ausencias.forEach(a => {
+                let badgeClass = "bg-amber-100 text-amber-800";
+                if (a.certificado === 'Presentado') badgeClass = "bg-emerald-100 text-emerald-800";
+                if (a.certificado === 'No Presenta') badgeClass = "bg-rose-100 text-rose-800";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-stone-50">
+                        <td class="p-3 font-semibold">${a.fecha}</td>
+                        <td class="p-3 font-bold">${a.inspector}</td>
+                        <td class="p-3">${a.motivo}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 ${badgeClass} rounded text-[10px] font-bold">${a.certificado}</span></td>
+                        <td class="p-3 text-center flex justify-center gap-1">
+                            <button onclick="editarAusencia('${a.id}')" class="bg-amber-600 text-white px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                            <button onclick="eliminarAusencia('${a.id}')" class="bg-rose-600 text-white px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editarAusencia(id) {
+            const a = ausencias.find(item => item.id === id);
+            if (!a) return;
+            document.getElementById('editAusenciaId').value = a.id;
+            document.getElementById('ausenciaInspector').value = a.legajo;
+            document.getElementById('ausenciaFecha').value = a.fecha;
+            document.getElementById('ausenciaMotivo').value = a.motivo;
+            document.getElementById('ausenciaCertificado').value = a.certificado;
+            document.getElementById('btnCancelarAusencia').classList.remove('hidden');
+        }
+
+        function cancelarEdicionAusencia() {
+            document.getElementById('formAusencia').reset();
+            document.getElementById('editAusenciaId').value = '';
+            document.getElementById('btnCancelarAusencia').classList.add('hidden');
+        }
+
+        async function eliminarAusencia(id) {
+            if (!confirm("¿Desea eliminar la ausencia registrada?")) return;
+            try {
+                await window.deleteDoc(window.doc(window.db, "ausencias", id));
+                await obtenerAusenciasFirebase();
+            } catch (error) {
+                alert("Error al eliminar: " + error.message);
+            }
+        }
+
+        // --- SUBMÓDULO: CAUSAS POR LAS QUE NO SE TRABAJÓ ---
+        async function obtenerCausasFirebase() {
+            if (!window.db) return;
+            try {
+                const docSnap = await window.getDoc(window.doc(window.db, "config_causas", "listado"));
+                if (docSnap.exists()) causas = docSnap.data().items || [];
+                renderCausas();
+            } catch (error) {
+                console.error("Error al obtener causas:", error);
+            }
+        }
+
+        async function guardarCausa(e) {
+            e.preventDefault();
+            const nueva = document.getElementById('nuevaCausa').value.trim();
+            if (!nueva || causas.includes(nueva)) return;
+            causas.push(nueva);
+            try {
+                await window.setDoc(window.doc(window.db, "config_causas", "listado"), { items: causas });
+                document.getElementById('nuevaCausa').value = '';
+                renderCausas();
+            } catch (error) {
+                alert("Error al agregar causa: " + error.message);
+            }
+        }
+
+        async function eliminarCausa(index) {
+            if (!confirm("¿Desea quitar este motivo?")) return;
+            causas.splice(index, 1);
+            try {
+                await window.setDoc(window.doc(window.db, "config_causas", "listado"), { items: causas });
+                renderCausas();
+            } catch (error) {
+                alert("Error al borrar causa: " + error.message);
+            }
+        }
+
+        function renderCausas() {
+            const ul = document.getElementById('listaCausas');
+            ul.innerHTML = '';
+            causas.forEach((c, index) => {
+                ul.innerHTML += `
+                    <li class="flex justify-between items-center bg-white p-2.5 rounded border border-stone-200">
+                        <span class="font-bold text-stone-700">${c}</span>
+                        <button onclick="eliminarCausa(${index})" class="text-rose-600 hover:text-rose-800 text-xs font-bold"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                    </li>
+                `;
+            });
+            renderSelectCausas();
+        }
+
+        function renderSelectCausas() {
+            const selectPausa = document.getElementById('pausaMotivo');
+            selectPausa.innerHTML = '';
+            causas.forEach(c => {
+                selectPausa.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+        }
+
+        // --- SUBMÓDULO: PAUSAS ---
+        async function obtenerPausasFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "pausas"));
+                pausas = [];
+                querySnapshot.forEach((docSnap) => pausas.push({ id: docSnap.id, ...docSnap.data() }));
+                filtrarPausas();
+            } catch (error) {
+                console.error("Error al obtener pausas:", error);
+            }
+        }
+
+        async function guardarPausa(e) {
+            e.preventDefault();
+            const datos = {
+                fecha: document.getElementById('pausaFecha').value,
+                motivo: document.getElementById('pausaMotivo').value,
+                horaDesde: document.getElementById('pausaHoraDesde').value,
+                horaHasta: document.getElementById('pausaHoraHasta').value,
+                autorizadoPor: document.getElementById('pausaAutorizadoPor').value
+            };
+
+            try {
+                await window.addDoc(window.collection(window.db, "pausas"), datos);
+                alert("Pausa registrada con éxito.");
+                document.getElementById('formPausa').reset();
+                showSection('listado-pausas');
+            } catch (error) {
+                alert("Error al registrar la pausa: " + error.message);
+            }
+        }
+
+        function filtrarPausas() {
+            const filtroMes = document.getElementById('filtroMesPausa').value;
+            const tbody = document.getElementById('tablaPausas');
+            tbody.innerHTML = '';
+
+            let resultado = pausas.filter(p => !filtroMes || p.fecha.startsWith(filtroMes));
+
+            if (resultado.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No existen pausas registradas para el período seleccionado.</td></tr>`;
+                return;
+            }
+
+            resultado.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-stone-50">
+                        <td class="p-3 font-semibold">${p.fecha}</td>
+                        <td class="p-3 font-bold text-amber-900">${p.motivo}</td>
+                        <td class="p-3">${p.horaDesde} a ${p.horaHasta} hs</td>
+                        <td class="p-3 font-medium">${p.autorizadoPor}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="eliminarPausa('${p.id}')" class="bg-rose-600 text-white px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function eliminarPausa(id) {
+            if (!confirm("¿Desea eliminar la pausa?")) return;
+            try {
+                await window.deleteDoc(window.doc(window.db, "pausas", id));
+                await obtenerPausasFirebase();
+            } catch (error) {
+                alert("Error al eliminar la pausa: " + error.message);
+            }
+        }
+
+        // --- MODAL / LIGHTBOX ---
+        function openModal(imageSrc, altText) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = imageSrc;
+            modalImg.alt = altText;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

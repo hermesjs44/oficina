@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspectores - Gestión de Horarios, Sábados y Control Diario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Librería SheetJS para Exportación Nativa a Excel (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado Superior -->
+    <header class="bg-sky-600 text-white shadow-md z-10 no-print">
+        <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
+            <!-- Título del Módulo y Estado de Conexión -->
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-user-shield text-xl text-sky-200"></i>
+                <h2 class="text-base font-bold text-white uppercase tracking-wider">Módulo: Inspectores y Control de Servicio</h2>
+
+                <!-- Estado de Conexión Firebase -->
+                <span id="firebase-status" class="bg-sky-800/60 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all">
+                    <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="firebase-status-text" class="font-medium">Conectando...</span>
+                </span>
+            </div>
+            
+            <!-- Logo Central Superior -->
+            <div class="flex justify-center items-center">
+                <img src="../../imagenes/logoins.png" 
+                     alt="Logo Inspectores" 
+                     id="logoInspector"
+                     class="h-12 w-auto rounded-lg border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
+                     onclick="openModal('../../imagenes/logoins.png', 'Logo Inspectores')">
+            </div>
+
+            <!-- Logo Hermes Suares -->
+            <div class="flex justify-end items-center">
+                <img src="../../imagenes/logoh.jpg" 
+                     alt="Logo Hermes Suares" 
+                     id="logoHermes"
+                     class="h-10 w-auto rounded border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                     onclick="openModal('../../imagenes/logoh.jpg', 'Logo Hermes Suares')">
+            </div>
+        </div>
+    </header>
+
+    <!-- Estructura Principal con Menú Lateral -->
+    <div class="flex flex-1 w-full">
+
+        <!-- Menú Lateral Izquierdo -->
+        <aside class="w-64 bg-sky-500 text-white min-h-full flex flex-col justify-between shadow-lg no-print">
+            <div class="p-4 space-y-6">
+                <!-- Botón Volver al Panel Central -->
+                <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+                </a>
+
+                <!-- Opciones del Menú -->
+                <nav class="space-y-1">
+                    <p class="text-[10px] uppercase font-bold text-sky-200 px-3 mb-2 tracking-wider">Control Diario</p>
+                    <button onclick="showSection('visualizacion-hoy')" id="btn-visualizacion-hoy" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-sky-600 transition-colors bg-sky-600">
+                        <i class="fa-solid fa-eye w-6 text-center mr-2 text-amber-300"></i> Visualización (Hoy)
+                    </button>
+
+                    <p class="text-[10px] uppercase font-bold text-sky-200 px-3 pt-4 mb-2 tracking-wider">Menú Inspectores</p>
+                    <button onclick="showSection('carga-inspector')" id="btn-carga-inspector" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-user-plus w-6 text-center mr-2"></i> 1. Carga / Edición
+                    </button>
+                    <button onclick="showSection('visualizar-inspectores')" id="btn-visualizar-inspectores" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-users-viewfinder w-6 text-center mr-2"></i> 2. Nómina Completa
+                    </button>
+                    <button onclick="showSection('indumentaria')" id="btn-indumentaria" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-shirt w-6 text-center mr-2"></i> 3. Indumentaria
+                    </button>
+                    <button onclick="showSection('carga-horarios')" id="btn-carga-horarios" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-calendar-days w-6 text-center mr-2"></i> 4. Horarios Mensuales
+                    </button>
+
+                    <p class="text-[10px] uppercase font-bold text-sky-200 px-3 pt-4 mb-2 tracking-wider">Gestión Sábados</p>
+                    <button onclick="showSection('gestion-sabado')" id="btn-gestion-sabado" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-calendar-day w-6 text-center mr-2"></i> 5. Sábados (Planilla)
+                    </button>
+                    <button onclick="showSection('listado-sabados')" id="btn-listado-sabados" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-list-check w-6 text-center mr-2"></i> Listado de Sábados
+                    </button>
+
+                    <!-- MENÚ EXCLUSIVO PARA DISEÑADOR -->
+                    <p class="text-[10px] uppercase font-bold text-amber-200 px-3 pt-4 mb-2 tracking-wider">Área Diseñador</p>
+                    <button onclick="showSection('menu-exportar')" id="btn-menu-exportar" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-sky-600 transition-colors bg-amber-600/30 text-amber-100 border border-amber-300/30">
+                        <i class="fa-solid fa-file-excel w-6 text-center mr-2 text-emerald-300"></i> Exportar (Diseñador)
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Contenido Central del Módulo -->
+        <main class="flex-1 p-8">
+            
+            <!-- SECCIÓN 0: VISUALIZACIÓN HOY -->
+            <section id="visualizacion-hoy" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clock text-sky-600"></i> Estado del Personal en la Jornada de Hoy
+                        </h2>
+                        <p class="text-xs text-slate-500">Nómina completa de inspectores y sus respectivos turnos para la fecha actual: <span id="lblFechaHoy" class="font-bold text-sky-800">--/--/----</span></p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="cargarPersonalHoy()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-rotate-right"></i> Actualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Legajo</th>
+                                <th class="p-3">Apellido y Nombre</th>
+                                <th class="p-3">Teléfono</th>
+                                <th class="p-3">Tipo Turno</th>
+                                <th class="p-3 text-center bg-sky-800">Horario Mañana</th>
+                                <th class="p-3 text-center bg-sky-900">Horario Tarde</th>
+                                <th class="p-3 text-center rounded-tr-lg">Efectivo a Registrar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaPersonalHoy" class="divide-y divide-slate-200 text-slate-800">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-slate-400">Cargando datos del día actual...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 1: CARGA / EDICIÓN DE INSPECTOR -->
+            <section id="carga-inspector" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-5xl mx-auto hidden no-print">
+                <h2 id="titulo-form" class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-sky-600"></i> Carga de Inspector
+                </h2>
+                <p class="text-sm text-slate-600 mb-6">Complete los campos correspondientes para dar de alta o actualizar a un inspector.</p>
+
+                <form id="formInspector" onsubmit="guardarInspector(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <input type="hidden" id="editIndex" value="-1">
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Legajo (Permite letras, números y '/')</label>
+                        <input type="text" id="legajo" maxlength="20" required placeholder="Ej: ABC-1234 / 1234/26" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Apellido y Nombre (máx 35 caract.)</label>
+                        <input type="text" id="nombre" maxlength="35" required placeholder="Pérez, Juan Carlos" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Dirección</label>
+                        <input type="text" id="direccion" maxlength="20" required placeholder="Av. San Martín 123" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono</label>
+                        <input type="text" id="telefono" required placeholder="+549 3564123456" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">DNI</label>
+                        <input type="text" id="dni" required placeholder="35.646.879" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tarea</label>
+                        <input type="text" id="tarea" maxlength="14" required placeholder="Control Urbano" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha Nacimiento</label>
+                        <input type="date" id="fechaNacimiento" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha Ingreso</label>
+                        <input type="date" id="fechaIngreso" onchange="calcularVacacionesYAntiguedad()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Estado Revista</label>
+                        <select id="estadoRevista" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccione...</option>
+                            <option value="P. P.">P. P.</option>
+                            <option value="P.E.L.">P.E.L.</option>
+                            <option value="Contrato">Contrato</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Situación Operativa</label>
+                        <select id="situacionOperativa" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccione...</option>
+                            <option value="Activo">Activo</option>
+                            <option value="Suspendido">Suspendido</option>
+                            <option value="Baja">Baja</option>
+                            <option value="Trasladado">Trasladado</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Antigüedad (Años)</label>
+                        <input type="number" id="antiguedad" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-sky-50 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vacaciones Corresp. (máx 35 hábiles)</label>
+                        <input type="number" id="vacacionesCorrespondientes" min="0" max="35" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-sky-50 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Días Pendientes</label>
+                        <input type="number" id="diasPendientes" min="0" required value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-2 lg:col-span-3 flex justify-end gap-3 mt-4">
+                        <button type="button" id="btnCancelarEdicion" onclick="cancelarEdicion()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs transition-colors">Cancelar</button>
+                        <button type="submit" id="btnGuardar" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> <span id="btnGuardarText">Guardar Inspector</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 2: VISUALIZAR INSPECTORES -->
+            <section id="visualizar-inspectores" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto hidden no-print">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-down-a-z text-sky-600"></i> Nómina de Inspectores
+                    </h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-500 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Legajo</th>
+                                <th class="p-3">Apellido y Nombre</th>
+                                <th class="p-3">DNI</th>
+                                <th class="p-3">Teléfono</th>
+                                <th class="p-3">Tarea</th>
+                                <th class="p-3">Estado</th>
+                                <th class="p-3">Sit. Op.</th>
+                                <th class="p-3">Antigüedad</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInspectores" class="divide-y divide-slate-200 text-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: INDUMENTARIA ENTREGADA -->
+            <section id="indumentaria" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-5xl mx-auto hidden no-print">
+                <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-shirt text-sky-600"></i> Registro de Indumentaria Entregada
+                </h2>
+                <form id="formIndumentaria" onsubmit="guardarIndumentaria(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspectorIndumentaria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                            <option value="">Seleccionar inspector...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
+                        <input type="date" id="fechaEntregaIndumentaria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo Ropa</label>
+                        <input type="text" id="tipoRopa" required placeholder="Ej: Camisa, Pantalón..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                    </div>
+                    <div class="md:col-span-3 flex justify-end">
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2 rounded-lg text-xs shadow">Registrar Entrega</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- ITEM 4: CARGA DE HORARIOS MENSUALES POR INSPECTOR -->
+            <section id="carga-horarios" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto hidden no-print">
+                <h2 class="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-sky-600"></i> Carga de Horarios Mensuales por Inspector
+                </h2>
+                <p class="text-xs text-slate-500 mb-6">Seleccione el inspector, mes y año. Puede configurar un patrón de horario para replicarlo a todo el mes y ajustar cualquier día de forma individual.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-sky-50 p-4 rounded-xl border border-sky-200">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspectorHorario" onchange="generarGrillaMensual()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                            <option value="">Seleccionar inspector...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes</label>
+                        <select id="selectMesHorario" onchange="generarGrillaMensual()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10" selected>Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Año</label>
+                        <select id="selectAnioHorario" onchange="generarGrillaMensual()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <div id="resumenSabados" class="w-full bg-white px-3 py-2 rounded-lg border border-sky-300 text-center">
+                            <span class="text-[10px] uppercase font-bold text-slate-500 block">Sábados Asignados</span>
+                            <span id="contadorSabados" class="text-sm font-extrabold text-sky-700">0 / 3 Máx.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Carga Rápida por Plantilla / Copiar Horario a todo el Mes
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                        <div class="lg:col-span-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-[11px] font-bold text-sky-800 block mb-1.5">Lunes a Viernes (Días Hábiles)</span>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Tipo Turno</label>
+                                    <select id="tplTipoHabiles" onchange="toggleTplInputs('Habiles')" class="w-full border rounded px-1 py-1">
+                                        <option value="Corrido">Corrido</option>
+                                        <option value="Cortado">Cortado</option>
+                                        <option value="Sin Turno">Sin Turno</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Mañana</label>
+                                    <select id="tplMananaHabiles" class="w-full border rounded px-1 py-1">
+                                        <option value="06:30-13:30">06:30 a 13:30</option>  
+                                        <option value="07:30-11:30">08:00 a 11:15</option>
+                                        <option value="06:30-10:30">06:30 a 10:30</option>
+                                        <option value="08:30-12:30">09:00 a 12:15</option>
+                                        <option value="00:00-00:00">00:00</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Tarde</label>
+                                    <select id="tplTardeHabiles" class="w-full border rounded px-1 py-1">
+                                        <option value="00:00-00:00">Sin Turno Tarde</option>
+                                        <option value="15:00-18:00">15:15 a 17:45</option> 
+                                        <option value="16:00-19:00">16:15 a 18:45</option>
+                                        <option value="17:00-20:00">17:15 a 19:45</option>
+                                        <option value="13:00-20:00">13:00 a 20:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SÁBADOS DINÁMICOS CON FECHAS REALES -->
+                        <div class="lg:col-span-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-[11px] font-bold text-amber-800 block mb-1.5">Sábados Obligatorios (Seleccione cuáles laborar)</span>
+                            <div id="contenedorSabadosDinamicos" class="flex flex-wrap items-center gap-2 mb-2 text-xs">
+                                <!-- Se renderizan dinámicamente con las fechas exactas en dd/mm/aaaa -->
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <select id="tplMananaSabado" class="w-full border rounded px-1 py-1">
+                                        <option value="07:30-12:30">07:30 a 12:30 (Efec. 07:30-12:15)</option>
+                                        <option value="08:00-12:00">08:00 a 12:00 (Efec. 08:15-11:45)</option>
+                                        <option value="08:30-12:30">08:30 a 12:30 (Efec. 08:45-12:15)</option>
+                                        <option value="00:00-00:00">Sin Turno Mañana</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select id="tplTardeSabado" class="w-full border rounded px-1 py-1">
+                                        <option value="00:00-00:00">Sin Turno Tarde</option>
+                                        <option value="16:00-20:00">Tarde: 16:00 a 20:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="button" onclick="aplicarPlantillaAMes()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs shadow transition-colors flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-copy"></i> Aplicar a Todo el Mes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="formHorariosMensuales" onsubmit="guardarHorariosMensuales(event)" class="space-y-4">
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-sky-600 text-white uppercase text-[10px]">
+                                    <th class="p-2.5">Día / Fecha</th>
+                                    <th class="p-2.5">Tipo Turno</th>
+                                    <th class="p-2.5 bg-sky-700 text-center">Mañana: Ingreso</th>
+                                    <th class="p-2.5 bg-sky-700 text-center">Mañana: Egreso</th>
+                                    <th class="p-2.5 bg-sky-800 text-center">Tarde: Ingreso</th>
+                                    <th class="p-2.5 bg-sky-800 text-center">Tarde: Egreso</th>
+                                    <th class="p-2.5 text-center">Registra Efec. Mañana</th>
+                                    <th class="p-2.5 text-center">Registra Efec. Tarde</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grillaDiasHorario" class="divide-y divide-slate-200">
+                                <tr>
+                                    <td colspan="8" class="p-4 text-center text-slate-400">Seleccione un inspector para cargar la grilla de días.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check"></i> Guardar Horario Mensual
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- ITEM 5: SÁBADOS (PLANILLA DE CONTROL) -->
+            <section id="gestion-sabado" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 no-print">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-sky-600"></i> Planilla de Control de Sábados
+                        </h2>
+                        <p class="text-xs text-slate-500">Muestra los inspectores asignados obligatoriamente según su carga horaria, permitiendo agregar adicionales y modificar horarios individualmente.</p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="imprimirPlanillaSabado()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Imprimir Planilla
+                        </button>
+                        <button onclick="guardarSabadoFirebase()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar en Firebase
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selección de Fecha Sábado y Agregar Adicionales -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-sky-50 p-4 rounded-xl border border-sky-200 no-print">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha del Sábado</label>
+                        <input type="date" id="fechaSabado" onchange="cargarPersonalObligatorioSabado()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Agregar Inspector Adicional de la Nómina -->
+                    <div class="md:col-span-2 flex items-end gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Agregar Inspector Adicional</label>
+                            <select id="selectAgregarInspector" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <option value="">Cargando inspectores...</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="agregarInspectorAdicional()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-user-plus"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ÁREA IMPRIMIBLE DE LA PLANILLA DE SÁBADO -->
+                <div id="printableArea" class="bg-white p-4 border border-slate-200 rounded-xl">
+                    <div class="text-center mb-6 pb-4 border-b border-slate-300">
+                        <h1 class="text-2xl font-extrabold uppercase tracking-wide text-slate-900">Planilla de Asistencia - Servicio de Sábado</h1>
+                        <p class="text-sm font-semibold text-slate-700 mt-1">Control de Estacionamiento Medido - Fecha: <span id="lblFechaPlanilla" class="text-sky-800 font-extrabold">--/--/----</span></p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse border border-slate-300">
+                            <thead>
+                                <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
+                                    <th class="p-2.5 border border-slate-300">Legajo</th>
+                                    <th class="p-2.5 border border-slate-300">Apellido y Nombre</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Horario Ingreso</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Horario Egreso</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Estado / Novedad</th>
+                                    <th class="p-2.5 border border-slate-300 text-center">Inspector de Reemplazo</th>
+                                    <th class="p-2.5 border border-slate-300 text-center w-48">Firma del Inspector</th>
+                                    <th class="p-2.5 border border-slate-300 text-center no-print">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaSabadoPersonal" class="divide-y divide-slate-300 text-slate-800">
+                                <tr>
+                                    <td colspan="8" class="p-4 text-center text-slate-400">Seleccione una fecha de sábado para cargar los inspectores obligatorios.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-12 pt-8 flex justify-between items-center text-xs text-slate-700 font-bold">
+                        <div class="text-center border-t border-slate-400 w-64 pt-2">
+                            Firma y Aclaración Responsable Turno
+                        </div>
+                        <div class="text-center border-t border-slate-400 w-64 pt-2">
+                            Firma Director / Encargado General
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LISTADO DE SÁBADOS (HISTORIAL) -->
+            <section id="listado-sabados" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-6xl mx-auto hidden no-print">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-sky-600"></i> Historial de Sábados Registrados
+                        </h2>
+                        <p class="text-xs text-slate-500">Consulte, modifique o reimprima las planillas de asistencia de sábados anteriores.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Fecha Sábado</th>
+                                <th class="p-3">Personal Asignado</th>
+                                <th class="p-3">Presentes</th>
+                                <th class="p-3">Ausentes / Cambios</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaHistorialSabados" class="divide-y divide-slate-200 text-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MENÚ EXCLUSIVO DISEÑADOR: EXPORTAR A EXCEL (.XLSX) -->
+            <section id="menu-exportar" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-5xl mx-auto hidden no-print">
+                <div class="mb-6 pb-4 border-b border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Módulo de Exportación (Diseñador)
+                    </h2>
+                    <p class="text-xs text-slate-500">Exporte reportes completos en formato Spreadsheet (.xlsx) para procesamiento de datos.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Tarjeta 1: Exportar Personal -->
+                    <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg mb-3">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 uppercase mb-1">Exportar Personal</h3>
+                            <p class="text-xs text-slate-500 mb-4">Descarga el listado completo de inspectores registrados con todos sus datos filiatorios y laborales.</p>
+                        </div>
+                        <button onclick="exportarPersonalXls()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> Descargar Personal (.xlsx)
+                        </button>
+                    </div>
+
+                    <!-- Tarjeta 2: Exportar Horarios por Rango -->
+                    <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-lg mb-3">
+                                <i class="fa-solid fa-calendar-days"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 uppercase mb-1">Exportar Horarios</h3>
+                            <p class="text-xs text-slate-500 mb-3">Exporte horarios asignados por fecha. Incluye filas separadas de Ingreso y Egreso por cada inspector.</p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Desde</label>
+                                    <input type="date" id="expHorarioDesde" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Hasta</label>
+                                    <input type="date" id="expHorarioHasta" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="exportarHorariosXls()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> Descargar Horarios (.xlsx)
+                        </button>
+                    </div>
+
+                    <!-- Tarjeta 3: Exportar Indumentaria -->
+                    <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg mb-3">
+                                <i class="fa-solid fa-shirt"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 uppercase mb-1">Exportar Indumentaria</h3>
+                            <p class="text-xs text-slate-500 mb-3">Listado completo de las entregas de ropa filtradas según el rango de fechas.</p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Desde</label>
+                                    <input type="date" id="expIndumentariaDesde" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Hasta</label>
+                                    <input type="date" id="expIndumentariaHasta" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="exportarIndumentariaXls()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> Descargar Indumentaria (.xlsx)
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Modal Lightbox -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeModal()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute -top-10 right-0 text-white hover:text-red-400 text-2xl font-bold">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="modalImg" src="" alt="Imagen Ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg border border-slate-700">
+        </div>
+    </div>
+
+    <!-- Script Inicialización Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, setDoc, getDocs, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
+            authDomain: "medido-i.firebaseapp.com",
+            projectId: "medido-i",
+            storageBucket: "medido-i.firebasestorage.app",
+            messagingSenderId: "17396988314",
+            appId: "1:17396988314:web:8332b473254e0f2cb92223",
+            measurementId: "G-DKDNGY5YS0"
+        };
+
+        const statusContainer = document.getElementById("firebase-status");
+        const statusDot = document.getElementById("firebase-status-dot");
+        const statusText = document.getElementById("firebase-status-text");
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            window.db = db;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.getDoc = getDoc;
+            window.deleteDoc = deleteDoc;
+            window.collection = collection;
+            window.getDocs = getDocs;
+
+            statusContainer.className = "bg-sky-900/80 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Firestore Conectado";
+
+            if (typeof window.cargarDatosIniciales === 'function') {
+                window.cargarDatosIniciales();
+            }
+        } catch (error) {
+            console.error("Error al inicializar Firebase/Firestore:", error);
+            statusContainer.className = "bg-sky-900/80 text-rose-300 border border-rose-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-400";
+            statusText.textContent = "Error de Conexión";
+        }
+    </script>
+
+    <!-- Script de Lógica e Interacción del Sistema -->
+    <script>
+        let inspectoresNomina = [];
+        let personalSabado = [];
+        let historialSabados = [];
+
+        const mapIngresoManana = { "00:00": "00:00", "06:30": "06:30", "07:30": "07:30", "08:00": "08:15", "08:30": "08:45" };
+        const mapEgresoManana = { "00:00": "00:00", "10:30": "10:30", "11:30": "11:15", "12:00": "11:45", "12:30": "12:15", "13:30": "13:30" };
+        const mapIngresoTarde = { "00:00": "00:00", "13:30": "13:30", "15:00": "15:15", "16:00": "16:15", "17:00": "17:15" };
+        const mapEgresoTarde = { "00:00": "00:00", "18:00": "17:45", "19:00": "18:45", "20:00": "19:45" };
+
+        // Función Auxiliar Global para Formatear Fechas en formato dd/mm/aaaa
+        function formatearFechaLatina(fechaIso) {
+            if (!fechaIso) return '';
+            const partes = fechaIso.split('-');
+            if (partes.length !== 3) return fechaIso;
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
+        async function cargarDatosIniciales() {
+            await obtenerInspectoresNomina();
+            
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            const fechaActualIso = `${yyyy}-${mm}-${dd}`;
+
+            document.getElementById('lblFechaHoy').textContent = `${dd}/${mm}/${yyyy}`;
+
+            // Precargar fechas por defecto en módulo de exportación
+            document.getElementById('expHorarioDesde').value = `${yyyy}-${mm}-01`;
+            document.getElementById('expHorarioHasta').value = fechaActualIso;
+            document.getElementById('expIndumentariaDesde').value = `${yyyy}-${mm}-01`;
+            document.getElementById('expIndumentariaHasta').value = fechaActualIso;
+
+            showSection('visualizacion-hoy');
+            await cargarPersonalHoy();
+
+            const proximoSabado = new Date(hoy);
+            proximoSabado.setDate(hoy.getDate() + ((6 - hoy.getDay() + 7) % 7));
+            document.getElementById('fechaSabado').value = proximoSabado.toISOString().split('T')[0];
+        }
+        window.cargarDatosIniciales = cargarDatosIniciales;
+
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const secObj = document.getElementById(sectionId);
+            if(secObj) secObj.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-sky-600'));
+            const btnActivo = document.getElementById(`btn-${sectionId}`);
+            if (btnActivo) btnActivo.classList.add('bg-sky-600');
+
+            if (sectionId === 'visualizacion-hoy') cargarPersonalHoy();
+            if (sectionId === 'listado-sabados') obtenerHistorialSabados();
+            if (sectionId === 'gestion-sabado') cargarPersonalObligatorioSabado();
+            if (sectionId === 'visualizar-inspectores') renderizarInspectores();
+            if (sectionId === 'carga-horarios' || sectionId === 'indumentaria') poblarSelectInspectores();
+        }
+
+        async function obtenerInspectoresNomina() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "inspectores"));
+                inspectoresNomina = [];
+                querySnapshot.forEach((docSnap) => inspectoresNomina.push(docSnap.data()));
+                poblarSelectInspectores();
+                renderizarInspectores();
+            } catch (error) {
+                console.error("Error al obtener nómina:", error);
+            }
+        }
+
+        function poblarSelectInspectores() {
+            const selectAg = document.getElementById('selectAgregarInspector');
+            const selectInd = document.getElementById('selectInspectorIndumentaria');
+            const selectHor = document.getElementById('selectInspectorHorario');
+
+            if (!selectAg || !selectInd || !selectHor) return;
+
+            const valAg = selectAg.value;
+            const valInd = selectInd.value;
+            const valHor = selectHor.value;
+
+            selectAg.innerHTML = '<option value="">-- Seleccionar Inspector para agregar --</option>';
+            selectInd.innerHTML = '<option value="">Seleccionar inspector...</option>';
+            selectHor.innerHTML = '<option value="">Seleccionar inspector...</option>';
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            ordenados.forEach(ins => {
+                selectAg.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (${ins.legajo})</option>`;
+                selectInd.innerHTML += `<option value="${ins.nombre}">${ins.nombre} (${ins.legajo})</option>`;
+                selectHor.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (${ins.legajo})</option>`;
+            });
+
+            if (valAg) selectAg.value = valAg;
+            if (valInd) selectInd.value = valInd;
+            if (valHor) selectHor.value = valHor;
+        }
+
+        function calcularVacacionesYAntiguedad() {
+            const fechaIngresoVal = document.getElementById('fechaIngreso').value;
+            if (!fechaIngresoVal) return;
+
+            const ingreso = new Date(fechaIngresoVal);
+            const hoy = new Date();
+            let anosAntiguedad = hoy.getFullYear() - ingreso.getFullYear();
+            const m = hoy.getMonth() - ingreso.getMonth();
+            
+            if (m < 0 || (m === 0 && hoy.getDate() < ingreso.getDate())) {
+                anosAntiguedad--;
+            }
+
+            if (anosAntiguedad < 0) anosAntiguedad = 0;
+
+            let diasVacaciones = 15 + (Math.floor(anosAntiguedad / 5) * 5);
+            diasVacaciones = Math.min(diasVacaciones, 35);
+
+            document.getElementById('antiguedad').value = anosAntiguedad;
+            document.getElementById('vacacionesCorrespondientes').value = diasVacaciones;
+        }
+
+        async function guardarInspector(e) {
+            e.preventDefault();
+            const legajoVal = String(document.getElementById('legajo').value).trim();
+            const datosInspector = {
+                legajo: legajoVal,
+                nombre: document.getElementById('nombre').value,
+                direccion: document.getElementById('direccion').value,
+                telefono: document.getElementById('telefono').value,
+                dni: document.getElementById('dni').value,
+                tarea: document.getElementById('tarea').value,
+                fechaNacimiento: document.getElementById('fechaNacimiento').value,
+                fechaIngreso: document.getElementById('fechaIngreso').value,
+                estadoRevista: document.getElementById('estadoRevista').value,
+                situacionOperativa: document.getElementById('situacionOperativa').value,
+                antiguedad: parseInt(document.getElementById('antiguedad').value),
+                vacacionesCorrespondientes: parseInt(document.getElementById('vacacionesCorrespondientes').value),
+                diasPendientes: parseInt(document.getElementById('diasPendientes').value)
+            };
+
+            try {
+                const safeDocId = legajoVal.replace(/\//g, '_');
+                await window.setDoc(window.doc(window.db, "inspectores", safeDocId), datosInspector);
+                alert('Inspector guardado exitosamente.');
+                cancelarEdicion();
+                await obtenerInspectoresNomina();
+            } catch (error) {
+                alert("Error al guardar: " + error.message);
+            }
+        }
+
+        function editarInspector(legajo) {
+            const ins = inspectoresNomina.find(i => String(i.legajo) === String(legajo));
+            if (!ins) return;
+
+            document.getElementById('editIndex').value = ins.legajo;
+            document.getElementById('legajo').value = ins.legajo;
+            document.getElementById('nombre').value = ins.nombre;
+            document.getElementById('direccion').value = ins.direccion;
+            document.getElementById('telefono').value = ins.telefono;
+            document.getElementById('dni').value = ins.dni;
+            document.getElementById('tarea').value = ins.tarea;
+            document.getElementById('fechaNacimiento').value = ins.fechaNacimiento;
+            document.getElementById('fechaIngreso').value = ins.fechaIngreso;
+            document.getElementById('estadoRevista').value = ins.estadoRevista;
+            document.getElementById('situacionOperativa').value = ins.situacionOperativa;
+            document.getElementById('antiguedad').value = ins.antiguedad;
+            document.getElementById('vacacionesCorrespondientes').value = ins.vacacionesCorrespondientes;
+            document.getElementById('diasPendientes').value = ins.diasPendientes;
+
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-user-pen text-amber-600"></i> Modificar Inspector`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Cambios";
+            document.getElementById('btnCancelarEdicion').classList.remove('hidden');
+
+            showSection('carga-inspector');
+        }
+
+        async function eliminarInspector(legajo) {
+            const ins = inspectoresNomina.find(i => String(i.legajo) === String(legajo));
+            const nombreMostrar = ins ? ins.nombre : legajo;
+
+            if (!confirm(`¿Está seguro de que desea eliminar al inspector "${nombreMostrar}" (${legajo})? Esta acción borrará al personal del sistema.`)) {
+                return;
+            }
+
+            try {
+                const safeDocId = String(legajo).replace(/\//g, '_');
+                await window.deleteDoc(window.doc(window.db, "inspectores", safeDocId));
+                alert(`El inspector ${nombreMostrar} fue eliminado correctamente.`);
+                await obtenerInspectoresNomina();
+            } catch (error) {
+                alert("Error al eliminar inspector: " + error.message);
+            }
+        }
+
+        function cancelarEdicion() {
+            document.getElementById('formInspector').reset();
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-user-plus text-sky-600"></i> Carga de Inspector`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Inspector";
+            document.getElementById('btnCancelarEdicion').classList.add('hidden');
+        }
+
+        // --- PANTALLA HOY: VISUALIZACIÓN PERSONAL ---
+        async function cargarPersonalHoy() {
+            const tbody = document.getElementById('tablaPersonalHoy');
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Consultando horarios de la jornada...</td></tr>';
+
+            const hoy = new Date();
+            const anio = hoy.getFullYear();
+            const mes = hoy.getMonth() + 1;
+            const dia = hoy.getDate();
+
+            let plantillaHoy = [];
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            for (const ins of ordenados) {
+                let turnoInfo = {
+                    legajo: ins.legajo,
+                    nombre: ins.nombre,
+                    telefono: ins.telefono || '-',
+                    tipoTurno: 'Sin Turno / Franco',
+                    manana: 'Sin Turno',
+                    tarde: 'Sin Turno',
+                    efectivo: '-'
+                };
+
+                try {
+                    const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                    const idHorario = `${safeLegajo}_${anio}_${mes}`;
+                    const docSnap = await window.getDoc(window.doc(window.db, "horarios_mensuales", idHorario));
+
+                    if (docSnap.exists()) {
+                        const datosDias = docSnap.data().dias || {};
+                        const configDia = datosDias[dia];
+
+                        if (configDia && configDia.tipoTurno !== 'Sin Turno') {
+                            turnoInfo.tipoTurno = configDia.tipoTurno;
+                            turnoInfo.manana = (configDia.ingresoManana && configDia.ingresoManana !== '00:00') ? `${configDia.ingresoManana} a ${configDia.egresoManana}` : 'Sin Turno';
+                            turnoInfo.tarde = (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') ? `${configDia.ingresoTarde} a ${configDia.egresoTarde}` : 'Sin Turno';
+                            
+                            const efecIngM = mapIngresoManana[configDia.ingresoManana] || '00:00';
+                            const efecEgrM = mapEgresoManana[configDia.egresoManana] || '00:00';
+                            
+                            if (efecIngM !== '00:00' && efecEgrM !== '00:00') {
+                                turnoInfo.efectivo = `${efecIngM} a ${efecEgrM}`;
+                            } else {
+                                const efecIngT = mapIngresoTarde[configDia.ingresoTarde] || '00:00';
+                                const efecEgrT = mapEgresoTarde[configDia.egresoTarde] || '00:00';
+                                turnoInfo.efectivo = (efecIngT !== '00:00') ? `${efecIngT} a ${efecEgrT}` : '-';
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error al verificar personal del día:", e);
+                }
+
+                plantillaHoy.push(turnoInfo);
+            }
+
+            tbody.innerHTML = '';
+            if (plantillaHoy.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">No hay inspectores registrados en la nómina.</td></tr>';
+                return;
+            }
+
+            plantillaHoy.forEach(p => {
+                const esFranco = p.tipoTurno === 'Sin Turno / Franco';
+                tbody.innerHTML += `
+                    <tr class="${esFranco ? 'bg-slate-50 opacity-70' : 'hover:bg-slate-50'}">
+                        <td class="p-3 font-bold text-sky-800">${p.legajo}</td>
+                        <td class="p-3 font-bold text-slate-800">${p.nombre}</td>
+                        <td class="p-3 text-slate-600">${p.telefono}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 ${esFranco ? 'bg-slate-200 text-slate-700' : 'bg-sky-100 text-sky-900'} rounded font-bold text-[10px]">${p.tipoTurno}</span></td>
+                        <td class="p-3 text-center font-semibold text-slate-700">${p.manana}</td>
+                        <td class="p-3 text-center font-semibold text-slate-700">${p.tarde}</td>
+                        <td class="p-3 text-center font-bold ${esFranco ? 'text-slate-400' : 'text-emerald-700'}">${p.efectivo}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- CONTROL DE SÁBADOS ---
+        async function cargarPersonalObligatorioSabado() {
+            const fechaVal = document.getElementById('fechaSabado').value;
+            if (!fechaVal) return;
+
+            document.getElementById('lblFechaPlanilla').textContent = formatearFechaLatina(fechaVal);
+            personalSabado = [];
+
+            const tbody = document.getElementById('tablaSabadoPersonal');
+            tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Consultando asignaciones obligatorias...</td></tr>`;
+
+            try {
+                const docSnap = await window.getDoc(window.doc(window.db, "planillas_sabados", fechaVal));
+                if (docSnap.exists()) {
+                    personalSabado = docSnap.data().personal || [];
+                    renderizarTablaSabado();
+                    return;
+                }
+            } catch (error) {
+                console.error("Error al buscar sábado guardado:", error);
+            }
+
+            const [anioStr, mesStr, diaStr] = fechaVal.split('-');
+            const anio = parseInt(anioStr);
+            const mes = parseInt(mesStr);
+            const numeroDia = parseInt(diaStr);
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            for (const ins of ordenados) {
+                try {
+                    const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                    const idHorario = `${safeLegajo}_${anio}_${mes}`;
+                    const horarioDoc = await window.getDoc(window.doc(window.db, "horarios_mensuales", idHorario));
+
+                    if (horarioDoc.exists()) {
+                        const datosDias = horarioDoc.data().dias || {};
+                        const configDia = datosDias[numeroDia];
+
+                        if (configDia && configDia.tipoTurno && configDia.tipoTurno !== 'Sin Turno') {
+                            personalSabado.push({
+                                legajo: ins.legajo,
+                                nombre: ins.nombre,
+                                ingreso: configDia.ingresoManana && configDia.ingresoManana !== '00:00' ? configDia.ingresoManana : (configDia.ingresoTarde || '08:00'),
+                                egreso: configDia.egresoManana && configDia.egresoManana !== '00:00' ? configDia.egresoManana : (configDia.egresoTarde || '12:00'),
+                                estado: 'Presente',
+                                reemplazoLegajo: ''
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error al cargar obligatorios:", err);
+                }
+            }
+
+            renderizarTablaSabado();
+        }
+
+        function agregarInspectorAdicional() {
+            const legajo = document.getElementById('selectAgregarInspector').value;
+            if (!legajo) {
+                alert('Seleccione un inspector de la nómina.');
+                return;
+            }
+
+            const yaExiste = personalSabado.some(p => String(p.legajo) === String(legajo));
+            if (yaExiste) {
+                alert('El inspector ya se encuentra asignado a la planilla.');
+                return;
+            }
+
+            const ins = inspectoresNomina.find(i => String(i.legajo) === String(legajo));
+            if (ins) {
+                personalSabado.push({
+                    legajo: ins.legajo,
+                    nombre: ins.nombre,
+                    ingreso: '08:00',
+                    egreso: '12:00',
+                    estado: 'Presente',
+                    reemplazoLegajo: ''
+                });
+            }
+
+            renderizarTablaSabado();
+            document.getElementById('selectAgregarInspector').value = '';
+        }
+
+        function renderizarTablaSabado() {
+            const tbody = document.getElementById('tablaSabadoPersonal');
+            tbody.innerHTML = '';
+
+            if (personalSabado.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">No hay inspectores obligatorios asignados para este sábado.</td></tr>`;
+                return;
+            }
+
+            personalSabado.forEach((p, idx) => {
+                let optionsReemplazo = `<option value="">-- Sin Reemplazo --</option>`;
+                inspectoresNomina.forEach(ins => {
+                    if (String(ins.legajo) !== String(p.legajo)) {
+                        const sel = (String(p.reemplazoLegajo) === String(ins.legajo)) ? 'selected' : '';
+                        optionsReemplazo += `<option value="${ins.legajo}" ${sel}>${ins.nombre}</option>`;
+                    }
+                });
+
+                const esAusente = p.estado === 'Ausente' || p.estado === 'Franco';
+
+                tbody.innerHTML += `
+                    <tr class="${esAusente ? 'bg-slate-50 opacity-75' : 'hover:bg-slate-50'}">
+                        <td class="p-2.5 border border-slate-300 font-bold text-sky-800">${p.legajo}</td>
+                        <td class="p-2.5 border border-slate-300 font-bold">${p.nombre}</td>
+                        <td class="p-2.5 border border-slate-300 text-center">
+                            <input type="time" value="${p.ingreso || '08:00'}" onchange="actualizarDatoPersonal(${idx}, 'ingreso', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold">
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center">
+                            <input type="time" value="${p.egreso || '12:00'}" onchange="actualizarDatoPersonal(${idx}, 'egreso', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold">
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center">
+                            <select onchange="actualizarDatoPersonal(${idx}, 'estado', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs font-bold">
+                                <option value="Presente" ${p.estado === 'Presente' ? 'selected' : ''}>Presente</option>
+                                <option value="Franco" ${p.estado === 'Franco' ? 'selected' : ''}>Franco / Sin Asignación</option>
+                                <option value="Ausente" ${p.estado === 'Ausente' ? 'selected' : ''}>Ausente / Falto</option>
+                                <option value="Cambio / Reemplazo" ${p.estado === 'Cambio / Reemplazo' ? 'selected' : ''}>Cambio por Reemplazo</option>
+                                <option value="Justificado" ${p.estado === 'Justificado' ? 'selected' : ''}>Ausencia Justificada</option>
+                            </select>
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center">
+                            <select onchange="actualizarDatoPersonal(${idx}, 'reemplazoLegajo', this.value)" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                                ${optionsReemplazo}
+                            </select>
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center">
+                            <div class="h-8 border-b border-dashed border-slate-400"></div>
+                        </td>
+                        <td class="p-2.5 border border-slate-300 text-center no-print">
+                            <button onclick="quitarInspectorSabado(${idx})" class="text-rose-600 hover:text-rose-800 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function actualizarDatoPersonal(idx, campo, valor) {
+            personalSabado[idx][campo] = valor;
+        }
+
+        function quitarInspectorSabado(idx) {
+            personalSabado.splice(idx, 1);
+            renderizarTablaSabado();
+        }
+
+        async function guardarSabadoFirebase() {
+            const fechaVal = document.getElementById('fechaSabado').value;
+            if (!fechaVal) return;
+
+            const datosGuardar = {
+                fecha: fechaVal,
+                totalPersonal: personalSabado.length,
+                presentes: personalSabado.filter(p => p.estado === 'Presente').length,
+                ausentes: personalSabado.filter(p => p.estado !== 'Presente' && p.estado !== 'Franco').length,
+                personal: personalSabado
+            };
+
+            try {
+                await window.setDoc(window.doc(window.db, "planillas_sabados", fechaVal), datosGuardar);
+                alert("Planilla de sábado guardada exitosamente.");
+                obtenerHistorialSabados();
+            } catch (error) {
+                alert("Error al guardar: " + error.message);
+            }
+        }
+
+        async function obtenerHistorialSabados() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "planillas_sabados"));
+                historialSabados = [];
+                querySnapshot.forEach((docSnap) => historialSabados.push(docSnap.data()));
+                renderizarHistorialSabados();
+            } catch (error) {
+                console.error("Error al obtener historial:", error);
+            }
+        }
+
+        function renderizarHistorialSabados() {
+            const tbody = document.getElementById('tablaHistorialSabados');
+            tbody.innerHTML = '';
+
+            if (historialSabados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay planillas de sábados guardadas.</td></tr>`;
+                return;
+            }
+
+            historialSabados.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+            historialSabados.forEach(s => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-bold text-sky-800">${formatearFechaLatina(s.fecha)}</td>
+                        <td class="p-3 font-bold">${s.totalPersonal} inspectores</td>
+                        <td class="p-3 text-emerald-700 font-bold">${s.presentes} presentes</td>
+                        <td class="p-3 text-rose-700 font-bold">${s.ausentes} nov.</td>
+                        <td class="p-3 text-center flex justify-center gap-2">
+                            <button onclick="cargarSabadoHistorial('${s.fecha}')" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded text-xs font-bold"><i class="fa-solid fa-pen-to-square"></i> Ver / Modificar</button>
+                            <button onclick="eliminarPlanillaSabado('${s.fecha}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function cargarSabadoHistorial(fecha) {
+            document.getElementById('fechaSabado').value = fecha;
+            cargarPersonalObligatorioSabado();
+            showSection('gestion-sabado');
+        }
+
+        async function eliminarPlanillaSabado(fecha) {
+            if (!confirm(`¿Eliminar la planilla del sábado ${formatearFechaLatina(fecha)}?`)) return;
+            try {
+                await window.deleteDoc(window.doc(window.db, "planillas_sabados", fecha));
+                await obtenerHistorialSabados();
+            } catch (error) {
+                alert("Error al eliminar: " + error.message);
+            }
+        }
+
+        function renderizarInspectores() {
+            const tbody = document.getElementById('tablaInspectores');
+            tbody.innerHTML = '';
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            ordenados.forEach(ins => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-bold text-sky-800">${ins.legajo}</td>
+                        <td class="p-3 font-bold">${ins.nombre}</td>
+                        <td class="p-3">${ins.dni}</td>
+                        <td class="p-3">${ins.telefono}</td>
+                        <td class="p-3">${ins.tarea}</td>
+                        <td class="p-3">${ins.estadoRevista}</td>
+                        <td class="p-3">${ins.situacionOperativa}</td>
+                        <td class="p-3">${ins.antiguedad} años</td>
+                        <td class="p-3 text-center flex justify-center gap-1.5">
+                            <button onclick="editarInspector('${ins.legajo}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-pen"></i> Modificar
+                            </button>
+                            <button onclick="eliminarInspector('${ins.legajo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- CARGA DE HORARIOS MENSUALES POR INSPECTOR ---
+        async function generarGrillaMensual() {
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+
+            const tbody = document.getElementById('grillaDiasHorario');
+            tbody.innerHTML = '';
+
+            if (!legajo) {
+                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Seleccione un inspector para cargar el calendario.</td></tr>';
+                renderizarCheckboxesSabadosMes(anio, mes);
+                return;
+            }
+
+            let datosGuardados = {};
+            let existeGuardado = false;
+            try {
+                const safeLegajo = String(legajo).replace(/\//g, '_');
+                const docSnap = await window.getDoc(window.doc(window.db, "horarios_mensuales", `${safeLegajo}_${anio}_${mes}`));
+                if (docSnap.exists()) {
+                    datosGuardados = docSnap.data().dias || {};
+                    existeGuardado = true;
+                }
+            } catch (e) {
+                console.error("Error al leer horarios guardados:", e);
+            }
+
+            renderizarCheckboxesSabadosMes(anio, mes, datosGuardados, existeGuardado);
+
+            const totalDias = new Date(anio, mes, 0).getDate();
+            const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            for (let d = 1; d <= totalDias; d++) {
+                const fechaDia = new Date(anio, mes - 1, d);
+                const nombreDia = nombresDias[fechaDia.getDay()];
+                const config = datosGuardados[d] || {};
+
+                const diaFormatted = String(d).padStart(2, '0');
+                const mesFormatted = String(mes).padStart(2, '0');
+                const fechaTextoLatina = `${diaFormatted}/${mesFormatted}/${anio}`;
+
+                let tipoTurno = 'Sin Turno';
+                let ingM = '00:00';
+                let egrM = '00:00';
+                let ingT = '00:00';
+                let egrT = '00:00';
+
+                if (existeGuardado && config.tipoTurno) {
+                    tipoTurno = config.tipoTurno;
+                    ingM = config.ingresoManana || '00:00';
+                    egrM = config.egresoManana || '00:00';
+                    ingT = config.ingresoTarde || '00:00';
+                    egrT = config.egresoTarde || '00:00';
+                } else {
+                    if (fechaDia.getDay() === 0) {
+                        tipoTurno = 'Sin Turno';
+                    } else if (fechaDia.getDay() === 6) {
+                        const chkSab = document.getElementById(`sab_${d}`);
+                        tipoTurno = (chkSab && chkSab.checked) ? 'Corrido' : 'Sin Turno';
+                        ingM = (tipoTurno !== 'Sin Turno') ? '07:30' : '00:00';
+                        egrM = (tipoTurno !== 'Sin Turno') ? '12:30' : '00:00';
+                    } else {
+                        tipoTurno = 'Corrido';
+                        ingM = '06:30';
+                        egrM = '13:30';
+                    }
+                }
+
+                tbody.innerHTML += `
+                    <tr class="${fechaDia.getDay() === 0 ? 'bg-amber-50/50' : 'hover:bg-slate-50'}">
+                        <td class="p-2 font-bold text-slate-700">${nombreDia} ${fechaTextoLatina}</td>
+                        <td class="p-2">
+                            <select id="tipoTurno_${d}" onchange="actualizarTipoTurnoDia(${d}, ${fechaDia.getDay() === 6})" class="px-2 py-1 border border-slate-300 rounded text-xs font-bold">
+                                <option value="Corrido" ${tipoTurno === 'Corrido' ? 'selected' : ''}>Turno Corrido</option>
+                                <option value="Cortado" ${tipoTurno === 'Cortado' ? 'selected' : ''}>Turno Cortado</option>
+                                <option value="Sin Turno" ${tipoTurno === 'Sin Turno' ? 'selected' : ''}>Sin Turno / Franco</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center">
+                            <select id="ingManana_${d}" onchange="recalcularEfectivos(${d})" class="border rounded px-1 py-1 text-xs">
+                                <option value="00:00" ${ingM === '00:00' ? 'selected' : ''}>00:00</option>
+                                <option value="06:30" ${ingM === '06:30' ? 'selected' : ''}>06:30</option>
+                                <option value="07:30" ${ingM === '07:30' ? 'selected' : ''}>07:30</option>
+                                <option value="08:00" ${ingM === '08:00' ? 'selected' : ''}>08:00</option>
+                                <option value="08:30" ${ingM === '08:30' ? 'selected' : ''}>08:30</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center">
+                            <select id="egrManana_${d}" onchange="recalcularEfectivos(${d})" class="border rounded px-1 py-1 text-xs">
+                                <option value="00:00" ${egrM === '00:00' ? 'selected' : ''}>00:00</option>
+                                <option value="10:30" ${egrM === '10:30' ? 'selected' : ''}>10:30</option>
+                                <option value="11:30" ${egrM === '11:30' ? 'selected' : ''}>11:30</option>
+                                <option value="12:00" ${egrM === '12:00' ? 'selected' : ''}>12:00</option>
+                                <option value="12:30" ${egrM === '12:30' ? 'selected' : ''}>12:30</option>
+                                <option value="13:30" ${egrM === '13:30' ? 'selected' : ''}>13:30</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center">
+                            <select id="ingTarde_${d}" onchange="recalcularEfectivos(${d})" class="border rounded px-1 py-1 text-xs">
+                                <option value="00:00" ${ingT === '00:00' ? 'selected' : ''}>00:00</option>
+                                <option value="13:30" ${ingT === '13:30' ? 'selected' : ''}>13:30</option>
+                                <option value="15:00" ${ingT === '15:00' ? 'selected' : ''}>15:00</option>
+                                <option value="16:00" ${ingT === '16:00' ? 'selected' : ''}>16:00</option>
+                                <option value="17:00" ${ingT === '17:00' ? 'selected' : ''}>17:00</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center">
+                            <select id="egrTarde_${d}" onchange="recalcularEfectivos(${d})" class="border rounded px-1 py-1 text-xs">
+                                <option value="00:00" ${egrT === '00:00' ? 'selected' : ''}>00:00</option>
+                                <option value="18:00" ${egrT === '18:00' ? 'selected' : ''}>18:00</option>
+                                <option value="19:00" ${egrT === '19:00' ? 'selected' : ''}>19:00</option>
+                                <option value="20:00" ${egrT === '20:00' ? 'selected' : ''}>20:00</option>
+                            </select>
+                        </td>
+                        <td class="p-2 text-center font-bold text-sky-800" id="efectivoManana_${d}">-</td>
+                        <td class="p-2 text-center font-bold text-sky-800" id="efectivoTarde_${d}">-</td>
+                    </tr>
+                `;
+                recalcularEfectivos(d);
+            }
+            actualizarContadorSabados();
+        }
+
+        function renderizarCheckboxesSabadosMes(anio, mes, datosGuardados = {}, existeGuardado = false) {
+            const container = document.getElementById('contenedorSabadosDinamicos');
+            if (!container) return;
+
+            container.innerHTML = '';
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+            let countSabados = 0;
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                if (fecha.getDay() === 6) {
+                    countSabados++;
+                    const diaFormatted = String(dia).padStart(2, '0');
+                    const mesFormatted = String(mes).padStart(2, '0');
+                    const fechaTexto = `${diaFormatted}/${mesFormatted}/${anio}`;
+
+                    let isChecked = false;
+                    if (existeGuardado) {
+                        const configDia = datosGuardados[dia];
+                        isChecked = configDia && configDia.tipoTurno && configDia.tipoTurno !== 'Sin Turno';
+                    } else {
+                        isChecked = (countSabados <= 3);
+                    }
+
+                    container.innerHTML += `
+                        <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 hover:bg-amber-100">
+                            <input type="checkbox" id="sab_${dia}" data-dia="${dia}" class="chkSabadoDinamico" ${isChecked ? 'checked' : ''} onchange="toggleSabadoIndividual(${dia})">
+                            Sáb ${fechaTexto}
+                        </label>
+                    `;
+                }
+            }
+        }
+
+        function toggleSabadoIndividual(dia) {
+            const chk = document.getElementById(`sab_${dia}`);
+            if (!chk) return;
+
+            const selectTipo = document.getElementById(`tipoTurno_${dia}`);
+            const selectIngM = document.getElementById(`ingManana_${dia}`);
+            const selectEgrM = document.getElementById(`egrManana_${dia}`);
+            const selectIngT = document.getElementById(`ingTarde_${dia}`);
+            const selectEgrT = document.getElementById(`egrTarde_${dia}`);
+
+            if (!selectTipo) return;
+
+            if (chk.checked) {
+                const [ingMSab, egrMSab] = document.getElementById('tplMananaSabado').value.split('-');
+                const [ingTSab, egrTSab] = document.getElementById('tplTardeSabado').value.split('-');
+                
+                selectTipo.value = (ingTSab !== '00:00') ? 'Cortado' : 'Corrido';
+                selectIngM.value = ingMSab;
+                selectEgrM.value = egrMSab;
+                selectIngT.value = ingTSab;
+                selectEgrT.value = egrTSab;
+            } else {
+                selectTipo.value = 'Sin Turno';
+                selectIngM.value = '00:00';
+                selectEgrM.value = '00:00';
+                selectIngT.value = '00:00';
+                selectEgrT.value = '00:00';
+            }
+
+            recalcularEfectivos(dia);
+            actualizarContadorSabados();
+        }
+
+        function aplicarPlantillaAMes() {
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            if (!legajo) {
+                alert('Por favor, seleccione primero un inspector.');
+                return;
+            }
+
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+
+            const tplTipoHab = document.getElementById('tplTipoHabiles').value;
+            const [ingMHab, egrMHab] = document.getElementById('tplMananaHabiles').value.split('-');
+            const [ingTHab, egrTHab] = document.getElementById('tplTardeHabiles').value.split('-');
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                const nroDia = fecha.getDay();
+
+                const selectTipo = document.getElementById(`tipoTurno_${dia}`);
+                const selectIngM = document.getElementById(`ingManana_${dia}`);
+                const selectEgrM = document.getElementById(`egrManana_${dia}`);
+                const selectIngT = document.getElementById(`ingTarde_${dia}`);
+                const selectEgrT = document.getElementById(`egrTarde_${dia}`);
+
+                if (nroDia >= 1 && nroDia <= 5) {
+                    selectTipo.value = tplTipoHab;
+                    selectIngM.value = ingMHab;
+                    selectEgrM.value = egrMHab;
+                    selectIngT.value = ingTHab;
+                    selectEgrT.value = egrTHab;
+                } else if (nroDia === 6) {
+                    toggleSabadoIndividual(dia);
+                } else if (nroDia === 0) {
+                    selectTipo.value = 'Sin Turno';
+                    selectIngM.value = '00:00';
+                    selectEgrM.value = '00:00';
+                    selectIngT.value = '00:00';
+                    selectEgrT.value = '00:00';
+                }
+
+                recalcularEfectivos(dia);
+            }
+
+            actualizarContadorSabados();
+            alert('Plantilla aplicada correctamente a todos los días del mes.');
+        }
+
+        function toggleTplInputs(tipo) {
+            const val = document.getElementById('tplTipo' + tipo).value;
+            const selectManana = document.getElementById('tplManana' + tipo);
+            const selectTarde = document.getElementById('tplTarde' + tipo);
+
+            if (val === 'Sin Turno') {
+                selectManana.value = '00:00-00:00';
+                selectTarde.value = '00:00-00:00';
+            } else if (val === 'Corrido') {
+                selectManana.value = '06:30-13:30';
+                selectTarde.value = '00:00-00:00';
+            } else if (val === 'Cortado') {
+                selectManana.value = '07:30-11:30';
+                selectTarde.value = '15:00-18:00';
+            }
+        }
+
+        function actualizarTipoTurnoDia(dia, esSabado) {
+            const tipo = document.getElementById(`tipoTurno_${dia}`).value;
+            const ingM = document.getElementById(`ingManana_${dia}`);
+            const egrM = document.getElementById(`egrManana_${dia}`);
+            const ingT = document.getElementById(`ingTarde_${dia}`);
+            const egrT = document.getElementById(`egrTarde_${dia}`);
+
+            if (tipo === 'Sin Turno') {
+                ingM.value = '00:00'; egrM.value = '00:00';
+                ingT.value = '00:00'; egrT.value = '00:00';
+                if (esSabado) {
+                    const chk = document.getElementById(`sab_${dia}`);
+                    if (chk) chk.checked = false;
+                }
+            } else if (tipo === 'Corrido') {
+                if (ingM.value === '00:00') ingM.value = esSabado ? '08:00' : '07:30';
+                if (egrM.value === '00:00') egrM.value = esSabado ? '12:00' : '13:30';
+                ingT.value = '00:00'; egrT.value = '00:00';
+                if (esSabado) {
+                    const chk = document.getElementById(`sab_${dia}`);
+                    if (chk) chk.checked = true;
+                }
+            } else if (tipo === 'Cortado') {
+                if (ingM.value === '00:00') ingM.value = esSabado ? '08:00' : '07:30';
+                if (egrM.value === '00:00') egrM.value = esSabado ? '12:00' : '11:30';
+                if (ingT.value === '00:00') ingT.value = '16:00';
+                if (egrT.value === '00:00') egrT.value = '20:00';
+                if (esSabado) {
+                    const chk = document.getElementById(`sab_${dia}`);
+                    if (chk) chk.checked = true;
+                }
+            }
+
+            recalcularEfectivos(dia);
+            actualizarContadorSabados();
+        }
+
+        function recalcularEfectivos(dia) {
+            const ingM = document.getElementById(`ingManana_${dia}`).value;
+            const egrM = document.getElementById(`egrManana_${dia}`).value;
+            const ingT = document.getElementById(`ingTarde_${dia}`).value;
+            const egrT = document.getElementById(`egrTarde_${dia}`).value;
+
+            const efecIngM = mapIngresoManana[ingM] || '00:00';
+            const efecEgrM = mapEgresoManana[egrM] || '00:00';
+            const efecIngT = mapIngresoTarde[ingT] || '00:00';
+            const efecEgrT = mapEgresoTarde[egrT] || '00:00';
+
+            const spanM = document.getElementById(`efectivoManana_${dia}`);
+            const spanT = document.getElementById(`efectivoTarde_${dia}`);
+
+            spanM.textContent = (efecIngM === '00:00' && efecEgrM === '00:00') ? '-' : `${efecIngM} a ${efecEgrM}`;
+            spanT.textContent = (efecIngT === '00:00' && efecEgrT === '00:00') ? '-' : `${efecIngT} a ${efecEgrT}`;
+        }
+
+        function actualizarContadorSabados() {
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+
+            let sabadosCargados = 0;
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                if (fecha.getDay() === 6) {
+                    const tipoEl = document.getElementById(`tipoTurno_${dia}`);
+                    if (tipoEl && tipoEl.value !== 'Sin Turno') sabadosCargados++;
+                }
+            }
+
+            const lblCounter = document.getElementById('contadorSabados');
+            lblCounter.textContent = `${sabadosCargados} / 3 Máx.`;
+
+            if (sabadosCargados > 3) {
+                lblCounter.className = "text-sm font-extrabold text-rose-600 animate-bounce";
+            } else {
+                lblCounter.className = "text-sm font-extrabold text-sky-700";
+            }
+        }
+
+        async function guardarHorariosMensuales(event) {
+            event.preventDefault();
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+
+            if (!legajo) {
+                alert('Seleccione un inspector antes de guardar.');
+                return;
+            }
+
+            const totalDias = new Date(anio, mes, 0).getDate();
+            let diasObj = {};
+
+            for (let d = 1; d <= totalDias; d++) {
+                diasObj[d] = {
+                    tipoTurno: document.getElementById(`tipoTurno_${d}`).value,
+                    ingresoManana: document.getElementById(`ingManana_${d}`).value,
+                    egresoManana: document.getElementById(`egrManana_${d}`).value,
+                    ingresoTarde: document.getElementById(`ingTarde_${d}`).value,
+                    egresoTarde: document.getElementById(`egrTarde_${d}`).value
+                };
+            }
+
+            try {
+                const safeLegajo = String(legajo).replace(/\//g, '_');
+                await window.setDoc(window.doc(window.db, "horarios_mensuales", `${safeLegajo}_${anio}_${mes}`), {
+                    legajo,
+                    mes,
+                    anio,
+                    dias: diasObj
+                });
+                alert("Horario mensual guardado exitosamente.");
+            } catch (error) {
+                alert("Error al guardar horario: " + error.message);
+            }
+        }
+
+        // --- REGISTRO DE INDUMENTARIA FIRESTORE ---
+        async function guardarIndumentaria(e) {
+            e.preventDefault();
+            const inspector = document.getElementById('selectInspectorIndumentaria').value;
+            const fecha = document.getElementById('fechaEntregaIndumentaria').value;
+            const tipoRopa = document.getElementById('tipoRopa').value;
+
+            if (!inspector || !fecha || !tipoRopa) {
+                alert('Complete todos los campos para registrar la indumentaria.');
+                return;
+            }
+
+            try {
+                const idInd = `ind_${Date.now()}`;
+                await window.setDoc(window.doc(window.db, "indumentaria", idInd), {
+                    inspector,
+                    fecha,
+                    tipoRopa,
+                    creado: new Date().toISOString()
+                });
+                alert('Entrega de indumentaria registrada correctamente.');
+                document.getElementById('formIndumentaria').reset();
+            } catch (err) {
+                alert('Error al registrar indumentaria: ' + err.message);
+            }
+        }
+
+        // ==========================================
+        // --- FUNCIONALIDADES DE EXPORTACIÓN EXCEL ---
+        // ==========================================
+
+        // 1. Exportar Personal Completo (.XLSX) con Fechas Latina (dd/mm/aaaa)
+        function exportarPersonalXls() {
+            if (inspectoresNomina.length === 0) {
+                alert("No hay personal registrado en la nómina para exportar.");
+                return;
+            }
+
+            const dataToExport = inspectoresNomina.map(i => ({
+                "Legajo": i.legajo || '',
+                "Apellido y Nombre": i.nombre || '',
+                "DNI": i.dni || '',
+                "Teléfono": i.telefono || '',
+                "Dirección": i.direccion || '',
+                "Tarea": i.tarea || '',
+                "Fecha Nacimiento": formatearFechaLatina(i.fechaNacimiento),
+                "Fecha Ingreso": formatearFechaLatina(i.fechaIngreso),
+                "Estado Revista": i.estadoRevista || '',
+                "Situación Operativa": i.situacionOperativa || '',
+                "Antigüedad (Años)": i.antiguedad || 0,
+                "Vacaciones Corresp.": i.vacacionesCorrespondientes || 0,
+                "Días Pendientes": i.diasPendientes || 0
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Personal");
+            XLSX.writeFile(workbook, `Nomina_Personal_Inspectores_${formatearFechaLatina(new Date().toISOString().split('T')[0]).replace(/\//g, '-')}.xlsx`);
+        }
+
+        // 2. Exportar Horarios por Rango (Fila por Ingreso / Fila por Egreso) en dd/mm/aaaa
+        async function exportarHorariosXls() {
+            const desdeVal = document.getElementById('expHorarioDesde').value;
+            const hastaVal = document.getElementById('expHorarioHasta').value;
+
+            if (!desdeVal || !hastaVal) {
+                alert('Por favor, seleccione el rango de fechas (Desde y Hasta).');
+                return;
+            }
+
+            const fechaInicio = new Date(desdeVal + 'T00:00:00');
+            const fechaFin = new Date(hastaVal + 'T00:00:00');
+
+            if (fechaInicio > fechaFin) {
+                alert('La fecha de inicio no puede ser posterior a la fecha de fin.');
+                return;
+            }
+
+            let arrayFechas = [];
+            let fCur = new Date(fechaInicio);
+            while (fCur <= fechaFin) {
+                const yyyy = fCur.getFullYear();
+                const mm = String(fCur.getMonth() + 1).padStart(2, '0');
+                const dd = String(fCur.getDate()).padStart(2, '0');
+                arrayFechas.push({
+                    iso: `${yyyy}-${mm}-${dd}`,
+                    anio: yyyy,
+                    mes: fCur.getMonth() + 1,
+                    dia: fCur.getDate(),
+                    strHeader: `${dd}/${mm}/${yyyy}`
+                });
+                fCur.setDate(fCur.getDate() + 1);
+            }
+
+            const ordenados = [...inspectoresNomina].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+            let cacheHorarios = {};
+
+            for (const ins of ordenados) {
+                const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                const mesesClave = Array.from(new Set(arrayFechas.map(f => `${f.anio}_${f.mes}`)));
+                
+                for (const keyYM of mesesClave) {
+                    const docId = `${safeLegajo}_${keyYM}`;
+                    try {
+                        const docSnap = await window.getDoc(window.doc(window.db, "horarios_mensuales", docId));
+                        if (docSnap.exists()) {
+                            cacheHorarios[docId] = docSnap.data().dias || {};
+                        }
+                    } catch (e) {
+                        console.error("Error al consultar horario para exportación:", e);
+                    }
+                }
+            }
+
+            let filasExportar = [];
+
+            ordenados.forEach(ins => {
+                const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+
+                let filaIngreso = {
+                    "Legajo": ins.legajo,
+                    "Inspector": ins.nombre,
+                    "Tipo Registro": "INGRESO"
+                };
+
+                let filaEgreso = {
+                    "Legajo": ins.legajo,
+                    "Inspector": ins.nombre,
+                    "Tipo Registro": "EGRESO"
+                };
+
+                arrayFechas.forEach(f => {
+                    const docId = `${safeLegajo}_${f.anio}_${f.mes}`;
+                    const diasGuardados = cacheHorarios[docId] || {};
+                    const configDia = diasGuardados[f.dia];
+
+                    if (configDia && configDia.tipoTurno !== 'Sin Turno') {
+                        let ingM = (configDia.ingresoManana && configDia.ingresoManana !== '00:00') ? configDia.ingresoManana : '';
+                        let ingT = (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') ? configDia.ingresoTarde : '';
+                        
+                        let egrM = (configDia.egresoManana && configDia.egresoManana !== '00:00') ? configDia.egresoManana : '';
+                        let egrT = (configDia.egresoTarde && configDia.egresoTarde !== '00:00') ? configDia.egresoTarde : '';
+
+                        filaIngreso[f.strHeader] = [ingM, ingT].filter(Boolean).join(' / ') || 'Franco';
+                        filaEgreso[f.strHeader] = [egrM, egrT].filter(Boolean).join(' / ') || 'Franco';
+                    } else {
+                        filaIngreso[f.strHeader] = 'Franco';
+                        filaEgreso[f.strHeader] = 'Franco';
+                    }
+                });
+
+                filasExportar.push(filaIngreso);
+                filasExportar.push(filaEgreso);
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(filasExportar);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Horarios");
+            XLSX.writeFile(workbook, `Reporte_Horarios_${formatearFechaLatina(desdeVal).replace(/\//g, '-')}_a_${formatearFechaLatina(hastaVal).replace(/\//g, '-')}.xlsx`);
+        }
+
+        // 3. Exportar Indumentaria Entregada por Rango (.XLSX) con Fechas Latina (dd/mm/aaaa)
+        async function exportarIndumentariaXls() {
+            const desdeVal = document.getElementById('expIndumentariaDesde').value;
+            const hastaVal = document.getElementById('expIndumentariaHasta').value;
+
+            if (!desdeVal || !hastaVal) {
+                alert('Por favor, seleccione el rango de fechas.');
+                return;
+            }
+
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "indumentaria"));
+                let entregas = [];
+
+                querySnapshot.forEach((docSnap) => {
+                    const item = docSnap.data();
+                    if (item.fecha >= desdeVal && item.fecha <= hastaVal) {
+                        entregas.push({
+                            "Fecha Entrega": formatearFechaLatina(item.fecha),
+                            "Inspector": item.inspector || '',
+                            "Tipo de Ropa / Indumentaria": item.tipoRopa || ''
+                        });
+                    }
+                });
+
+                if (entregas.length === 0) {
+                    alert('No se encontraron registros de indumentaria en el rango seleccionado.');
+                    return;
+                }
+
+                entregas.sort((a, b) => b["Fecha Entrega"].localeCompare(a["Fecha Entrega"]));
+
+                const worksheet = XLSX.utils.json_to_sheet(entregas);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Indumentaria");
+                XLSX.writeFile(workbook, `Reporte_Indumentaria_${formatearFechaLatina(desdeVal).replace(/\//g, '-')}_a_${formatearFechaLatina(hastaVal).replace(/\//g, '-')}.xlsx`);
+
+            } catch (err) {
+                alert("Error al exportar indumentaria: " + err.message);
+            }
+        }
+
+        function imprimirPlanillaSabado() {
+            window.print();
+        }
+
+        function openModal(imageSrc, altText) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = imageSrc;
+            modalImg.alt = altText;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabados - Carga de Personal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado Superior -->
+    <header class="bg-sky-600 text-white shadow-md z-10">
+        <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
+            <!-- Título del Módulo y Estado de Conexión (Izquierda) -->
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-user-shield text-xl text-sky-200"></i>
+                <h2 class="text-base font-bold text-white uppercase tracking-wider">Módulo: Inspectores</h2>
+
+                <!-- Estado de Conexión Firebase -->
+                <span id="firebase-status" class="bg-sky-800/60 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all">
+                    <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="firebase-status-text" class="font-medium">Conectando...</span>
+                </span>
+            </div>
+            
+            <!-- Logo Central Superior (Inspectores) -->
+            <div class="flex justify-center items-center">
+                <img src="../../imagenes/logoins.png" 
+                     alt="Logo Inspectores" 
+                     id="logoInspector"
+                     class="h-12 w-auto rounded-lg border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
+                     onclick="openModal('../../imagenes/logoins.png', 'Logo Inspectores')">
+            </div>
+
+            <!-- Logo Hermes Suares (Derecha) -->
+            <div class="flex justify-end items-center">
+                <img src="../../imagenes/logoh.jpg" 
+                     alt="Logo Hermes Suares" 
+                     id="logoHermes"
+                     class="h-10 w-auto rounded border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                     onclick="openModal('../../imagenes/logoh.jpg', 'Logo Hermes Suares')">
+            </div>
+        </div>
+    </header>
+
+    <!-- Estructura Principal con Menú Lateral Izquierdo -->
+    <div class="flex flex-1 w-full">
+
+        <!-- Menú Lateral Izquierdo (Sidebar Celeste) -->
+        <aside class="w-64 bg-sky-500 text-white min-h-full flex flex-col justify-between shadow-lg">
+            <div class="p-4 space-y-6">
+                <!-- Botón Volver al Panel Central -->
+                <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+                </a>
+
+                <!-- Opciones del Menú -->
+                <nav class="space-y-1">
+                    <p class="text-[10px] uppercase font-bold text-sky-200 px-3 mb-2 tracking-wider">Menú Sabado</p>
+                    
+                    <button onclick="showSection('carga-inspector')" id="btn-carga-inspector" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors bg-sky-600">
+                        <i class="fa-solid fa-user-plus w-6 text-center mr-2"></i> 1. Carga / Edición de Inspector
+                    </button>
+                    <button onclick="showSection('visualizar-inspectores')" id="btn-visualizar-inspectores" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-users-viewfinder w-6 text-center mr-2"></i> 2. Visualizar e Inspector Edit
+                    </button>
+                    <button onclick="showSection('indumentaria')" id="btn-indumentaria" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                        <i class="fa-solid fa-shirt w-6 text-center mr-2"></i> 3. Indumentaria Entregada
+                    </button>
+
+                    <!-- SECCIÓN MENÚ HORARIOS -->
+                    <div class="pt-2">
+                        <p class="text-[10px] uppercase font-bold text-sky-200 px-3 mb-2 tracking-wider">Gestión Horarios</p>
+                        <button onclick="showSection('carga-horarios')" id="btn-carga-horarios" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors">
+                            <i class="fa-solid fa-calendar-days w-6 text-center mr-2"></i> 4. Carga Horarios Mensuales
+                        </button>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Contenido Central del Módulo -->
+        <main class="flex-1 p-8">
+            
+            <!-- SECCIÓN 1: CARGA / EDICIÓN DE INSPECTOR -->
+            <section id="carga-inspector" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-5xl mx-auto">
+                <h2 id="titulo-form" class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-sky-600"></i> Carga de Inspector
+                </h2>
+                <p class="text-sm text-slate-600 mb-6">Complete los campos correspondientes para dar de alta o actualizar a un inspector.</p>
+
+                <form id="formInspector" onsubmit="guardarInspector(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <input type="hidden" id="editIndex" value="-1">
+
+                    <!-- Legajo -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Legajo (máx 6 dígitos)</label>
+                        <input type="text" id="legajo" maxlength="6" pattern="\d{1,6}" required placeholder="Ej: 123456" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Apellido y Nombre -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Apellido y Nombre (máx 35 caract.)</label>
+                        <input type="text" id="nombre" maxlength="35" required placeholder="Pérez, Juan Carlos" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Dirección -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Dirección (máx 20 caract.)</label>
+                        <input type="text" id="direccion" maxlength="20" required placeholder="Av. San Martín 123" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono (+549 ##########)</label>
+                        <input type="text" id="telefono" required placeholder="+549 3564123456" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- DNI -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">DNI (##.###.###)</label>
+                        <input type="text" id="dni" required placeholder="35.646.879" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Tarea -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tarea (máx 14 caract.)</label>
+                        <input type="text" id="tarea" maxlength="14" required placeholder="Control Urbano" 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Fecha de Nacimiento -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Nacimiento (dd/mm/aaaa)</label>
+                        <input type="date" id="fechaNacimiento" required 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Fecha de Ingreso -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Ingreso (dd/mm/aaaa)</label>
+                        <input type="date" id="fechaIngreso" onchange="calcularVacacionesYAntiguedad()" required 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Estado de Revista -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Estado Revista</label>
+                        <select id="estadoRevista" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccione...</option>
+                            <option value="P. P.">P. P.</option>
+                            <option value="P.E.L.">P.E.L.</option>
+                            <option value="Contrato">Contrato</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <!-- Situación Operativa -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Situación Operativa</label>
+                        <select id="situacionOperativa" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccione...</option>
+                            <option value="Activo">Activo</option>
+                            <option value="Suspendido">Suspendido</option>
+                            <option value="Baja">Baja</option>
+                            <option value="Trasladado">Trasladado</option>
+                        </select>
+                    </div>
+
+                    <!-- Antigüedad -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Antigüedad (Años)</label>
+                        <input type="number" id="antiguedad" min="0" required 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-sky-50 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Días de Vacaciones Correspondientes -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Días Vacaciones Corresp.</label>
+                        <input type="number" id="vacacionesCorrespondientes" min="0" required 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-sky-50 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <!-- Días Pendientes -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Días Pendientes</label>
+                        <input type="number" id="diasPendientes" min="0" required value="0"
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div class="md:col-span-2 lg:col-span-3 flex justify-end gap-3 mt-4">
+                        <button type="button" id="btnCancelarEdicion" onclick="cancelarEdicion()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnGuardar" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> <span id="btnGuardarText">Guardar Inspector</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 2: VISUALIZAR INSPECTORES -->
+            <section id="visualizar-inspectores" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-down-a-z text-sky-600"></i> Lista de Inspectores (Orden Ascendente por Apellido)
+                        </h2>
+                        <p class="text-xs text-slate-500">Muestra todos los inspectores registrados en Firebase con opción de modificación.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-500 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Legajo</th>
+                                <th class="p-3">Apellido y Nombre</th>
+                                <th class="p-3">DNI</th>
+                                <th class="p-3">Teléfono</th>
+                                <th class="p-3">Tarea</th>
+                                <th class="p-3">Estado</th>
+                                <th class="p-3">Sit. Op.</th>
+                                <th class="p-3">Antigüedad</th>
+                                <th class="p-3">Vac. Corresp.</th>
+                                <th class="p-3">Pendientes</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInspectores" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Filas generadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: INDUMENTARIA ENTREGADA -->
+            <section id="indumentaria" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-5xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-shirt text-sky-600"></i> Registro de Indumentaria Entregada
+                </h2>
+                <p class="text-sm text-slate-600 mb-6">Asigne las entregas de vestimenta e indumentaria a cada inspector.</p>
+
+                <form id="formIndumentaria" onsubmit="guardarIndumentaria(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspectorIndumentaria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccionar inspector...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Entrega</label>
+                        <input type="date" id="fechaEntregaIndumentaria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Ropa / Equipamiento</label>
+                        <input type="text" id="tipoRopa" required placeholder="Camisa, Pantalón, Gorra..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div class="md:col-span-3 flex justify-end">
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Registrar Entrega
+                        </button>
+                    </div>
+                </form>
+
+                <h3 class="text-sm font-bold text-slate-700 uppercase mb-3">Historial de Entregas</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-sky-600 text-white uppercase text-[11px]">
+                                <th class="p-3 rounded-tl-lg">Fecha</th>
+                                <th class="p-3">Inspector</th>
+                                <th class="p-3 rounded-tr-lg">Tipo de Ropa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaIndumentaria" class="divide-y divide-slate-200 text-slate-700">
+                            <!-- Historial dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4: CARGA DE HORARIOS MENSUALES -->
+            <section id="carga-horarios" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-sky-600"></i> Carga de Horarios Mensuales por Inspector
+                </h2>
+                <p class="text-xs text-slate-500 mb-6">Seleccione el inspector, mes y año. Puede configurar un patrón de horario para replicarlo a todo el mes y ajustar cualquier día de forma individual.</p>
+
+                <!-- Selectores de Inspector y Período -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-sky-50 p-4 rounded-xl border border-sky-200">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspectorHorario" onchange="generarGrillaMensual()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccionar inspector...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes</label>
+                        <select id="selectMesHorario" onchange="generarGrillaMensual()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10" selected>Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Año</label>
+                        <select id="selectAnioHorario" onchange="generarGrillaMensual()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <div id="resumenSabados" class="w-full bg-white px-3 py-2 rounded-lg border border-sky-300 text-center">
+                            <span class="text-[10px] uppercase font-bold text-slate-500 block">Sábados Asignados</span>
+                            <span id="contadorSabados" class="text-sm font-extrabold text-sky-700">0 / 3 Máx.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL DE PLANTILLA / COMPLETA MES COMPLETO -->
+                <div class="mb-6 bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Carga Rápida por Plantilla / Copiar Horario a todo el Mes
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                        <!-- Horario Días Hábiles (Lunes a Viernes) -->
+                        <div class="lg:col-span-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-[11px] font-bold text-sky-800 block mb-1.5">Lunes a Viernes (Días Hábiles)</span>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Tipo Turno</label>
+                                    <select id="tplTipoHabiles" onchange="toggleTplInputs('Habiles')" class="w-full border rounded px-1 py-1">
+                                        <option value="Corrido">Corrido</option>
+                                        <option value="Cortado">Cortado</option>
+                                        <option value="Sin Turno">Sin Turno</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Mañana</label>
+                                    <select id="tplMananaHabiles" class="w-full border rounded px-1 py-1">
+                                        <option value="06:30-13:30">06:30 a 13:30</option>  
+                                        <option value="07:30-11:30">08:00 a 11:15</option>
+                                        <option value="06:30-10:30">06:30 a 10:30</option>
+                                        <option value="08:30-12:30">09:00 a 12:15</option>
+                                        <option value="00:00-00:00">00:00</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-500 font-semibold">Tarde</label>
+                                    <select id="tplTardeHabiles" class="w-full border rounded px-1 py-1">
+                                        <option value="00:00-00:00">Sin Turno Tarde</option>
+                                        <option value="15:00-18:00">15:15 a 17:45</option> 
+                                        <option value="16:00-19:00">16:15 a 18:45</option>
+                                        <option value="17:00-20:00">17:15 a 19:45</option>
+                                        <option value="13:00-20:00">13:00 a 20:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Horario para Sábados Obligatorios -->
+                        <div class="lg:col-span-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-[11px] font-bold text-amber-800 block mb-1.5">Sábados Obligatorios (Seleccione cuáles laborar)</span>
+                            <div class="flex items-center gap-2 mb-2 text-xs">
+                                <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer"><input type="checkbox" id="sab1" class="chkSabado" checked> Sáb 1</label>
+                                <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer"><input type="checkbox" id="sab2" class="chkSabado" checked> Sáb 2</label>
+                                <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer"><input type="checkbox" id="sab3" class="chkSabado" checked> Sáb 3</label>
+                                <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer"><input type="checkbox" id="sab4" class="chkSabado"> Sáb 4</label>
+                                <label class="inline-flex items-center gap-1 font-semibold text-[11px] cursor-pointer"><input type="checkbox" id="sab5" class="chkSabado"> Sáb 5</label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                    <select id="tplMananaSabado" class="w-full border rounded px-1 py-1">
+                                        <option value="07:30-12:30">07:30 a 12:30 (Efec. 07:30-12:15)</option>
+                                        <option value="08:00-12:00">08:00 a 12:00 (Efec. 08:15-11:45)</option>
+                                        <option value="08:30-12:30">08:30 a 12:30 (Efec. 08:45-12:15)</option>
+                                        <option value="07:30-12:30">07:30 a 12:30 (Efec. 07:30-12:30)</option>
+                                        <option value="00:00-00:00">Sin Turno Mañana</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select id="tplTardeSabado" class="w-full border rounded px-1 py-1">
+                                        <option value="00:00-00:00">Sin Turno Tarde</option>
+                                        <option value="16:00-20:00">Tarde: 16:00 a 20:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón Aplicar Plantilla -->
+                        <div>
+                            <button type="button" onclick="aplicarPlantillaAMes()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-3 rounded-lg text-xs shadow transition-colors flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-copy"></i> Aplicar a Todo el Mes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario Dinámico con Grilla de Días -->
+                <form id="formHorariosMensuales" onsubmit="guardarHorariosMensuales(event)" class="space-y-4">
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-sky-600 text-white uppercase text-[10px]">
+                                    <th class="p-2.5">Día / Fecha</th>
+                                    <th class="p-2.5">Tipo Turno</th>
+                                    <th class="p-2.5 bg-sky-700 text-center">Mañana: Ingreso</th>
+                                    <th class="p-2.5 bg-sky-700 text-center">Mañana: Egreso</th>
+                                    <th class="p-2.5 bg-sky-800 text-center">Tarde: Ingreso</th>
+                                    <th class="p-2.5 bg-sky-800 text-center">Tarde: Egreso</th>
+                                    <th class="p-2.5 text-center">Registra Efec. Mañana</th>
+                                    <th class="p-2.5 text-center">Registra Efec. Tarde</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grillaDiasHorario" class="divide-y divide-slate-200">
+                                <tr>
+                                    <td colspan="8" class="p-4 text-center text-slate-400">Seleccione un inspector para cargar el calendario.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check"></i> Guardar Horario Mensual en Firebase
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Modal Lightbox para Ampliar las Imágenes -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-all duration-300" onclick="closeModal()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <!-- Botón Cerrar -->
+            <button onclick="closeModal()" class="absolute -top-10 right-0 text-white hover:text-red-400 text-2xl font-bold transition-colors focus:outline-none">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <!-- Imagen Ampliada -->
+            <img id="modalImg" src="" alt="Imagen Ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-slate-700">
+        </div>
+    </div>
+
+    <!-- Script de Inicialización de Firebase & Firestore (Módulo ES6) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getFirestore, collection, setDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
+            authDomain: "medido-i.firebaseapp.com",
+            projectId: "medido-i",
+            storageBucket: "medido-i.firebasestorage.app",
+            messagingSenderId: "17396988314",
+            appId: "1:17396988314:web:8332b473254e0f2cb92223",
+            measurementId: "G-DKDNGY5YS0"
+        };
+
+        const statusContainer = document.getElementById("firebase-status");
+        const statusDot = document.getElementById("firebase-status-dot");
+        const statusText = document.getElementById("firebase-status-text");
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            const db = getFirestore(app);
+
+            // Exponer las funciones necesarias globalmente
+            window.db = db;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.getDoc = getDoc;
+            window.collection = collection;
+            window.getDocs = getDocs;
+
+            statusContainer.className = "bg-sky-800/80 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Firestore Conectado";
+
+            if (typeof window.obtenerInspectores === 'function') {
+                window.obtenerInspectores();
+            }
+        } catch (error) {
+            console.error("Error al inicializar Firebase/Firestore:", error);
+            statusContainer.className = "bg-sky-800/80 text-rose-300 border border-rose-400/40 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-400";
+            statusText.textContent = "Error de Conexión";
+        }
+    </script>
+
+    <!-- Script de interacción y Lógica de Datos -->
+    <script>
+        let inspectores = [];
+        let entregasIndumentaria = [];
+
+        // Tablas de Mapeo de Horarios de Trabajo requeridos
+        const mapIngresoManana = {
+            "00:00": "00:00",
+            "06:30": "06:30",
+            "07:30": "07:30",
+            "08:00": "08:15",
+            "08:30": "08:45"
+        };
+
+        const mapEgresoManana = {
+            "00:00": "00:00",
+            "10:30": "10:30",
+            "11:30": "11:15",
+            "12:00": "11:45",
+            "12:30": "12:15",
+            "13:30": "13:30"
+        };
+
+        const mapIngresoTarde = {
+            "00:00": "00:00",
+            "13:30": "13:30",
+            "15:00": "15:15",
+            "16:00": "16:15",
+            "17:00": "17:15"
+        };
+
+        const mapEgresoTarde = {
+            "00:00": "00:00",
+            "18:00": "17:45",
+            "19:00": "18:45",
+            "20:00": "19:45"
+        };
+
+        // Obtener la lista de inspectores desde Firestore
+        async function obtenerInspectores() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "inspectores"));
+                inspectores = [];
+                querySnapshot.forEach((docSnap) => {
+                    inspectores.push(docSnap.data());
+                });
+                renderizarInspectores();
+                cargarSelectInspectores();
+            } catch (error) {
+                console.error("Error al obtener inspectores de Firestore:", error);
+            }
+        }
+        window.obtenerInspectores = obtenerInspectores;
+
+        // Cambio de Secciones
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            ['carga-inspector', 'visualizar-inspectores', 'indumentaria', 'carga-horarios'].forEach(id => {
+                const btn = document.getElementById(`btn-${id}`);
+                if (btn) {
+                    if (id === sectionId) {
+                        btn.classList.add('bg-sky-600');
+                    } else {
+                        btn.classList.remove('bg-sky-600');
+                    }
+                }
+            });
+
+            if (sectionId === 'visualizar-inspectores') {
+                obtenerInspectores();
+            } else if (sectionId === 'indumentaria') {
+                cargarSelectInspectores();
+                renderizarIndumentaria();
+            } else if (sectionId === 'carga-horarios') {
+                cargarSelectInspectores();
+            }
+        }
+
+        // Cálculo automático de antigüedad y días de vacaciones
+        function calcularVacacionesYAntiguedad() {
+            const fechaIngresoVal = document.getElementById('fechaIngreso').value;
+            if (!fechaIngresoVal) return;
+
+            const ingreso = new Date(fechaIngresoVal);
+            const hoy = new Date();
+            let anosAntiguedad = hoy.getFullYear() - ingreso.getFullYear();
+            const m = hoy.getMonth() - ingreso.getMonth();
+            if (m < 0 || (m === 0 && hoy.getDate() < ingreso.getDate())) {
+                anosAntiguedad--;
+            }
+
+            if (anosAntiguedad < 0) anosAntiguedad = 0;
+
+            let diasVacaciones = 15 + (Math.floor(anosAntiguedad / 5) * 5);
+
+            document.getElementById('antiguedad').value = anosAntiguedad;
+            document.getElementById('vacacionesCorrespondientes').value = diasVacaciones;
+        }
+
+        // Guardar o Actualizar Inspector en Firestore
+        async function guardarInspector(e) {
+            e.preventDefault();
+
+            const legajoVal = document.getElementById('legajo').value;
+            const datosInspector = {
+                legajo: legajoVal,
+                nombre: document.getElementById('nombre').value,
+                direccion: document.getElementById('direccion').value,
+                telefono: document.getElementById('telefono').value,
+                dni: document.getElementById('dni').value,
+                tarea: document.getElementById('tarea').value,
+                fechaNacimiento: document.getElementById('fechaNacimiento').value,
+                fechaIngreso: document.getElementById('fechaIngreso').value,
+                estadoRevista: document.getElementById('estadoRevista').value,
+                situacionOperativa: document.getElementById('situacionOperativa').value,
+                antiguedad: parseInt(document.getElementById('antiguedad').value),
+                vacacionesCorrespondientes: parseInt(document.getElementById('vacacionesCorrespondientes').value),
+                diasPendientes: parseInt(document.getElementById('diasPendientes').value)
+            };
+
+            try {
+                await window.setDoc(window.doc(window.db, "inspectores", legajoVal), datosInspector);
+                alert('Inspector guardado exitosamente en Firebase.');
+                cancelarEdicion();
+                await obtenerInspectores();
+            } catch (error) {
+                console.error("Error al guardar en Firestore:", error);
+                alert("Error al guardar en Firebase: " + error.message);
+            }
+        }
+
+        // Cargar datos en el formulario para editar
+        function editarInspector(legajo) {
+            const index = inspectores.findIndex(ins => ins.legajo === legajo);
+            if (index === -1) return;
+
+            const ins = inspectores[index];
+
+            document.getElementById('editIndex').value = index;
+            document.getElementById('legajo').value = ins.legajo;
+            document.getElementById('nombre').value = ins.nombre;
+            document.getElementById('direccion').value = ins.direccion;
+            document.getElementById('telefono').value = ins.telefono;
+            document.getElementById('dni').value = ins.dni;
+            document.getElementById('tarea').value = ins.tarea;
+            document.getElementById('fechaNacimiento').value = ins.fechaNacimiento;
+            document.getElementById('fechaIngreso').value = ins.fechaIngreso;
+            document.getElementById('estadoRevista').value = ins.estadoRevista;
+            document.getElementById('situacionOperativa').value = ins.situacionOperativa;
+            document.getElementById('antiguedad').value = ins.antiguedad;
+            document.getElementById('vacacionesCorrespondientes').value = ins.vacacionesCorrespondientes;
+            document.getElementById('diasPendientes').value = ins.diasPendientes;
+
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-user-pen text-amber-600"></i> Modificar Inspector`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Cambios";
+            document.getElementById('btnCancelarEdicion').classList.remove('hidden');
+
+            showSection('carga-inspector');
+        }
+
+        function cancelarEdicion() {
+            document.getElementById('formInspector').reset();
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-user-plus text-sky-600"></i> Carga de Inspector`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Inspector";
+            document.getElementById('btnCancelarEdicion').classList.add('hidden');
+        }
+
+        function renderizarInspectores() {
+            const tbody = document.getElementById('tablaInspectores');
+            tbody.innerHTML = '';
+
+            const ordenados = [...inspectores].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            ordenados.forEach(ins => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-sky-700">${ins.legajo}</td>
+                    <td class="p-3 font-bold text-slate-800">${ins.nombre}</td>
+                    <td class="p-3">${ins.dni}</td>
+                    <td class="p-3">${ins.telefono}</td>
+                    <td class="p-3 font-medium text-slate-600">${ins.tarea || '-'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-semibold border">${ins.estadoRevista}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-semibold">${ins.situacionOperativa}</span></td>
+                    <td class="p-3">${ins.antiguedad} años</td>
+                    <td class="p-3 font-bold">${ins.vacacionesCorrespondientes} días</td>
+                    <td class="p-3 text-amber-600 font-bold">${ins.diasPendientes} días</td>
+                    <td class="p-3 text-center">
+                        <button onclick="editarInspector('${ins.legajo}')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-2.5 py-1 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1 mx-auto">
+                            <i class="fa-solid fa-pen-to-square"></i> Modificar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function cargarSelectInspectores() {
+            const selInd = document.getElementById('selectInspectorIndumentaria');
+            const selHor = document.getElementById('selectInspectorHorario');
+
+            selInd.innerHTML = '<option value="">Seleccionar inspector...</option>';
+            selHor.innerHTML = '<option value="">Seleccionar inspector...</option>';
+
+            const ordenados = [...inspectores].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            ordenados.forEach(ins => {
+                selInd.innerHTML += `<option value="${ins.nombre}">${ins.nombre} (Legajo: ${ins.legajo})</option>`;
+                selHor.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (Legajo: ${ins.legajo})</option>`;
+            });
+        }
+
+        // LÓGICA DE CARGA DE HORARIOS MENSUALES
+        async function generarGrillaMensual() {
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+            const tbody = document.getElementById('grillaDiasHorario');
+
+            if (!legajo) {
+                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Seleccione un inspector para cargar el calendario.</td></tr>';
+                return;
+            }
+
+            let horariosPrevios = {};
+            try {
+                const idDoc = `${legajo}_${anio}_${mes}`;
+                const docSnap = await window.getDoc(window.doc(window.db, "horarios_mensuales", idDoc));
+                if (docSnap.exists()) {
+                    horariosPrevios = docSnap.data().dias || {};
+                }
+            } catch (e) {
+                console.error("Error al verificar historial de horarios:", e);
+            }
+
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+            const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            tbody.innerHTML = '';
+
+            let contadorSabados = 0;
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                const nroDiaSemana = fecha.getDay();
+                const nombreDia = nombresDias[nroDiaSemana];
+                const esSabado = nroDiaSemana === 6;
+                const esDomingo = nroDiaSemana === 0;
+
+                const datosDia = horariosPrevios[dia] || {
+                    tipoTurno: esDomingo ? 'Sin Turno' : (esSabado ? 'Corrido' : 'Corrido'),
+                    ingresoManana: esSabado ? '08:00' : '07:30',
+                    egresoManana: esSabado ? '12:00' : '13:30',
+                    ingresoTarde: '00:00',
+                    egresoTarde: '00:00'
+                };
+
+                let claseFila = "hover:bg-slate-50";
+                if (esSabado) claseFila = "bg-amber-50/70 hover:bg-amber-100/60";
+                if (esDomingo) claseFila = "bg-slate-100 text-slate-400";
+
+                const tr = document.createElement('tr');
+                tr.className = claseFila;
+                tr.innerHTML = `
+                    <td class="p-2 font-bold ${esSabado ? 'text-amber-800' : ''}">
+                        ${dia}/${mes}/${anio} <span class="text-[10px] font-normal block">${nombreDia}</span>
+                    </td>
+                    <td class="p-2">
+                        <select id="tipoTurno_${dia}" onchange="actualizarTipoTurnoDia(${dia}, ${esSabado})" class="w-full border rounded px-1.5 py-1 text-xs focus:ring-1 focus:ring-sky-500">
+                            <option value="Sin Turno" ${datosDia.tipoTurno === 'Sin Turno' ? 'selected' : ''}>Sin Turno / Franco</option>
+                            <option value="Corrido" ${datosDia.tipoTurno === 'Corrido' ? 'selected' : ''}>Turno Corrido</option>
+                            <option value="Cortado" ${datosDia.tipoTurno === 'Cortado' ? 'selected' : ''}>Turno Cortado</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <select id="ingManana_${dia}" onchange="recalcularEfectivos(${dia})" class="border rounded px-1 py-1 text-xs">
+                            <option value="00:00" ${datosDia.ingresoManana === '00:00' ? 'selected' : ''}>00:00</option>
+                            <option value="06:30" ${datosDia.ingresoManana === '06:30' ? 'selected' : ''}>06:30</option>
+                            <option value="07:30" ${datosDia.ingresoManana === '07:30' ? 'selected' : ''}>07:30</option>
+                            <option value="08:00" ${datosDia.ingresoManana === '08:00' ? 'selected' : ''}>08:00</option>
+                            <option value="08:30" ${datosDia.ingresoManana === '08:30' ? 'selected' : ''}>08:30</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <select id="egrManana_${dia}" onchange="recalcularEfectivos(${dia})" class="border rounded px-1 py-1 text-xs">
+                            <option value="00:00" ${datosDia.egresoManana === '00:00' ? 'selected' : ''}>00:00</option>
+                            <option value="10:30" ${datosDia.egresoManana === '10:30' ? 'selected' : ''}>10:30</option>
+                            <option value="11:30" ${datosDia.egresoManana === '11:30' ? 'selected' : ''}>11:30</option>
+                            <option value="12:00" ${datosDia.egresoManana === '12:00' ? 'selected' : ''}>12:00</option>
+                            <option value="12:30" ${datosDia.egresoManana === '12:30' ? 'selected' : ''}>12:30</option>
+                            <option value="13:30" ${datosDia.egresoManana === '13:30' ? 'selected' : ''}>13:30</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <select id="ingTarde_${dia}" onchange="recalcularEfectivos(${dia})" class="border rounded px-1 py-1 text-xs">
+                            <option value="00:00" ${datosDia.ingresoTarde === '00:00' ? 'selected' : ''}>00:00</option>
+                            <option value="13:30" ${datosDia.ingresoTarde === '13:30' ? 'selected' : ''}>13:30</option>
+                            <option value="15:00" ${datosDia.ingresoTarde === '15:00' ? 'selected' : ''}>15:00</option>
+                            <option value="16:00" ${datosDia.ingresoTarde === '16:00' ? 'selected' : ''}>16:00</option>
+                            <option value="17:00" ${datosDia.ingresoTarde === '17:00' ? 'selected' : ''}>17:00</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center">
+                        <select id="egrTarde_${dia}" onchange="recalcularEfectivos(${dia})" class="border rounded px-1 py-1 text-xs">
+                            <option value="00:00" ${datosDia.egresoTarde === '00:00' ? 'selected' : ''}>00:00</option>
+                            <option value="18:00" ${datosDia.egresoTarde === '18:00' ? 'selected' : ''}>18:00</option>
+                            <option value="19:00" ${datosDia.egresoTarde === '19:00' ? 'selected' : ''}>19:00</option>
+                            <option value="20:00" ${datosDia.egresoTarde === '20:00' ? 'selected' : ''}>20:00</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center font-bold text-sky-800" id="efectivoManana_${dia}">-</td>
+                    <td class="p-2 text-center font-bold text-sky-800" id="efectivoTarde_${dia}">-</td>
+                `;
+                tbody.appendChild(tr);
+
+                recalcularEfectivos(dia);
+                if (esSabado && datosDia.tipoTurno !== 'Sin Turno') {
+                    contadorSabados++;
+                }
+            }
+
+            actualizarContadorSabados();
+        }
+
+        // APLICAR PLANTILLA EN LOTE A TODO EL MES
+        function aplicarPlantillaAMes() {
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            if (!legajo) {
+                alert('Por favor, seleccione primero un inspector.');
+                return;
+            }
+
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+
+            // Config Habiles
+            const tplTipoHab = document.getElementById('tplTipoHabiles').value;
+            const [ingMHab, egrMHab] = document.getElementById('tplMananaHabiles').value.split('-');
+            const [ingTHab, egrTHab] = document.getElementById('tplTardeHabiles').value.split('-');
+
+            // Config Sabados
+            const [ingMSab, egrMSab] = document.getElementById('tplMananaSabado').value.split('-');
+            const [ingTSab, egrTSab] = document.getElementById('tplTardeSabado').value.split('-');
+
+            let contadorSabadosEncontrados = 0;
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                const nroDia = fecha.getDay();
+
+                const selectTipo = document.getElementById(`tipoTurno_${dia}`);
+                const selectIngM = document.getElementById(`ingManana_${dia}`);
+                const selectEgrM = document.getElementById(`egrManana_${dia}`);
+                const selectIngT = document.getElementById(`ingTarde_${dia}`);
+                const selectEgrT = document.getElementById(`egrTarde_${dia}`);
+
+                if (nroDia >= 1 && nroDia <= 5) {
+                    // Lunes a Viernes
+                    selectTipo.value = tplTipoHab;
+                    selectIngM.value = ingMHab;
+                    selectEgrM.value = egrMHab;
+                    selectIngT.value = ingTHab;
+                    selectEgrT.value = egrTHab;
+                } else if (nroDia === 6) {
+                    // Sábado
+                    contadorSabadosEncontrados++;
+                    const chk = document.getElementById(`sab${contadorSabadosEncontrados}`);
+                    const laboraSabado = chk ? chk.checked : false;
+
+                    if (laboraSabado) {
+                        selectTipo.value = (ingTSab !== '00:00') ? 'Cortado' : 'Corrido';
+                        selectIngM.value = ingMSab;
+                        selectEgrM.value = egrMSab;
+                        selectIngT.value = ingTSab;
+                        selectEgrT.value = egrTSab;
+                    } else {
+                        selectTipo.value = 'Sin Turno';
+                        selectIngM.value = '00:00';
+                        selectEgrM.value = '00:00';
+                        selectIngT.value = '00:00';
+                        selectEgrT.value = '00:00';
+                    }
+                } else if (nroDia === 0) {
+                    // Domingo
+                    selectTipo.value = 'Sin Turno';
+                    selectIngM.value = '00:00';
+                    selectEgrM.value = '00:00';
+                    selectIngT.value = '00:00';
+                    selectEgrT.value = '00:00';
+                }
+
+                recalcularEfectivos(dia);
+            }
+
+            actualizarContadorSabados();
+            alert('Plantilla aplicada correctamente a todos los días del mes.');
+        }
+
+        function toggleTplInputs(tipo) {
+            const val = document.getElementById('tplTipo' + tipo).value;
+            const selectManana = document.getElementById('tplManana' + tipo);
+            const selectTarde = document.getElementById('tplTarde' + tipo);
+
+            if (val === 'Sin Turno') {
+                selectManana.value = '00:00-00:00';
+                selectTarde.value = '00:00-00:00';
+            } else if (val === 'Corrido') {
+                selectManana.value = '07:30-13:30';
+                selectTarde.value = '00:00-00:00';
+            } else if (val === 'Cortado') {
+                selectManana.value = '07:30-11:30';
+                selectTarde.value = '16:00-20:00';
+            }
+        }
+
+        function actualizarTipoTurnoDia(dia, esSabado) {
+            const tipo = document.getElementById(`tipoTurno_${dia}`).value;
+            const ingM = document.getElementById(`ingManana_${dia}`);
+            const egrM = document.getElementById(`egrManana_${dia}`);
+            const ingT = document.getElementById(`ingTarde_${dia}`);
+            const egrT = document.getElementById(`egrTarde_${dia}`);
+
+            if (tipo === 'Sin Turno') {
+                ingM.value = '00:00'; egrM.value = '00:00';
+                ingT.value = '00:00'; egrT.value = '00:00';
+            } else if (tipo === 'Corrido') {
+                if (ingM.value === '00:00') ingM.value = esSabado ? '08:00' : '07:30';
+                if (egrM.value === '00:00') egrM.value = esSabado ? '12:00' : '13:30';
+                ingT.value = '00:00'; egrT.value = '00:00';
+            } else if (tipo === 'Cortado') {
+                if (ingM.value === '00:00') ingM.value = esSabado ? '08:00' : '07:30';
+                if (egrM.value === '00:00') egrM.value = esSabado ? '12:00' : '11:30';
+                if (ingT.value === '00:00') ingT.value = '16:00';
+                if (egrT.value === '00:00') egrT.value = '20:00';
+            }
+
+            recalcularEfectivos(dia);
+            actualizarContadorSabados();
+        }
+
+        function recalcularEfectivos(dia) {
+            const ingM = document.getElementById(`ingManana_${dia}`).value;
+            const egrM = document.getElementById(`egrManana_${dia}`).value;
+            const ingT = document.getElementById(`ingTarde_${dia}`).value;
+            const egrT = document.getElementById(`egrTarde_${dia}`).value;
+
+            const efecIngM = mapIngresoManana[ingM] || '00:00';
+            const efecEgrM = mapEgresoManana[egrM] || '00:00';
+            const efecIngT = mapIngresoTarde[ingT] || '00:00';
+            const efecEgrT = mapEgresoTarde[egrT] || '00:00';
+
+            const spanM = document.getElementById(`efectivoManana_${dia}`);
+            const spanT = document.getElementById(`efectivoTarde_${dia}`);
+
+            spanM.textContent = (efecIngM === '00:00' && efecEgrM === '00:00') ? '-' : `${efecIngM} a ${efecEgrM}`;
+            spanT.textContent = (efecIngT === '00:00' && efecEgrT === '00:00') ? '-' : `${efecIngT} a ${efecEgrT}`;
+        }
+
+        function actualizarContadorSabados() {
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+
+            let sabadosCargados = 0;
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                if (fecha.getDay() === 6) {
+                    const tipo = document.getElementById(`tipoTurno_${dia}`).value;
+                    if (tipo !== 'Sin Turno') sabadosCargados++;
+                }
+            }
+
+            const lblCounter = document.getElementById('contadorSabados');
+            lblCounter.textContent = `${sabadosCargados} / 3 Máx.`;
+
+            if (sabadosCargados > 3) {
+                lblCounter.className = "text-sm font-extrabold text-rose-600 animate-bounce";
+            } else {
+                lblCounter.className = "text-sm font-extrabold text-sky-700";
+            }
+        }
+
+        // Guardar Horarios Mensuales en Firebase
+        async function guardarHorariosMensuales(e) {
+            e.preventDefault();
+
+            const legajo = document.getElementById('selectInspectorHorario').value;
+            const mes = parseInt(document.getElementById('selectMesHorario').value);
+            const anio = parseInt(document.getElementById('selectAnioHorario').value);
+
+            if (!legajo) {
+                alert('Debe seleccionar un inspector.');
+                return;
+            }
+
+            const diasEnMes = new Date(anio, mes, 0).getDate();
+            let sabados = 0;
+            let mapaDias = {};
+
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mes - 1, dia);
+                const tipo = document.getElementById(`tipoTurno_${dia}`).value;
+                const ingM = document.getElementById(`ingManana_${dia}`).value;
+                const egrM = document.getElementById(`egrManana_${dia}`).value;
+                const ingT = document.getElementById(`ingTarde_${dia}`).value;
+                const egrT = document.getElementById(`egrTarde_${dia}`).value;
+
+                if (fecha.getDay() === 6 && tipo !== 'Sin Turno') {
+                    sabados++;
+                }
+
+                mapaDias[dia] = {
+                    tipoTurno: tipo,
+                    ingresoManana: ingM,
+                    egresoManana: egrM,
+                    ingresoTarde: ingT,
+                    egresoTarde: egrT,
+                    efectivoMananaDesde: mapIngresoManana[ingM] || '00:00',
+                    efectivoMananaHasta: mapEgresoManana[egrM] || '00:00',
+                    efectivoTardeDesde: mapIngresoTarde[ingT] || '00:00',
+                    efectivoTardeHasta: mapEgresoTarde[egrT] || '00:00'
+                };
+            }
+
+            if (sabados > 3) {
+                if (!confirm(`Atención: Ha asignado ${sabados} sábados para este inspector (el máximo recomendado es 3). ¿Desea guardar de todas formas?`)) {
+                    return;
+                }
+            }
+
+            const payload = {
+                legajo: legajo,
+                mes: mes,
+                anio: anio,
+                sabadosTrabajados: sabados,
+                dias: mapaDias
+            };
+
+            try {
+                const idDoc = `${legajo}_${anio}_${mes}`;
+                await window.setDoc(window.doc(window.db, "horarios_mensuales", idDoc), payload);
+                alert('Horarios mensuales guardados correctamente en Firebase.');
+            } catch (error) {
+                console.error("Error al guardar horarios en Firebase:", error);
+                alert("Error al guardar: " + error.message);
+            }
+        }
+
+        // Registrar indumentaria
+        function guardarIndumentaria(e) {
+            e.preventDefault();
+            const inspector = document.getElementById('selectInspectorIndumentaria').value;
+            const fecha = document.getElementById('fechaEntregaIndumentaria').value;
+            const tipo = document.getElementById('tipoRopa').value;
+
+            entregasIndumentaria.push({ inspector, fecha, tipo });
+            alert('Entrega de indumentaria registrada.');
+            document.getElementById('formIndumentaria').reset();
+            renderizarIndumentaria();
+        }
+
+        function renderizarIndumentaria() {
+            const tbody = document.getElementById('tablaIndumentaria');
+            tbody.innerHTML = '';
+            entregasIndumentaria.forEach(ent => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3">${ent.fecha}</td>
+                    <td class="p-3 font-bold text-slate-800">${ent.inspector}</td>
+                    <td class="p-3">${ent.tipo}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Modal Lightbox
+        function openModal(imageSrc, altText) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = imageSrc;
+            modalImg.alt = altText;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeModal();
+        });
+    </script>
+
+</body>
+</html>

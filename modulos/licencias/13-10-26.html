@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licencias y Permisos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-stone-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado Superior (Color Arena Oscuro) -->
+    <header class="bg-amber-800 text-amber-50 shadow-md z-10 border-b border-amber-900">
+        <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
+            <!-- Título del Módulo y Conexión (Izquierda) -->
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-umbrella-beach text-xl text-amber-300"></i>
+                <h2 class="text-base font-bold text-amber-100 uppercase tracking-wider">Módulo: Licencias y Permisos</h2>
+
+                <!-- Estado Conexión Firebase -->
+                <span id="firebase-status" class="bg-amber-950/60 text-amber-300 border border-amber-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all">
+                    <span id="firebase-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="firebase-status-text" class="font-medium">Conectando...</span>
+                </span>
+            </div>
+            
+            <!-- Logo Central Superior (logovac.jpg) -->
+            <div class="flex justify-center items-center">
+                <img src="../../imagenes/logovac.jpg" 
+                     alt="Logo Vacaciones" 
+                     id="logoInspector"
+                     class="h-12 w-auto rounded-lg border border-amber-300/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
+                     onclick="openModal('../../imagenes/logovac.jpg', 'Logo Vacaciones')">
+            </div>
+
+            <!-- Logo Hermes Suares (Derecha) -->
+            <div class="flex justify-end items-center">
+                <img src="../../imagenes/logoh.jpg" 
+                     alt="Logo Hermes Suares" 
+                     id="logoHermes"
+                     class="h-10 w-auto rounded border border-amber-300/50 object-cover cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
+                     onclick="openModal('../../imagenes/logoh.jpg', 'Logo Hermes Suares')">
+            </div>
+        </div>
+    </header>
+
+    <!-- Estructura Principal con Menú Lateral Izquierdo -->
+    <div class="flex flex-1 w-full">
+
+        <!-- Menú Lateral Izquierdo -->
+        <aside class="w-64 bg-amber-200 text-amber-950 min-h-full flex flex-col justify-between shadow-lg border-r border-amber-300">
+            <div class="p-4 space-y-6">
+                <!-- Botón Volver al Panel Central -->
+                <a href="../../index.html" class="bg-amber-800 hover:bg-amber-900 text-amber-50 px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+                </a>
+
+                <!-- Opciones del Menú -->
+                <nav class="space-y-1">
+                    <p class="text-[10px] uppercase font-bold text-amber-800 px-3 mb-2 tracking-wider">Menú de Licencias</p>
+                    
+                    <button onclick="showSection('cargar-licencia')" id="btn-cargar-licencia" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors bg-amber-300">
+                        <i class="fa-solid fa-file-circle-plus w-6 text-center mr-2 text-amber-800"></i> 1. Cargar Licencias
+                    </button>
+                    <button onclick="showSection('visualizar-licencias')" id="btn-visualizar-licencias" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-calendar-check w-6 text-center mr-2 text-amber-800"></i> 2. Visualizar Licencias
+                    </button>
+                    <button onclick="showSection('configuracion-licencias')" id="btn-configuracion-licencias" class="w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-sliders w-6 text-center mr-2 text-amber-800"></i> 3. Configuración Licencias
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Contenido Central del Módulo -->
+        <main class="flex-1 p-8">
+            
+            <!-- SECCIÓN 1: CARGAR / EDITAR LICENCIAS -->
+            <section id="cargar-licencia" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto">
+                <h2 id="titulo-form" class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-file-circle-plus text-amber-700"></i> Solicitud y Carga de Licencia
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Seleccione el inspector desde los datos sincronizados con Firebase. Los días consumidos descuentan únicamente <strong>días hábiles</strong>.</p>
+
+                <form id="formLicencia" onsubmit="guardarLicencia(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Campo oculto para ID de documento al editar -->
+                    <input type="hidden" id="editLicenciaId" value="">
+
+                    <!-- Inspector Vinculado -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Inspector</label>
+                        <select id="selectInspector" required onchange="cargarDatosInspector()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="">Cargando inspectores desde Firebase...</option>
+                        </select>
+                    </div>
+
+                    <!-- Legajo (Solo lectura) -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Legajo</label>
+                        <input type="text" id="legajoInspector" readonly class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs bg-stone-100 font-semibold text-stone-600">
+                    </div>
+
+                    <!-- Panel Informativo de Días Restantes e Info Inspector -->
+                    <div class="md:col-span-3 bg-amber-50 border border-amber-200 p-3.5 rounded-lg flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                            <span class="text-xs font-bold uppercase text-amber-900 block">Estado del Inspector</span>
+                            <span id="infoAntiguedad" class="text-xs text-stone-600">Seleccione un inspector...</span>
+                        </div>
+                        <div class="bg-amber-800 text-white px-4 py-1.5 rounded-lg text-center shadow-sm">
+                            <span class="text-[10px] uppercase font-bold block text-amber-200">Días / Cupos Restantes</span>
+                            <span id="diasRestantesText" class="text-base font-extrabold">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Tipo de Licencia -->
+                    <div class="md:col-span-3 lg:col-span-1">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Tipo de Licencia</label>
+                        <select id="tipoLicencia" required onchange="actualizarInterfazTipoLicencia()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="Licencia Ordinaria">Licencia Ordinaria (Vacaciones)</option>
+                            <option value="Licencia Enfermedad">Licencia Enfermedad</option>
+                            <option value="Licencia Enfermedad Familiar">Licencia Enfermedad Familiar</option>
+                            <option value="Franco Compensatorio">Franco Compensatorio</option>
+                            <option value="Permiso">Permiso Especial</option>
+                        </select>
+                    </div>
+
+                    <!-- BLOQUE ESTÁNDAR: FECHAS (Para Licencias por Días) -->
+                    <div id="bloqueFechas" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Inicio (Desde)</label>
+                            <input type="date" id="fechaDesde" onchange="calcularDiasHabilesYRegreso()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Fin (Hasta)</label>
+                            <input type="date" id="fechaHasta" onchange="calcularDiasHabilesYRegreso()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Días Hábiles Calculados -->
+                    <div id="bloqueDiasHabiles">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Días Hábiles a Descontar</label>
+                        <input type="number" id="diasHabiles" readonly value="0" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs bg-amber-50 font-bold text-amber-900">
+                    </div>
+
+                    <!-- Día de Reincorporación a Trabajar (Editable) -->
+                    <div id="bloqueReincorporacion" class="md:col-span-2">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Día que debe ingresar a trabajar (Editable)</label>
+                        <input type="date" id="fechaReincorporacion" class="w-full px-3 py-2 border border-amber-400 bg-amber-50/50 rounded-lg text-xs font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <!-- BLOQUE CONDICIONAL: FRANCO COMPENSATORIO -->
+                    <div id="bloqueFranco" class="md:col-span-3 hidden bg-stone-50 border border-stone-200 p-4 rounded-lg space-y-3">
+                        <h4 class="text-xs font-bold uppercase text-amber-800 flex items-center gap-1">
+                            <i class="fa-solid fa-clock"></i> Configuración de Franco Compensatorio
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Modalidad Franco</label>
+                                <select id="francoModalidad" onchange="toggleHorasFranco()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                    <option value="Turno Mañana">Turno Mañana</option>
+                                    <option value="Turno Tarde">Turno Tarde</option>
+                                    <option value="Todo el dia">Todo el día</option>
+                                    <option value="Horarios Específicos">Desde Hora / Hasta Hora</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Franco</label>
+                                <input type="date" id="fechaFranco" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div id="horariosFranco" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Desde Hora</label>
+                                <input type="time" id="francoHoraDesde" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Hasta Hora</label>
+                                <input type="time" id="francoHoraHasta" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE CONDICIONAL: PERMISO ESPECIAL -->
+                    <div id="bloquePermiso" class="md:col-span-3 hidden bg-stone-50 border border-stone-200 p-4 rounded-lg space-y-3">
+                        <h4 class="text-xs font-bold uppercase text-amber-800 flex items-center gap-1">
+                            <i class="fa-solid fa-id-card-clip"></i> Detalle Permiso Especial
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Permiso</label>
+                                <input type="date" id="fechaPermiso" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Desde Hora</label>
+                                <input type="time" id="permisoHoraDesde" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Hasta Hora</label>
+                                <input type="time" id="permisoHoraHasta" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Motivo</label>
+                                <input type="text" id="permisoMotivo" placeholder="Ej: Trámite personal / Asistencia médica..." class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Autorizado Por</label>
+                                <input type="text" id="permisoAutorizadoPor" placeholder="Nombre / Cargo de quien autoriza" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones Generales -->
+                    <div id="bloqueObservaciones" class="md:col-span-3">
+                        <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Observaciones / Detalles Adicionales</label>
+                        <textarea id="observaciones" rows="2" placeholder="Detalle adicional opcional..." class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="md:col-span-3 flex justify-end gap-3 mt-2">
+                        <button type="button" id="btnCancelarEdicion" onclick="cancelarEdicionLicencia()" class="hidden bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold px-4 py-2.5 rounded-lg text-xs transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnGuardarLicencia" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> <span id="btnGuardarText">Registrar Licencia en Firebase</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 2: VISUALIZAR LICENCIAS -->
+            <section id="visualizar-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check text-amber-700"></i> Historial de Licencias por Año e Inspector
+                        </h2>
+                        <p class="text-xs text-stone-500">Filtre, modifique o elimine las licencias guardadas en Firebase seleccionando el año o inspector.</p>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="flex gap-3">
+                        <select id="filtroAnio" onchange="filtrarLicencias()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                            <option value="2026">Año 2026</option>
+                            <option value="2025">Año 2025</option>
+                            <option value="Todos">Todos los años</option>
+                        </select>
+                        <select id="filtroInspector" onchange="filtrarLicencias()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                            <option value="Todos">Todos los inspectores</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-amber-800 text-white uppercase text-[11px] tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Legajo</th>
+                                <th class="p-3">Inspector</th>
+                                <th class="p-3">Tipo Licencia</th>
+                                <th class="p-3">Detalle / Horario</th>
+                                <th class="p-3">Desde</th>
+                                <th class="p-3">Hasta / Ingreso</th>
+                                <th class="p-3">Consumo</th>
+                                <th class="p-3">Estado</th>
+                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaLicencias" class="divide-y divide-stone-200 text-stone-700">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: CONFIGURACIÓN DE LICENCIAS -->
+            <section id="configuracion-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-4xl mx-auto hidden">
+                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-700"></i> Parámetros y Configuración de Licencias
+                </h2>
+                <p class="text-sm text-stone-600 mb-6">Ajuste los topes de días asignados al año o por mes para cada tipo de licencia.</p>
+
+                <form id="formConfiguracion" onsubmit="guardarConfiguracion(event)" class="space-y-4">
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Ordinaria (Vacaciones)</h4>
+                            <p class="text-[11px] text-stone-500">Calculada automáticamente según antigüedad laboral (15 días base + 5 días cada 5 años).</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded font-bold text-xs">Según Antigüedad</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia por Enfermedad</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días hábiles asignados por año.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgEnfermedad" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Enfermedad Familiar</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días asignados por año.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Franco Compensatorio</h4>
+                            <p class="text-[11px] text-stone-500">Tope máximo de francos por mes (o turno de 7hs).</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgFrancoCompensatorio" value="2" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Permiso Especial</h4>
+                            <p class="text-[11px] text-stone-500">Tope anual en días para permisos generales.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgPermiso" value="12" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-3">
+                        <button type="submit" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Guardar Modificaciones
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Modal Lightbox -->
+    <div id="imageModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeModal()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute -top-10 right-0 text-white hover:text-red-400 text-2xl font-bold">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="modalImg" src="" alt="Imagen Ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-stone-700">
+        </div>
+    </div>
+
+    <!-- Script de Inicialización de Firebase & Firestore (Módulo ES6) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, setDoc, getDocs, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
+            authDomain: "medido-i.firebaseapp.com",
+            projectId: "medido-i",
+            storageBucket: "medido-i.firebasestorage.app",
+            messagingSenderId: "17396988314",
+            appId: "1:17396988314:web:8332b473254e0f2cb92223",
+            measurementId: "G-DKDNGY5YS0"
+        };
+
+        const statusContainer = document.getElementById("firebase-status");
+        const statusDot = document.getElementById("firebase-status-dot");
+        const statusText = document.getElementById("firebase-status-text");
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            // Exponer funciones necesarias globalmente
+            window.db = db;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.addDoc = addDoc;
+            window.getDoc = getDoc;
+            window.updateDoc = updateDoc;
+            window.deleteDoc = deleteDoc;
+            window.collection = collection;
+            window.getDocs = getDocs;
+
+            statusContainer.className = "bg-amber-950/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Firestore Conectado";
+
+            if (typeof window.cargarDatosIniciales === 'function') {
+                window.cargarDatosIniciales();
+            }
+        } catch (error) {
+            console.error("Error de conexión Firebase:", error);
+            statusContainer.className = "bg-amber-950/60 text-rose-300 border border-rose-700/50 px-2.5 py-0.5 rounded-full text-[11px] flex items-center gap-1.5 transition-all";
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-400";
+            statusText.textContent = "Error Conexión";
+        }
+    </script>
+
+    <!-- Script de interacción y datos vinculados con Firebase -->
+    <script>
+        let inspectores = [];
+        let licencias = [];
+        let configLicencias = {
+            enfermedad: 30,
+            enfermedadFamiliar: 20,
+            francoCompensatorio: 2,
+            permiso: 12
+        };
+
+        async function cargarDatosIniciales() {
+            await obtenerInspectoresFirebase();
+            await obtenerLicenciasFirebase();
+            await obtenerConfiguracionFirebase();
+        }
+        window.cargarDatosIniciales = cargarDatosIniciales;
+
+        // 1. Obtener Inspectores desde la colección "inspectores" en Firestore
+        async function obtenerInspectoresFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "inspectores"));
+                inspectores = [];
+                querySnapshot.forEach((docSnap) => {
+                    inspectores.push(docSnap.data());
+                });
+                poblarSelectInspectores();
+            } catch (error) {
+                console.error("Error al obtener inspectores de Firebase:", error);
+            }
+        }
+
+        // 2. Obtener Licencias desde la colección "licencias" en Firestore
+        async function obtenerLicenciasFirebase() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "licencias"));
+                licencias = [];
+                querySnapshot.forEach((docSnap) => {
+                    licencias.push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+                filtrarLicencias();
+                calcularDiasRestantes();
+            } catch (error) {
+                console.error("Error al obtener licencias de Firebase:", error);
+            }
+        }
+
+        // 3. Obtener Configuración desde Firestore
+        async function obtenerConfiguracionFirebase() {
+            if (!window.db) return;
+            try {
+                const cfgDoc = await window.getDoc(window.doc(window.db, "config_licencias", "general"));
+                if (cfgDoc.exists()) {
+                    configLicencias = cfgDoc.data();
+                    document.getElementById('cfgEnfermedad').value = configLicencias.enfermedad || 30;
+                    document.getElementById('cfgEnfermedadFamiliar').value = configLicencias.enfermedadFamiliar || 20;
+                    document.getElementById('cfgFrancoCompensatorio').value = configLicencias.francoCompensatorio || 2;
+                    document.getElementById('cfgPermiso').value = configLicencias.permiso || 12;
+                }
+            } catch (error) {
+                console.error("Error al obtener configuración de Firebase:", error);
+            }
+        }
+
+        // Alternar Secciones del Menú
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            ['cargar-licencia', 'visualizar-licencias', 'configuracion-licencias'].forEach(id => {
+                const btn = document.getElementById(`btn-${id}`);
+                if (id === sectionId) {
+                    btn.classList.add('bg-amber-300');
+                } else {
+                    btn.classList.remove('bg-amber-300');
+                }
+            });
+
+            if (sectionId === 'visualizar-licencias') {
+                obtenerLicenciasFirebase();
+            }
+        }
+
+        // Cargar lista de inspectores en los select
+        function poblarSelectInspectores() {
+            const select = document.getElementById('selectInspector');
+            const filtroInspector = document.getElementById('filtroInspector');
+            select.innerHTML = '<option value="">-- Seleccione un Inspector --</option>';
+            filtroInspector.innerHTML = '<option value="Todos">Todos los inspectores</option>';
+
+            const ordenados = [...inspectores].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+            ordenados.forEach(ins => {
+                select.innerHTML += `<option value="${ins.legajo}">${ins.nombre} (Legajo: ${ins.legajo})</option>`;
+                filtroInspector.innerHTML += `<option value="${ins.legajo}">${ins.nombre}</option>`;
+            });
+        }
+
+        function cargarDatosInspector() {
+            const legajo = document.getElementById('selectInspector').value;
+            document.getElementById('legajoInspector').value = legajo || '';
+            
+            const inspector = inspectores.find(i => i.legajo === legajo);
+            if (inspector) {
+                document.getElementById('infoAntiguedad').textContent = `Antigüedad: ${inspector.antiguedad || 0} años | Tarea: ${inspector.tarea || 'General'}`;
+            } else {
+                document.getElementById('infoAntiguedad').textContent = `Seleccione un inspector...`;
+            }
+            calcularDiasRestantes();
+        }
+
+        // Modifica los campos visibles según el tipo de licencia
+        function actualizarInterfazTipoLicencia() {
+            const tipo = document.getElementById('tipoLicencia').value;
+
+            const bloqueFechas = document.getElementById('bloqueFechas');
+            const bloqueDiasHabiles = document.getElementById('bloqueDiasHabiles');
+            const bloqueReincorporacion = document.getElementById('bloqueReincorporacion');
+            const bloqueFranco = document.getElementById('bloqueFranco');
+            const bloquePermiso = document.getElementById('bloquePermiso');
+
+            // Resetear visibilidad
+            bloqueFechas.classList.remove('hidden');
+            bloqueDiasHabiles.classList.remove('hidden');
+            bloqueReincorporacion.classList.remove('hidden');
+            bloqueFranco.classList.add('hidden');
+            bloquePermiso.classList.add('hidden');
+
+            if (tipo === 'Franco Compensatorio') {
+                bloqueFechas.classList.add('hidden');
+                bloqueDiasHabiles.classList.add('hidden');
+                bloqueReincorporacion.classList.add('hidden');
+                bloqueFranco.classList.remove('hidden');
+            } else if (tipo === 'Permiso') {
+                bloqueFechas.classList.add('hidden');
+                bloqueDiasHabiles.classList.add('hidden');
+                bloqueReincorporacion.classList.add('hidden');
+                bloquePermiso.classList.remove('hidden');
+            }
+
+            calcularDiasRestantes();
+        }
+
+        function toggleHorasFranco() {
+            const mod = document.getElementById('francoModalidad').value;
+            const container = document.getElementById('horariosFranco');
+            if (mod === 'Horarios Específicos') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        // Calcular Días / Cupos Restantes del Inspector
+        function calcularDiasRestantes() {
+            const legajo = document.getElementById('legajoInspector').value;
+            const tipo = document.getElementById('tipoLicencia').value;
+            const labelSpan = document.getElementById('diasRestantesText');
+
+            if (!legajo) {
+                labelSpan.textContent = "-";
+                return;
+            }
+
+            const inspector = inspectores.find(i => i.legajo === legajo);
+            let topeAnual = 0;
+
+            if (tipo === 'Licencia Ordinaria') {
+                const antiguedad = inspector ? parseInt(inspector.antiguedad || 0) : 0;
+                topeAnual = 15 + (Math.floor(antiguedad / 5) * 5);
+            } else if (tipo === 'Licencia Enfermedad') {
+                topeAnual = configLicencias.enfermedad;
+            } else if (tipo === 'Licencia Enfermedad Familiar') {
+                topeAnual = configLicencias.enfermedadFamiliar;
+            } else if (tipo === 'Franco Compensatorio') {
+                topeAnual = configLicencias.francoCompensatorio; // Cupos/mes
+            } else if (tipo === 'Permiso') {
+                topeAnual = configLicencias.permiso;
+            }
+
+            // Calcular consumo en licencias aprobadas
+            let consumidos = 0;
+            const editId = document.getElementById('editLicenciaId').value;
+
+            licencias.forEach(lic => {
+                if (lic.legajo === legajo && lic.tipo === tipo && lic.id !== editId) {
+                    if (tipo === 'Franco Compensatorio' || tipo === 'Permiso') {
+                        consumidos += 1;
+                    } else {
+                        consumidos += parseInt(lic.diasHabiles || 0);
+                    }
+                }
+            });
+
+            const restantes = topeAnual - consumidos;
+            labelSpan.textContent = `${restantes} ${tipo === 'Franco Compensatorio' ? 'Francos/mes' : 'días'}`;
+        }
+
+        // Calcular DÍAS HÁBILES (Lunes a Viernes) y fecha tentativa de ingreso
+        function calcularDiasHabilesYRegreso() {
+            const desdeVal = document.getElementById('fechaDesde').value;
+            const hastaVal = document.getElementById('fechaHasta').value;
+
+            if (!desdeVal || !hastaVal) return;
+
+            let fechaInicio = new Date(desdeVal + 'T00:00:00');
+            let fechaFin = new Date(hastaVal + 'T00:00:00');
+
+            if (fechaFin < fechaInicio) {
+                document.getElementById('diasHabiles').value = 0;
+                return;
+            }
+
+            let diasHabiles = 0;
+            let cur = new Date(fechaInicio);
+
+            while (cur <= fechaFin) {
+                const dayOfWeek = cur.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Excluir Sábados (6) y Domingos (0)
+                    diasHabiles++;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            document.getElementById('diasHabiles').value = diasHabiles;
+
+            // Calcular siguiente día hábil de reincorporación
+            let fechaRegreso = new Date(fechaFin);
+            fechaRegreso.setDate(fechaRegreso.getDate() + 1);
+            while (fechaRegreso.getDay() === 0 || fechaRegreso.getDay() === 6) {
+                fechaRegreso.setDate(fechaRegreso.getDate() + 1);
+            }
+
+            const yyyy = fechaRegreso.getFullYear();
+            const mm = String(fechaRegreso.getMonth() + 1).padStart(2, '0');
+            const dd = String(fechaRegreso.getDate()).padStart(2, '0');
+            document.getElementById('fechaReincorporacion').value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // Guardar o Actualizar Licencia en Firebase
+        async function guardarLicencia(e) {
+            e.preventDefault();
+
+            const editId = document.getElementById('editLicenciaId').value;
+            const selectIns = document.getElementById('selectInspector');
+            const inspectorNombre = selectIns.options[selectIns.selectedIndex].text.split(' (Legajo:')[0];
+            const legajo = document.getElementById('legajoInspector').value;
+            const tipo = document.getElementById('tipoLicencia').value;
+
+            let datosLicencia = {
+                legajo: legajo,
+                inspector: inspectorNombre,
+                tipo: tipo,
+                observaciones: document.getElementById('observaciones').value,
+                estado: "Aprobada"
+            };
+
+            if (tipo === 'Franco Compensatorio') {
+                const fechaF = document.getElementById('fechaFranco').value;
+                const mod = document.getElementById('francoModalidad').value;
+                let horaDetalle = mod;
+                if (mod === 'Horarios Específicos') {
+                    horaDetalle = `${document.getElementById('francoHoraDesde').value} a ${document.getElementById('francoHoraHasta').value} hs`;
+                }
+
+                datosLicencia.desde = fechaF;
+                datosLicencia.hasta = fechaF;
+                datosLicencia.detalleHorario = horaDetalle;
+                datosLicencia.diasHabiles = 1;
+                datosLicencia.anio = fechaF.substring(0, 4);
+            } else if (tipo === 'Permiso') {
+                const fechaP = document.getElementById('fechaPermiso').value;
+                const desdeH = document.getElementById('permisoHoraDesde').value;
+                const hastaH = document.getElementById('permisoHoraHasta').value;
+
+                datosLicencia.desde = fechaP;
+                datosLicencia.hasta = fechaP;
+                datosLicencia.detalleHorario = `${desdeH} a ${hastaH} hs`;
+                datosLicencia.motivo = document.getElementById('permisoMotivo').value;
+                datosLicencia.autorizadoPor = document.getElementById('permisoAutorizadoPor').value;
+                datosLicencia.diasHabiles = 0;
+                datosLicencia.anio = fechaP.substring(0, 4);
+            } else {
+                const desde = document.getElementById('fechaDesde').value;
+                datosLicencia.desde = desde;
+                datosLicencia.hasta = document.getElementById('fechaHasta').value;
+                datosLicencia.diasHabiles = parseInt(document.getElementById('diasHabiles').value);
+                datosLicencia.fechaIngreso = document.getElementById('fechaReincorporacion').value;
+                datosLicencia.anio = desde.substring(0, 4);
+            }
+
+            try {
+                if (editId) {
+                    await window.updateDoc(window.doc(window.db, "licencias", editId), datosLicencia);
+                    alert('Licencia actualizada correctamente en Firebase.');
+                } else {
+                    await window.addDoc(window.collection(window.db, "licencias"), datosLicencia);
+                    alert('Licencia registrada con éxito en Firebase.');
+                }
+                
+                cancelarEdicionLicencia();
+                showSection('visualizar-licencias');
+            } catch (error) {
+                console.error("Error al guardar licencia:", error);
+                alert("Error al guardar en Firebase: " + error.message);
+            }
+        }
+
+        // Cargar datos en el formulario para editar licencia
+        function editarLicencia(id) {
+            const lic = licencias.find(l => l.id === id);
+            if (!lic) return;
+
+            document.getElementById('editLicenciaId').value = lic.id;
+            document.getElementById('selectInspector').value = lic.legajo;
+            cargarDatosInspector();
+
+            document.getElementById('tipoLicencia').value = lic.tipo;
+            actualizarInterfazTipoLicencia();
+
+            if (lic.tipo === 'Franco Compensatorio') {
+                document.getElementById('fechaFranco').value = lic.desde || '';
+                document.getElementById('francoModalidad').value = lic.detalleHorario.includes('hs') ? 'Horarios Específicos' : lic.detalleHorario;
+                toggleHorasFranco();
+            } else if (lic.tipo === 'Permiso') {
+                document.getElementById('fechaPermiso').value = lic.desde || '';
+                document.getElementById('permisoMotivo').value = lic.motivo || '';
+                document.getElementById('permisoAutorizadoPor').value = lic.autorizadoPor || '';
+            } else {
+                document.getElementById('fechaDesde').value = lic.desde || '';
+                document.getElementById('fechaHasta').value = lic.hasta || '';
+                document.getElementById('diasHabiles').value = lic.diasHabiles || 0;
+                document.getElementById('fechaReincorporacion').value = lic.fechaIngreso || '';
+            }
+
+            document.getElementById('observaciones').value = lic.observaciones || '';
+
+            // Cambiar UI al modo edición
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-700"></i> Modificar Licencia`;
+            document.getElementById('btnGuardarText').textContent = "Guardar Cambios en Firebase";
+            document.getElementById('btnCancelarEdicion').classList.remove('hidden');
+
+            showSection('cargar-licencia');
+        }
+
+        // Cancelar edición de licencia
+        function cancelarEdicionLicencia() {
+            document.getElementById('formLicencia').reset();
+            document.getElementById('editLicenciaId').value = '';
+            document.getElementById('legajoInspector').value = '';
+            document.getElementById('infoAntiguedad').textContent = 'Seleccione un inspector...';
+            document.getElementById('diasRestantesText').textContent = '-';
+            actualizarInterfazTipoLicencia();
+
+            document.getElementById('titulo-form').innerHTML = `<i class="fa-solid fa-file-circle-plus text-amber-700"></i> Solicitud y Carga de Licencia`;
+            document.getElementById('btnGuardarText').textContent = "Registrar Licencia en Firebase";
+            document.getElementById('btnCancelarEdicion').classList.add('hidden');
+        }
+
+        // Eliminar Licencia de Firebase
+        async function eliminarLicencia(id) {
+            if (!confirm("¿Está seguro de que desea eliminar esta licencia de Firebase?")) return;
+
+            try {
+                await window.deleteDoc(window.doc(window.db, "licencias", id));
+                alert("Licencia eliminada correctamente.");
+                await obtenerLicenciasFirebase();
+            } catch (error) {
+                console.error("Error al eliminar licencia:", error);
+                alert("Error al eliminar de Firebase: " + error.message);
+            }
+        }
+
+        // Filtrar y Renderizar Licencias
+        function filtrarLicencias() {
+            const anio = document.getElementById('filtroAnio').value;
+            const legajo = document.getElementById('filtroInspector').value;
+            const tbody = document.getElementById('tablaLicencias');
+            tbody.innerHTML = '';
+
+            let resultado = licencias.filter(lic => {
+                const coincideAnio = (anio === 'Todos' || lic.anio === anio);
+                const coincideInspector = (legajo === 'Todos' || lic.legajo === legajo);
+                return coincideAnio && coincideInspector;
+            });
+
+            if (resultado.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-stone-400">No hay licencias registradas para este filtro.</td></tr>`;
+                return;
+            }
+
+            resultado.forEach(lic => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-stone-50 transition-colors";
+                
+                let detalleStr = lic.detalleHorario || '-';
+                if (lic.tipo === 'Permiso' && lic.motivo) {
+                    detalleStr += ` (${lic.motivo})`;
+                }
+
+                let hastaOIngreso = lic.fechaIngreso || lic.hasta || '-';
+                let consumoStr = `${lic.diasHabiles} háb.`;
+                if (lic.tipo === 'Franco Compensatorio') consumoStr = '1 Franco';
+                if (lic.tipo === 'Permiso') consumoStr = 'Permiso Horas';
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-amber-800">${lic.legajo}</td>
+                    <td class="p-3 font-bold text-stone-800">${lic.inspector}</td>
+                    <td class="p-3 font-medium">${lic.tipo}</td>
+                    <td class="p-3 text-stone-600">${detalleStr}</td>
+                    <td class="p-3">${lic.desde}</td>
+                    <td class="p-3 font-bold text-emerald-700">${hastaOIngreso}</td>
+                    <td class="p-3 font-bold text-amber-900">${consumoStr}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">Aprobada</span></td>
+                    <td class="p-3 text-center">
+                        <div class="flex justify-center items-center gap-1.5">
+                            <button onclick="editarLicencia('${lic.id}')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-2 py-1 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1" title="Modificar">
+                                <i class="fa-solid fa-pen-to-square"></i> Modificar
+                            </button>
+                            <button onclick="eliminarLicencia('${lic.id}')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[11px] shadow-sm transition-colors flex items-center gap-1" title="Eliminar">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Guardar cambios en configuración de licencias en Firebase
+        async function guardarConfiguracion(e) {
+            e.preventDefault();
+
+            const nuevaCfg = {
+                enfermedad: parseInt(document.getElementById('cfgEnfermedad').value),
+                enfermedadFamiliar: parseInt(document.getElementById('cfgEnfermedadFamiliar').value),
+                francoCompensatorio: parseInt(document.getElementById('cfgFrancoCompensatorio').value),
+                permiso: parseInt(document.getElementById('cfgPermiso').value)
+            };
+
+            try {
+                await window.setDoc(window.doc(window.db, "config_licencias", "general"), nuevaCfg);
+                configLicencias = nuevaCfg;
+                alert('Configuración de Licencias guardada en Firebase correctamente.');
+                calcularDiasRestantes();
+            } catch (error) {
+                console.error("Error al guardar configuración:", error);
+                alert("Error al guardar en Firebase: " + error.message);
+            }
+        }
+
+        // Lightbox Modal
+        function openModal(imageSrc, altText) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modalImg.src = imageSrc;
+            modalImg.alt = altText;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
