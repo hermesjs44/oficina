@@ -213,7 +213,7 @@
 
                 <section>
                     <h4 class="text-sm font-bold text-slate-800 uppercase mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-slate-700"></i> Listado de Usuarios Registrados
+                        <i class="fa-solid fa-users text-slate-700"></i> Listado de Usuarios Registrados en Firebase
                     </h4>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs border-collapse">
@@ -237,9 +237,21 @@
         Plataforma Web Modular &copy; 2026 - Todos los derechos reservados.
     </footer>
 
+    <!-- Script Modular con Firestore -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            setDoc, 
+            getDocs, 
+            query, 
+            where, 
+            deleteDoc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC-12zDd6LGzmR06WcZdJHInurevEQmhm0",
@@ -255,9 +267,12 @@
         const statusDot = document.getElementById("firebase-status-dot");
         const statusText = document.getElementById("firebase-status-text");
 
+        let db;
         try {
             const app = initializeApp(firebaseConfig);
             getAnalytics(app);
+            db = getFirestore(app);
+
             statusContainer.className = "bg-emerald-950/60 text-emerald-300 border border-emerald-700/50 px-3 py-1 rounded-full flex items-center gap-2 transition-all";
             statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
             statusText.textContent = "Firebase Conectado";
@@ -267,9 +282,7 @@
             statusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
             statusText.textContent = "Error de Conexión";
         }
-    </script>
 
-    <script>
         const USUARIO_MAESTRO = {
             id: 'master-01',
             usuario: 'Hermes',
@@ -277,27 +290,31 @@
             rol: 'Diseñador'
         };
 
-        let usuarios = JSON.parse(localStorage.getItem('sys_usuarios')) || [USUARIO_MAESTRO];
-        let permisosRoles = JSON.parse(localStorage.getItem('sys_permisos_roles')) || {
-            Administrativo: { licencias: true, inspectores: true, frentistas: true, reportes: true },
-            Usuario: { licencias: true, inspectores: false, frentistas: false, reportes: false }
-        };
+        let usuarios = [];
 
-        // Variable de estado que se destruye/limpia de forma estricta
-        let usuarioActual = null;
+        // Recuperar la sesión actual almacenada en la pestaña si existe
+        let usuarioActual = JSON.parse(sessionStorage.getItem('sys_user_logged')) || null;
 
-        // Limpiar sesión al descargar o cerrar la ventana
-        window.addEventListener('beforeunload', () => {
-            sessionStorage.removeItem('sys_user_logged');
-        });
+        // Listener en tiempo real de la colección de usuarios en Firebase
+        if (db) {
+            const q = collection(db, "usuarios");
+            onSnapshot(q, (snapshot) => {
+                usuarios = [USUARIO_MAESTRO]; // Siempre incluimos el usuario maestro
+                snapshot.forEach((doc) => {
+                    usuarios.push({ id: doc.id, ...doc.data() });
+                });
+                renderUsuarios();
+            }, (error) => {
+                console.error("Error al escuchar usuarios de Firestore:", error);
+            });
+        }
 
+        // Al cargar el documento, se verifica si ya existe una sesión guardada en esta pestaña
         document.addEventListener('DOMContentLoaded', () => {
-            // Forzar cierre de sesión al cargar de nuevo la página o ventana
-            sessionStorage.removeItem('sys_user_logged');
             verificarEstadoSesion();
         });
 
-        function togglePasswordVisibility(inputId, iconId) {
+        window.togglePasswordVisibility = function(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
             if (input.type === "password") {
@@ -307,7 +324,7 @@
                 input.type = "password";
                 icon.classList.replace("fa-eye-slash", "fa-eye");
             }
-        }
+        };
 
         function verificarEstadoSesion() {
             const loginModal = document.getElementById('loginModal');
@@ -323,30 +340,50 @@
             }
         }
 
-        function iniciarSesion(e) {
+        // Inicio de sesión guardando en sessionStorage
+        window.iniciarSesion = async function(e) {
             e.preventDefault();
             const userIn = document.getElementById('loginUsuario').value.trim();
             const passIn = document.getElementById('loginPassword').value.trim();
             const errorDiv = document.getElementById('loginError');
 
-            const encontrado = usuarios.find(u => u.usuario.toLowerCase() === userIn.toLowerCase() && u.pass === passIn);
-
-            if (encontrado) {
-                usuarioActual = encontrado;
+            // 1. Verificación del Usuario Maestro local
+            if (userIn.toLowerCase() === USUARIO_MAESTRO.usuario.toLowerCase() && passIn === USUARIO_MAESTRO.pass) {
+                usuarioActual = USUARIO_MAESTRO;
                 sessionStorage.setItem('sys_user_logged', JSON.stringify(usuarioActual));
                 errorDiv.classList.add('hidden');
                 document.getElementById('formLogin').reset();
                 verificarEstadoSesion();
-            } else {
+                return;
+            }
+
+            // 2. Verificación en Firestore
+            try {
+                const usuariosRef = collection(db, "usuarios");
+                const q = query(usuariosRef, where("usuario_lower", "==", userIn.toLowerCase()), where("pass", "==", passIn));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    usuarioActual = { id: userDoc.id, ...userDoc.data() };
+                    sessionStorage.setItem('sys_user_logged', JSON.stringify(usuarioActual));
+                    errorDiv.classList.add('hidden');
+                    document.getElementById('formLogin').reset();
+                    verificarEstadoSesion();
+                } else {
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error al autenticar en Firestore:", err);
                 errorDiv.classList.remove('hidden');
             }
-        }
+        };
 
-        function cerrarSesion() {
+        window.cerrarSesion = function() {
             sessionStorage.removeItem('sys_user_logged');
             usuarioActual = null;
             verificarEstadoSesion();
-        }
+        };
 
         function aplicarRestriccionesModulo() {
             if (!usuarioActual) return;
@@ -354,13 +391,8 @@
 
             modulos.forEach(mod => {
                 const card = document.getElementById(`card-mod-${mod}`);
-                let tieneAcceso = false;
-
-                if (usuarioActual.rol === 'Diseñador') {
-                    tieneAcceso = true;
-                } else if (permisosRoles[usuarioActual.rol]) {
-                    tieneAcceso = permisosRoles[usuarioActual.rol][mod] || false;
-                }
+                if (!card) return;
+                let tieneAcceso = usuarioActual.rol === 'Diseñador' || usuarioActual.rol === 'Administrativo';
 
                 if (tieneAcceso) {
                     card.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
@@ -370,7 +402,7 @@
             });
         }
 
-        function toggleModalUsuarios(show) {
+        window.toggleModalUsuarios = function(show) {
             const modal = document.getElementById('modalGestionUsuarios');
             if (show) {
                 modal.classList.remove('hidden');
@@ -378,35 +410,43 @@
             } else {
                 modal.classList.add('hidden');
             }
-        }
+        };
 
-        function guardarUsuario(e) {
+        // Guarda o actualiza usuarios en Firestore
+        window.guardarUsuario = async function(e) {
             e.preventDefault();
             const editId = document.getElementById('editUserId').value;
             const usuarioNombre = document.getElementById('userNombre').value.trim();
             const pass = document.getElementById('userPassword').value.trim();
             const rol = document.getElementById('userRol').value;
 
-            if (editId) {
-                const idx = usuarios.findIndex(u => u.id === editId);
-                if (idx !== -1) {
-                    usuarios[idx] = { ...usuarios[idx], usuario: usuarioNombre, pass, rol };
+            try {
+                if (editId) {
+                    await setDoc(doc(db, "usuarios", editId), {
+                        usuario: usuarioNombre,
+                        usuario_lower: usuarioNombre.toLowerCase(),
+                        pass: pass,
+                        rol: rol
+                    }, { merge: true });
+                } else {
+                    const docId = 'usr-' + Date.now();
+                    await setDoc(doc(db, "usuarios", docId), {
+                        usuario: usuarioNombre,
+                        usuario_lower: usuarioNombre.toLowerCase(),
+                        pass: pass,
+                        rol: rol
+                    });
                 }
-            } else {
-                if (usuarios.some(u => u.usuario.toLowerCase() === usuarioNombre.toLowerCase())) {
-                    alert('El nombre de usuario ya existe.');
-                    return;
-                }
-                usuarios.push({ id: 'usr-' + Date.now(), usuario: usuarioNombre, pass, rol });
+                cancelarFormUsuario();
+            } catch (error) {
+                console.error("Error al guardar usuario en Firestore:", error);
+                alert("Error al guardar el usuario en Firebase.");
             }
-
-            localStorage.setItem('sys_usuarios', JSON.stringify(usuarios));
-            cancelarFormUsuario();
-            renderUsuarios();
-        }
+        };
 
         function renderUsuarios() {
             const tbody = document.getElementById('tablaUsuarios');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             usuarios.forEach(u => {
@@ -430,23 +470,27 @@
             });
         }
 
-        function cancelarFormUsuario() {
+        window.cancelarFormUsuario = function() {
             document.getElementById('formUsuario').reset();
             document.getElementById('editUserId').value = '';
-        }
+        };
 
-        function eliminarUsuario(id) {
+        // Elimina usuarios directamente de Firestore
+        window.eliminarUsuario = async function(id) {
             const u = usuarios.find(item => item.id === id);
             if (u && u.usuario === 'Hermes') {
                 alert('El usuario Maestro "Hermes" no puede ser eliminado.');
                 return;
             }
-            if (!confirm('¿Desea eliminar este usuario?')) return;
+            if (!confirm('¿Desea eliminar este usuario de la base de datos?')) return;
 
-            usuarios = usuarios.filter(item => item.id !== id);
-            localStorage.setItem('sys_usuarios', JSON.stringify(usuarios));
-            renderUsuarios();
-        }
+            try {
+                await deleteDoc(doc(db, "usuarios", id));
+            } catch (error) {
+                console.error("Error al eliminar usuario:", error);
+                alert("Error al eliminar el usuario en Firebase.");
+            }
+        };
     </script>
 </body>
 </html>
