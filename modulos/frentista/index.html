@@ -6,7 +6,7 @@
     <title>Sistema de Gestión de Frentistas - Libre Estacionamiento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -32,11 +32,105 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .tab-active { border-bottom: 3px solid #0284c7; color: #0284c7; font-weight: 600; }
+
+        /* Estilo visual para campos editables en pantalla dentro del modal */
+        [contenteditable="true"]:hover {
+            outline: 1.5px dashed #0284c7 !important;
+            background-color: #f0f7ff !important;
+            cursor: text;
+        }
+        [contenteditable="true"]:focus {
+            outline: 2px solid #0284c7 !important;
+            background-color: #ffffff !important;
+            border-radius: 4px;
+        }
+        
+        /* Reglas Generales y Ajustes de Impresión en Hoja A4 */
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0mm 8mm 5mm 8mm; /* Se deja en 0 el margen global superior para manejarlo por CSS */
+            }
+            body { 
+                background: white !important; 
+                color: black !important;
+                font-size: 9.5px !important;
+                line-height: 1.2 !important;
+            }
             .no-print { display: none !important; }
             .print-only { display: block !important; }
-            body { background: white; color: black; }
-            .modal-container { position: absolute; left: 0; top: 0; width: 100%; height: auto; overflow: visible; }
+            
+            /* Quitar resaltado de edición al imprimir */
+            [contenteditable="true"] {
+                outline: none !important;
+                background-color: transparent !important;
+            }
+
+            /* Ajustes del contenedor modal en impresión */
+            .modal-container { 
+                position: static !important;
+                width: 100% !important; 
+                max-width: 100% !important;
+                max-height: none !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Margen superior exclusivo de 5 cm para la primera página */
+            .print-page-1 {
+                margin-top: 50mm !important;
+                padding-top: 0 !important;
+            }
+
+            /* Salto de página estricto justo después de las firmas */
+            .print-after-signatures-break {
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+
+            /* Estilo para la página de familiares (Página 2) sin margen superior */
+            .print-page-familiares {
+                margin-top: 0mm !important;
+                padding-top: 0mm !important;
+            }
+
+            #modal-body {
+                padding: 0 !important;
+            }
+
+            .modal-container .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 0.25rem !important;
+            }
+
+            .modal-container .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+                margin-top: 0.35rem !important;
+            }
+
+            .modal-container .p-3, .modal-container .p-4, .modal-container .p-6 {
+                padding: 0.3rem 0.5rem !important;
+            }
+
+            .modal-container .p-2.5 {
+                padding: 0.2rem 0.35rem !important;
+            }
+
+            .print-page-break {
+                page-break-before: always !important;
+                break-before: page !important;
+                margin-top: 0mm !important;
+                padding-top: 0mm !important;
+            }
+
+            body.print-mode-dj .print-photos-container {
+                display: none !important;
+            }
+
+            body.print-mode-dj .modal-container {
+                page-break-after: avoid !important;
+            }
         }
     </style>
 </head>
@@ -70,11 +164,12 @@
     <!-- Contenido Principal -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
         
-                 <!-- Botón Volver al Panel Central -->
-                <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
-                </a>
-       <!-- Pestañas de Navegación -->
+        <!-- Botón Volver al Panel Central -->
+        <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full mb-4">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
+        </a>
+
+        <!-- Pestañas de Navegación -->
         <div class="flex border-b border-slate-200 mb-6 no-print bg-white rounded-t-xl px-4 pt-2 shadow-sm">
             <button id="tab-list-btn" onclick="switchTab('list')" class="tab-active py-3 px-6 text-sm flex items-center gap-2 transition">
                 <i class="fa-solid fa-list-check"></i> Listado de Frentistas
@@ -276,29 +371,20 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN 3: FAMILIAR AUTORIZADO / CONVIVIENTE -->
+                <!-- SECCIÓN 3: FAMILIARES AUTORIZADOS / CONVIVIENTES -->
                 <div class="space-y-4">
-                    <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2 border-b pb-2">
-                        <i class="fa-solid fa-users"></i> 3. Familiar Autorizado / Conviviente (Opcional)
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Familiar Apellido y Nombre</label>
-                            <input type="text" id="familiarNombre" placeholder="Ej: Perez, Maria" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Familiar DNI</label>
-                            <input type="text" id="familiarDni" placeholder="Ej: 35.123.456" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Relación / Parentesco</label>
-                            <input type="text" id="familiarRelacion" placeholder="Ej: Cónyuge / Hijo" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        </div>
-                        <div class="md:col-span-3">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Documento Familiar (Opcional)</label>
-                            <input type="file" id="fotoFamiliar" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700">
-                        </div>
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-users"></i> 3. Familiares Autorizados / Convivientes (Opcional)
+                        </h3>
+                        <button type="button" onclick="addFamiliarField()" class="text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold px-3 py-1.5 rounded-lg transition border border-brand-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i> Agregar otro familiar
+                        </button>
+                    </div>
+
+                    <!-- Lista Dinámica de Familiares -->
+                    <div id="familiares-container" class="space-y-4">
+                        <!-- Se insertan campos dinámicamente -->
                     </div>
                 </div>
 
@@ -357,34 +443,60 @@
 
     </main>
 
-    <!-- MODAL DE DETALLE -->
-    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <!-- MODAL DE DETALLE / VISTA PREVIA IMPRESIÓN EDITABLE VISUALMENTE -->
+    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-container border border-slate-100">
-            <div class="p-5 bg-brand-900 text-white flex justify-between items-center rounded-t-2xl no-print">
+            <div class="p-4 bg-brand-900 text-white flex justify-between items-center rounded-t-2xl no-print">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-id-card text-xl text-brand-500"></i>
-                    <h3 class="text-base font-bold">Ficha de Habilitación de Frentista</h3>
+                    <div>
+                        <h3 class="text-base font-bold">Vista Previa e Impresión</h3>
+                        <p class="text-[11px] text-brand-200">Puede editar directamente el texto sobre la vista previa antes de imprimir.</p>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="printModal()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 border border-slate-700">
-                        <i class="fa-solid fa-print"></i> Imprimir Ficha
+                    <button onclick="printDJ()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-sm font-medium">
+                        <i class="fa-solid fa-file-signature"></i> Imprimir Dec. Jurada (1 Hoja)
                     </button>
-                    <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg">
+                    <button onclick="printFullExpediente()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-sm font-medium">
+                        <i class="fa-solid fa-folder-open"></i> Imprimir Expediente Completo
+                    </button>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg text-lg ml-2">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="hidden print-only p-6 border-b text-center">
-                <h2 class="text-2xl font-bold uppercase tracking-wide">Constancia de Frentista - Libre Estacionamiento</h2>
-                <p class="text-xs text-slate-500">Dirección de Tránsito y Transporte - Certificación Garaje Privado</p>
+            <!-- Membrete exclusivo de impresión (Oculto por defecto) -->
+            <div id="print-header-container" class="hidden relative w-full mb-2 border-b-2 border-slate-800 pb-1">
+                <img src="Edj.jpg" alt="Membrete Declaración Jurada" class="w-full object-contain">
+                <div class="absolute top-[40%] right-[3%] w-[28%] text-center">
+                    <span id="print-expediente-num" contenteditable="true" class="text-2xl font-black font-mono text-slate-900 tracking-tight"></span>
+                </div>
             </div>
 
-            <div id="modal-body" class="p-6 space-y-6"></div>
+            <!-- CUERPO DE DOCUMENTO MODIFICABLE -->
+            <div id="modal-body" class="p-6 space-y-3 text-xs"></div>
 
-            <div class="p-4 bg-slate-50 border-t flex justify-end no-print rounded-b-2xl">
-                <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm transition">Cerrar</button>
+            <div class="p-3 bg-slate-50 border-t flex justify-between items-center no-print rounded-b-2xl">
+                <span class="text-xs text-slate-500 flex items-center gap-1">
+                    <i class="fa-solid fa-pencil text-amber-500"></i> Puede hacer clic en cualquier texto de la vista previa para corregirlo directamente.
+                </span>
+                <button onclick="closeModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg text-sm transition">Cerrar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE VISOR DE IMAGEN A TAMAÑO GRANDE -->
+    <div id="image-lightbox" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4 no-print" onclick="closeImageLightbox()">
+        <div class="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+            <div class="absolute -top-10 right-0 flex items-center gap-3">
+                <span id="lightbox-title" class="text-white text-sm font-semibold tracking-wide"></span>
+                <button onclick="closeImageLightbox()" class="text-white hover:text-slate-300 text-2xl p-1 focus:outline-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <img id="lightbox-img" src="" alt="Vista previa" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-slate-700">
         </div>
     </div>
 
@@ -499,7 +611,6 @@
             const formId = document.getElementById('form-id').value;
             let existingRecord = formId ? window.frentistas.find(f => f.id === formId) : null;
 
-            // Procesar lista de vehículos
             const vehicleRows = document.querySelectorAll('.vehiculo-item');
             const vehiculos = [];
 
@@ -530,15 +641,46 @@
             }
 
             if (vehiculos.length === 0) {
-                alert("Debe agregar al menos un vehículo registrado.");
+                alert("Error: Debe registrar al menos un vehículo para el frentista.");
                 return;
             }
 
-            // Fotos individuales de documentación general
+            const familiarRows = document.querySelectorAll('.familiar-item');
+            const familiares = [];
+
+            for (let i = 0; i < familiarRows.length; i++) {
+                const row = familiarRows[i];
+                const nombreInput = row.querySelector('.f-nombre');
+                const dniInput = row.querySelector('.f-dni');
+                const relacionInput = row.querySelector('.f-relacion');
+                const fotoFileInput = row.querySelector('.f-foto');
+
+                const nombreVal = nombreInput ? nombreInput.value.trim() : '';
+                const dniVal = dniInput ? dniInput.value.trim() : '';
+                const relacionVal = relacionInput ? relacionInput.value.trim() : '';
+
+                if (!nombreVal && !dniVal && !relacionVal) continue;
+
+                const file = fotoFileInput && fotoFileInput.files.length > 0 ? fotoFileInput.files[0] : null;
+
+                let fotoBase64 = null;
+                if (file) {
+                    fotoBase64 = await window.fileToBase64(file);
+                } else if (existingRecord && existingRecord.familiares && existingRecord.familiares[i]) {
+                    fotoBase64 = existingRecord.familiares[i].fotoDocumento || null;
+                }
+
+                familiares.push({
+                    nombre: nombreVal,
+                    dni: dniVal,
+                    relacion: relacionVal,
+                    fotoDocumento: fotoBase64
+                });
+            }
+
             const fotoFrenteFile = document.getElementById('fotoFrente').files[0];
             const fotoEscrituraFile = document.getElementById('fotoEscritura').files[0];
             const fotoImpuestoFile = document.getElementById('fotoImpuesto').files[0];
-            const fotoFamiliarFile = document.getElementById('fotoFamiliar').files[0];
 
             updateFirebaseStatus('connecting', 'Guardando...');
 
@@ -554,13 +696,13 @@
                     escrituraPresentada: document.querySelector('input[name="escrituraPresentada"]:checked')?.value || 'No',
                     impuestoPresentado: document.querySelector('input[name="impuestoPresentado"]:checked')?.value || 'No',
 
-                    familiarNombre: document.getElementById('familiarNombre').value.trim(),
-                    familiarDni: document.getElementById('familiarDni').value.trim(),
-                    familiarRelacion: document.getElementById('familiarRelacion').value.trim(),
+                    familiares: familiares,
+                    familiarNombre: familiares.length > 0 ? familiares[0].nombre : '',
+                    familiarDni: familiares.length > 0 ? familiares[0].dni : '',
+                    familiarRelacion: familiares.length > 0 ? familiares[0].relacion : '',
 
-                    // Lista de vehículos
                     vehiculos: vehiculos,
-                    patente: vehiculos[0].patente, // compatibilidad retroactiva
+                    patente: vehiculos[0].patente,
 
                     declaracionJurada: document.getElementById('declaracionJurada').value,
 
@@ -572,7 +714,7 @@
                     fotoFrente: fotoFrenteFile ? await window.fileToBase64(fotoFrenteFile) : (existingRecord ? existingRecord.fotoFrente || null : null),
                     fotoEscritura: fotoEscrituraFile ? await window.fileToBase64(fotoEscrituraFile) : (existingRecord ? existingRecord.fotoEscritura || null : null),
                     fotoImpuesto: fotoImpuestoFile ? await window.fileToBase64(fotoImpuestoFile) : (existingRecord ? existingRecord.fotoImpuesto || null : null),
-                    fotoFamiliar: fotoFamiliarFile ? await window.fileToBase64(fotoFamiliarFile) : (existingRecord ? existingRecord.fotoFamiliar || null : null),
+                    fotoFamiliar: familiares.length > 0 ? familiares[0].fotoDocumento : (existingRecord ? existingRecord.fotoFamiliar || null : null),
 
                     updatedAt: Date.now()
                 };
@@ -612,7 +754,7 @@
         initAuthAndData();
     </script>
 
-    <!-- UI Helpers -->
+    <!-- UI Helpers y Modificaciones de Vista Previa -->
     <script>
         window.onload = function () {
             document.getElementById('fechaInicio').value = new Date().toISOString().split('T')[0];
@@ -632,11 +774,9 @@
                     <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">
                         <i class="fa-solid fa-car-side text-brand-500 mr-1"></i> Vehículo #${vehicleCount + 1}
                     </span>
-                    ${vehicleCount > 0 ? `
-                        <button type="button" onclick="this.closest('.vehiculo-item').remove()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
-                            <i class="fa-solid fa-trash-can"></i> Quitar
-                        </button>
-                    ` : ''}
+                    <button type="button" onclick="this.closest('.vehiculo-item').remove()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                        <i class="fa-solid fa-trash-can"></i> Quitar
+                    </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -650,6 +790,45 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Cédula del Vehículo (Verde/Azul)</label>
                         <input type="file" accept="image/*" class="v-foto w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-200 file:text-slate-700">
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(div);
+        }
+
+        function addFamiliarField(fData = null) {
+            const container = document.getElementById('familiares-container');
+            const familiarCount = container.querySelectorAll('.familiar-item').length;
+
+            const div = document.createElement('div');
+            div.className = "familiar-item bg-slate-50 p-3.5 rounded-lg border border-slate-200 relative space-y-3";
+
+            div.innerHTML = `
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                        <i class="fa-solid fa-user-plus text-brand-500 mr-1"></i> Familiar Autorizado #${familiarCount + 1}
+                    </span>
+                    <button type="button" onclick="this.closest('.familiar-item').remove()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+                        <i class="fa-solid fa-trash-can"></i> Quitar
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Familiar Apellido y Nombre</label>
+                        <input type="text" value="${fData ? escapeHtml(fData.nombre || '') : ''}" placeholder="Ej: Perez, Maria" class="f-nombre w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Familiar DNI</label>
+                        <input type="text" value="${fData ? escapeHtml(fData.dni || '') : ''}" placeholder="Ej: 35.123.456" class="f-dni w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relación / Parentesco</label>
+                        <input type="text" value="${fData ? escapeHtml(fData.relacion || '') : ''}" placeholder="Ej: Cónyuge / Hijo" class="f-relacion w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Documento Familiar (Opcional)</label>
+                        <input type="file" accept="image/*" class="f-foto w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-200 file:text-slate-700">
                     </div>
                 </div>
             `;
@@ -674,11 +853,14 @@
             } else {
                 formTabBtn.className = "tab-active py-3 px-6 text-sm flex items-center gap-2 transition";
                 listTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
-                viewList.classList.add('hidden');
+                viewList.add('hidden');
                 viewForm.classList.remove('hidden');
                 stats.classList.add('hidden');
                 if (document.querySelectorAll('.vehiculo-item').length === 0) {
                     addVehicleField();
+                }
+                if (document.querySelectorAll('.familiar-item').length === 0) {
+                    addFamiliarField();
                 }
             }
         }
@@ -728,7 +910,6 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
 
-                // Obtener lista de patentes
                 const listVehiculos = record.vehiculos && record.vehiculos.length > 0 
                     ? record.vehiculos 
                     : [{ patente: record.patente || 'N/A' }];
@@ -854,11 +1035,18 @@
             const impuestoRadio = document.querySelector(`input[name="impuestoPresentado"][value="${record.impuestoPresentado}"]`);
             if (impuestoRadio) impuestoRadio.checked = true;
 
-            document.getElementById('familiarNombre').value = record.familiarNombre || '';
-            document.getElementById('familiarDni').value = record.familiarDni || '';
-            document.getElementById('familiarRelacion').value = record.familiarRelacion || '';
+            const famContainer = document.getElementById('familiares-container');
+            famContainer.innerHTML = '';
+            const familiaresList = record.familiares && record.familiares.length > 0
+                ? record.familiares
+                : (record.familiarNombre ? [{ nombre: record.familiarNombre, dni: record.familiarDni, relacion: record.familiarRelacion, fotoDocumento: record.fotoFamiliar }] : []);
 
-            // Cargar Vehículos
+            if (familiaresList.length > 0) {
+                familiaresList.forEach(f => addFamiliarField(f));
+            } else {
+                addFamiliarField();
+            }
+
             const container = document.getElementById('vehiculos-container');
             container.innerHTML = '';
             const vehiculosList = record.vehiculos && record.vehiculos.length > 0 
@@ -883,7 +1071,9 @@
             document.getElementById('form-title').textContent = "Nuevo Registro de Frentista";
             document.getElementById('fechaInicio').value = new Date().toISOString().split('T')[0];
             document.getElementById('vehiculos-container').innerHTML = '';
+            document.getElementById('familiares-container').innerHTML = '';
             addVehicleField();
+            addFamiliarField();
         }
 
         function viewRecord(id) {
@@ -893,16 +1083,58 @@
             const status = getRecordStatus(record);
             const modalBody = document.getElementById('modal-body');
 
+            document.getElementById('print-expediente-num').textContent = record.expediente || 'S/N';
+
             const vehiculosList = record.vehiculos && record.vehiculos.length > 0 
                 ? record.vehiculos 
                 : [{ patente: record.patente || 'N/A', detalles: '', fotoCedula: record.fotoCedula || null }];
 
+            const familiaresList = record.familiares && record.familiares.length > 0 
+                ? record.familiares 
+                : (record.familiarNombre ? [{ nombre: record.familiarNombre, dni: record.familiarDni, relacion: record.familiarRelacion, fotoDocumento: record.fotoFamiliar }] : []);
+
             const vehiculosCardsHtml = vehiculosList.map((v, i) => `
-                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center mb-2">
+                <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200 flex justify-between items-center mb-0.5">
                     <div>
-                        <span class="text-[10px] text-slate-400 font-bold block uppercase">Vehículo #${i + 1}</span>
-                        <span class="inline-block px-2 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-xs rounded">${escapeHtml(v.patente)}</span>
-                        ${v.detalles ? `<span class="text-xs text-slate-600 ml-2 font-medium">${escapeHtml(v.detalles)}</span>` : ''}
+                        <span class="text-[8.5px] text-slate-400 font-bold block uppercase">Vehículo #${i + 1}</span>
+                        <span contenteditable="true" class="inline-block px-1.5 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-xs rounded">${escapeHtml(v.patente)}</span>
+                        ${v.detalles ? `<span contenteditable="true" class="text-[11px] text-slate-600 ml-1.5 font-medium">${escapeHtml(v.detalles)}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            const familiaresCardsHtml = familiaresList.length > 0 ? familiaresList.map((f, i) => `
+                <div class="text-[11px] ${i > 0 ? 'border-t border-slate-200 pt-1 mt-1' : ''}">
+                    <div><strong>Nombre:</strong> <span contenteditable="true">${escapeHtml(f.nombre || 'N/A')}</span> | <strong>DNI:</strong> <span contenteditable="true">${escapeHtml(f.dni || 'N/A')}</span></div>
+                    <div><strong>Parentesco:</strong> <span contenteditable="true">${escapeHtml(f.relacion || 'N/A')}</span></div>
+                </div>
+            `).join('') : `<p class="text-slate-400 italic text-[11px]">No registrado familiar autorizado</p>`;
+
+            const allPhotos = [];
+            if (record.fotoFrente) allPhotos.push({ title: "Fotografía: Frente del Domicilio / Garaje", src: record.fotoFrente });
+            
+            vehiculosList.forEach((v, i) => {
+                if (v.fotoCedula) allPhotos.push({ title: `Fotografía: Cédula Vehículo #${i + 1} - Patente: ${v.patente}`, src: v.fotoCedula });
+            });
+
+            if (record.fotoEscritura) allPhotos.push({ title: "Fotografía: Escritura / Contrato de Alquiler", src: record.fotoEscritura });
+            if (record.fotoImpuesto) allPhotos.push({ title: "Fotografía: Impuesto / Servicio a su nombre", src: record.fotoImpuesto });
+            
+            familiaresList.forEach((f, i) => {
+                if (f.fotoDocumento) allPhotos.push({ title: `Fotografía: Documento Familiar #${i + 1} (${f.nombre || 'Autorizado'})`, src: f.fotoDocumento });
+            });
+
+            const fullPagePhotosHtml = allPhotos.map((photo) => `
+                <div class="print-page-break print-only py-8">
+                    <div class="w-full text-center border-b border-slate-300 pb-3 mb-6">
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Documentación Adjunta - EXP N° <span contenteditable="true">${escapeHtml(record.expediente)}</span></p>
+                        <h3 contenteditable="true" class="text-lg font-bold text-slate-800">${escapeHtml(photo.title)}</h3>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center max-h-[75vh] w-full">
+                        <img src="${photo.src}" alt="${escapeHtml(photo.title)}" class="max-w-full max-h-[70vh] object-contain border border-slate-200 rounded shadow-sm">
+                    </div>
+                    <div class="w-full text-center text-[10px] text-slate-400 border-t border-slate-200 pt-3 mt-6">
+                        Titular de Franquicia: <span contenteditable="true">${escapeHtml(record.nombreCompleto)}</span> | DNI: <span contenteditable="true">${escapeHtml(record.dni)}</span> | Fecha Impresión: ${new Date().toLocaleDateString('es-AR')}
                     </div>
                 </div>
             `).join('');
@@ -911,77 +1143,149 @@
                 renderImageThumb(`Cédula Vehículo #${i + 1} (${v.patente})`, v.fotoCedula)
             ).join('');
 
+            const familiaresFotosHtml = familiaresList.map((f, i) => 
+                renderImageThumb(`Doc. Familiar #${i + 1} (${f.nombre || 'Autorizado'})`, f.fotoDocumento)
+            ).join('');
+
+            const familiaresPrintPageHtml = familiaresList.length > 0 ? `
+                <div class="print-page-familiares print-only pt-0">
+                    <div class="space-y-4 bg-white p-4 rounded-xl border border-slate-300 shadow-2xs">
+                        <h3 class="font-bold text-brand-900 border-b-2 border-brand-800 pb-1 uppercase tracking-wider text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-users text-brand-600"></i> 3. Familiares Autorizados / Convivientes (Página 2)
+                        </h3>
+                        <p class="text-[9px] text-slate-500">
+                            Titular de Franquicia: <strong contenteditable="true">${escapeHtml(record.nombreCompleto)}</strong> | DNI: <strong contenteditable="true">${escapeHtml(record.dni)}</strong> | Domicilio: <strong contenteditable="true">${escapeHtml(record.domicilio)}</strong>
+                        </p>
+                        <div class="space-y-3 pt-2">
+                            ${familiaresList.map((f, i) => `
+                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                                    <div class="text-xs font-bold text-brand-800 uppercase tracking-wide">Familiar Autorizado #${i + 1}</div>
+                                    <div class="grid grid-cols-3 gap-2 text-xs">
+                                        <div><span class="text-slate-500 block">Apellido y Nombre:</span> <strong contenteditable="true">${escapeHtml(f.nombre || 'N/A')}</strong></div>
+                                        <div><span class="text-slate-500 block">DNI:</span> <strong contenteditable="true">${escapeHtml(f.dni || 'N/A')}</strong></div>
+                                        <div><span class="text-slate-500 block">Parentesco / Relación:</span> <strong contenteditable="true">${escapeHtml(f.relacion || 'N/A')}</strong></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-300 mt-6">
+                        <div class="grid grid-cols-2 gap-8 text-center pt-8">
+                            <div class="border-t border-slate-800 pt-1">
+                                <p contenteditable="true" class="font-bold text-xs text-slate-900">${escapeHtml(record.nombreCompleto)}</p>
+                                <p class="text-[9.5px] text-slate-500">Firma del Titular de Franquicia</p>
+                            </div>
+                            <div class="border-t border-slate-800 pt-1">
+                                <p class="font-bold text-xs text-slate-900">Sello y Firma de Autoridad</p>
+                                <p class="text-[9.5px] text-slate-500">Dirección de Tránsito y Transporte</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+
             modalBody.innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200 gap-2">
-                    <div>
-                        <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider">Expediente N°</span>
-                        <h2 class="text-xl font-mono font-bold text-slate-800">${escapeHtml(record.expediente)}</h2>
-                    </div>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${status.class}">
-                        <i class="fa-solid ${status.icon}"></i> ${status.label}
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                    <div class="space-y-3">
-                        <h4 class="font-bold text-slate-700 border-b pb-1 flex items-center gap-2">
-                            <i class="fa-solid fa-user text-brand-600"></i> Datos del Frentista
-                        </h4>
-                        <div><span class="text-xs text-slate-500 block">Apellido y Nombre:</span> <strong class="text-slate-800">${escapeHtml(record.nombreCompleto)}</strong></div>
-                        <div><span class="text-xs text-slate-500 block">DNI:</span> ${escapeHtml(record.dni)}</div>
-                        <div><span class="text-xs text-slate-500 block">Teléfono:</span> ${escapeHtml(record.telefono)}</div>
-                        <div><span class="text-xs text-slate-500 block">Domicilio Garaje:</span> ${escapeHtml(record.domicilio)}</div>
-                        <div><span class="text-xs text-slate-500 block">Calidad Habitante:</span> <span class="font-semibold">${escapeHtml(record.calidadHabitante)}</span></div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <h4 class="font-bold text-slate-700 border-b pb-1 flex items-center gap-2">
-                            <i class="fa-solid fa-car text-brand-600"></i> Vehículos y Control
-                        </h4>
+                <!-- RESUMEN DECLARACIÓN JURADA (PÁGINA 1) -->
+                <div class="print-page-1 space-y-3">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200 gap-2 no-print">
                         <div>
-                            <span class="text-xs text-slate-500 block mb-1">Vehículos Registrados:</span>
-                            ${vehiculosCardsHtml}
+                            <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider">Expediente N°</span>
+                            <h2 contenteditable="true" class="text-xl font-mono font-bold text-slate-800">${escapeHtml(record.expediente)}</h2>
                         </div>
-                        <div><span class="text-xs text-slate-500 block">Declaración Jurada:</span> ${escapeHtml(record.declaracionJurada)}</div>
-                        <div><span class="text-xs text-slate-500 block">Fecha Inicio Trámite:</span> ${formatDate(record.fechaInicio)}</div>
-                        <div><span class="text-xs text-slate-500 block">Fecha Habilitación:</span> ${record.fechaHabilitacion ? formatDate(record.fechaHabilitacion) : 'Pendiente'}</div>
-                        <div><span class="text-xs text-slate-500 block">Fecha a Controlar (Vencimiento):</span> <strong class="text-slate-800">${formatDate(record.fechaControl)}</strong></div>
-                        ${record.fechaBaja ? `<div><span class="text-xs text-rose-500 block">Fecha de Baja:</span> <span class="text-rose-600 font-bold">${formatDate(record.fechaBaja)}</span></div>` : ''}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${status.class}">
+                            <i class="fa-solid ${status.icon}"></i> ${status.label}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        <div class="space-y-1 border p-2 rounded-xl bg-white shadow-2xs">
+                            <h4 class="font-bold text-brand-800 border-b pb-0.5 uppercase tracking-wider flex items-center gap-2 text-[10px]">
+                                <i class="fa-solid fa-user text-brand-600 no-print"></i> 1. Titular de Franquicia
+                            </h4>
+                            <div><span class="text-slate-500 block">Apellido y Nombre:</span> <strong contenteditable="true" class="text-slate-900 text-xs">${escapeHtml(record.nombreCompleto)}</strong></div>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div><span class="text-slate-500 block">DNI / Cédula:</span> <strong contenteditable="true">${escapeHtml(record.dni)}</strong></div>
+                                <div><span class="text-slate-500 block">Teléfono:</span> <strong contenteditable="true">${escapeHtml(record.telefono)}</strong></div>
+                            </div>
+                            <div><span class="text-slate-500 block">Domicilio del Garaje:</span> <strong contenteditable="true">${escapeHtml(record.domicilio)}</strong></div>
+                            <div><span class="text-slate-500 block">Calidad Habitante:</span> <span contenteditable="true" class="font-semibold px-2 py-0.5 rounded ${record.calidadHabitante === 'Propietario' ? 'bg-indigo-50 text-indigo-700' : 'bg-sky-50 text-sky-700'}">${escapeHtml(record.calidadHabitante)}</span></div>
+                        </div>
+
+                        <div class="space-y-1 border p-2 rounded-xl bg-white shadow-2xs">
+                            <h4 class="font-bold text-brand-800 border-b pb-0.5 uppercase tracking-wider flex items-center gap-2 text-[10px]">
+                                <i class="fa-solid fa-car text-brand-600 no-print"></i> 2. Vehículos Autorizados
+                            </h4>
+                            <div>
+                                <span class="text-slate-500 block mb-0.5">Vehículos Registrados:</span>
+                                ${vehiculosCardsHtml}
+                            </div>
+                            <div class="grid grid-cols-2 gap-1 border-t pt-1">
+                                <div><span class="text-slate-500 block">Dec. Jurada:</span> <strong contenteditable="true">${escapeHtml(record.declaracionJurada)}</strong></div>
+                                <div><span class="text-slate-500 block">Inicio Trámite:</span> <strong contenteditable="true">${formatDate(record.fechaInicio)}</strong></div>
+                                <div><span class="text-slate-500 block">Habilitación:</span> <strong contenteditable="true">${record.fechaHabilitacion ? formatDate(record.fechaHabilitacion) : 'Pendiente'}</strong></div>
+                                <div><span class="text-slate-500 block">Control / Vencimiento:</span> <strong contenteditable="true" class="text-brand-700">${formatDate(record.fechaControl)}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                            <h4 class="font-bold text-slate-700 text-[9.5px] uppercase tracking-wider">Documentación Adjunta</h4>
+                            <div class="flex justify-between">
+                                <span>Escritura / Contrato:</span>
+                                <strong contenteditable="true" class="${record.escrituraPresentada === 'Sí' ? 'text-emerald-700' : 'text-slate-400'}">${record.escrituraPresentada}</strong>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Impuesto/Servicio a su nombre:</span>
+                                <strong contenteditable="true" class="${record.impuestoPresentado === 'Sí' ? 'text-emerald-700' : 'text-slate-400'}">${record.impuestoPresentado}</strong>
+                            </div>
+                        </div>
+
+                        <div class="space-y-0.5 bg-slate-50 p-2 rounded-lg border border-slate-200 no-print">
+                            <h4 class="font-bold text-slate-700 text-[9.5px] uppercase tracking-wider">Familiares Autorizados</h4>
+                            ${familiaresCardsHtml}
+                        </div>
+                    </div>
+
+                    <div class="hidden print-only pt-1.5 border-t border-slate-300 mt-1.5">
+                        <p contenteditable="true" class="text-[8px] text-slate-600 text-justify leading-snug mb-5">
+                            Declaro bajo juramento que los datos e información consignados en el presente formulario son verídicos y corresponden con la documentación presentada. Entiendo que cualquier falsedad u omisión dará lugar a la cancelación automática de la habilitación concedida para el Libre Estacionamiento de Garaje Privado.
+                        </p>
+                        
+                        <div class="grid grid-cols-2 gap-8 text-center pt-5">
+                            <div class="border-t border-slate-800 pt-1">
+                                <p contenteditable="true" class="font-bold text-xs text-slate-900">${escapeHtml(record.nombreCompleto)}</p>
+                                <p class="text-[9.5px] text-slate-500">Firma del Titular de Franquicia</p>
+                                <p class="text-[8.5px] text-slate-400 mt-0.5">DNI: <span contenteditable="true">${escapeHtml(record.dni)}</span></p>
+                            </div>
+                            <div class="border-t border-slate-800 pt-1">
+                                <p class="font-bold text-xs text-slate-900">Sello y Firma de Autoridad</p>
+                                <p class="text-[9.5px] text-slate-500">Dirección de Tránsito y Transporte</p>
+                                <p class="text-[8.5px] text-slate-400 mt-0.5">Fecha de Recepción: ____/____/20___</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm pt-2">
-                    <div class="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <h4 class="font-bold text-slate-700 text-xs uppercase tracking-wider">Documentación Adjunta</h4>
-                        <div class="flex justify-between text-xs">
-                            <span>Escritura / Contrato:</span>
-                            <span class="font-bold ${record.escrituraPresentada === 'Sí' ? 'text-emerald-600' : 'text-slate-400'}">${record.escrituraPresentada}</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span>Impuesto a su nombre:</span>
-                            <span class="font-bold ${record.impuestoPresentado === 'Sí' ? 'text-emerald-600' : 'text-slate-400'}">${record.impuestoPresentado}</span>
-                        </div>
-                    </div>
+                <!-- SALTO DE PÁGINA TRAS LAS FIRMAS (SÓLO SI EXISTEN FAMILIARES) -->
+                ${familiaresList.length > 0 ? '<div class="print-after-signatures-break print-only"></div>' : ''}
 
-                    <div class="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        <h4 class="font-bold text-slate-700 text-xs uppercase tracking-wider">Familiar / Conviviente Autorizado</h4>
-                        ${record.familiarNombre ? `
-                            <div class="text-xs"><strong>Nombre:</strong> ${escapeHtml(record.familiarNombre)}</div>
-                            <div class="text-xs"><strong>DNI:</strong> ${escapeHtml(record.familiarDni)}</div>
-                            <div class="text-xs"><strong>Relación:</strong> ${escapeHtml(record.familiarRelacion)}</div>
-                        ` : `<p class="text-xs text-slate-400 italic">No registrado familiar autorizado</p>`}
-                    </div>
-                </div>
+                ${familiaresPrintPageHtml}
 
-                <div class="space-y-3 pt-4 border-t">
+                <div id="photos-preview" class="space-y-3 pt-4 border-t no-print">
                     <h4 class="font-bold text-slate-700 text-xs uppercase tracking-wider">Fotografías y Archivos Digitalizados</h4>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         ${renderImageThumb('Foto Frente Garaje', record.fotoFrente)}
                         ${cedulasFotosHtml}
                         ${renderImageThumb('Escritura/Contrato', record.fotoEscritura)}
                         ${renderImageThumb('Impuesto/Servicio', record.fotoImpuesto)}
-                        ${renderImageThumb('Doc. Familiar', record.fotoFamiliar)}
+                        ${familiaresFotosHtml}
                     </div>
+                </div>
+
+                <div class="print-photos-container">
+                    ${fullPagePhotosHtml}
                 </div>
             `;
 
@@ -998,18 +1302,47 @@
                 `;
             }
             return `
-                <div class="border border-slate-200 rounded-lg p-1.5 bg-white shadow-sm flex flex-col justify-between">
-                    <img src="${src}" alt="${label}" class="h-20 w-full object-cover rounded cursor-pointer" onclick="window.open('${src}', '_blank')">
-                    <span class="text-[10px] text-slate-600 font-semibold mt-1 text-center truncate">${label}</span>
+                <div class="border border-slate-200 rounded-lg p-1.5 bg-white shadow-sm flex flex-col justify-between group">
+                    <div class="relative overflow-hidden rounded cursor-pointer" onclick="openImageLightbox('${src}', '${label}')">
+                        <img src="${src}" alt="${label}" class="h-20 w-full object-cover rounded transition-transform duration-200 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs">
+                            <i class="fa-solid fa-magnifying-glass-plus text-base"></i>
+                        </div>
+                    </div>
+                    <span contenteditable="true" class="text-[10px] text-slate-600 font-semibold mt-1 text-center truncate">${label}</span>
                 </div>
             `;
+        }
+
+        function openImageLightbox(src, title) {
+            const lightbox = document.getElementById('image-lightbox');
+            const img = document.getElementById('lightbox-img');
+            const titleEl = document.getElementById('lightbox-title');
+
+            img.src = src;
+            titleEl.textContent = title || 'Imagen en tamaño completo';
+            lightbox.classList.remove('hidden');
+        }
+
+        function closeImageLightbox() {
+            const lightbox = document.getElementById('image-lightbox');
+            const img = document.getElementById('lightbox-img');
+            lightbox.classList.add('hidden');
+            img.src = '';
         }
 
         function closeModal() {
             document.getElementById('detail-modal').classList.add('hidden');
         }
 
-        function printModal() {
+        function printDJ() {
+            document.body.classList.add('print-mode-dj');
+            window.print();
+            document.body.classList.remove('print-mode-dj');
+        }
+
+        function printFullExpediente() {
+            document.body.classList.remove('print-mode-dj');
             window.print();
         }
 
