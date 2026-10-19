@@ -256,7 +256,7 @@
                             <tr>
                                 <th class="py-3.5 px-4">N° Expediente</th>
                                 <th class="py-3.5 px-4">Titular / DNI</th>
-                                <th class="py-3.5 px-4">Domicilio</th>
+                                <th class="py-3.5 px-4">Domicilio / Teléfono</th>
                                 <th class="py-3.5 px-4">Vehículos / Patentes</th>
                                 <th class="py-3.5 px-4">Calidad</th>
                                 <th class="py-3.5 px-4">Fecha Control</th>
@@ -853,7 +853,7 @@
             } else {
                 formTabBtn.className = "tab-active py-3 px-6 text-sm flex items-center gap-2 transition";
                 listTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
-                viewList.add('hidden');
+                viewList.classList.add('hidden');
                 viewForm.classList.remove('hidden');
                 stats.classList.add('hidden');
                 if (document.querySelectorAll('.vehiculo-item').length === 0) {
@@ -892,6 +892,11 @@
             }
         }
 
+        function getCleanPhone(phone) {
+            if (!phone) return '';
+            return phone.replace(/\D/g, '');
+        }
+
         function renderTable(dataToRender = window.frentistas || []) {
             const tbody = document.getElementById('records-table-body');
             const emptyState = document.getElementById('empty-state');
@@ -920,6 +925,13 @@
                     </span>`
                 ).join('');
 
+                const cleanPhone = getCleanPhone(record.telefono);
+                const whatsappBtn = cleanPhone ? `
+                    <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" title="Enviar WhatsApp" class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold ml-1.5">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                    </a>
+                ` : '';
+
                 tr.innerHTML = `
                     <td class="py-3.5 px-4 font-mono font-medium text-slate-800 text-xs">${escapeHtml(record.expediente)}</td>
                     <td class="py-3.5 px-4">
@@ -928,7 +940,10 @@
                     </td>
                     <td class="py-3.5 px-4 text-xs text-slate-600">
                         <div>${escapeHtml(record.domicilio)}</div>
-                        <div class="text-slate-400"><i class="fa-solid fa-phone text-[10px] mr-1"></i>${escapeHtml(record.telefono)}</div>
+                        <div class="text-slate-500 flex items-center">
+                            <i class="fa-solid fa-phone text-[10px] mr-1"></i>${escapeHtml(record.telefono)}
+                            ${whatsappBtn}
+                        </div>
                     </td>
                     <td class="py-3.5 px-4">
                         <div class="flex flex-wrap items-center">${patentesHtml}</div>
@@ -1147,6 +1162,13 @@
                 renderImageThumb(`Doc. Familiar #${i + 1} (${f.nombre || 'Autorizado'})`, f.fotoDocumento)
             ).join('');
 
+            const cleanPhone = getCleanPhone(record.telefono);
+            const modalWhatsappBtn = cleanPhone ? `
+                <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold ml-2 border border-emerald-300 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] no-print">
+                    <i class="fa-brands fa-whatsapp text-xs"></i> WhatsApp
+                </a>
+            ` : '';
+
             const familiaresPrintPageHtml = familiaresList.length > 0 ? `
                 <div class="print-page-familiares print-only pt-0">
                     <div class="space-y-4 bg-white p-4 rounded-xl border border-slate-300 shadow-2xs">
@@ -1178,7 +1200,7 @@
                             </div>
                             <div class="border-t border-slate-800 pt-1">
                                 <p class="font-bold text-xs text-slate-900">Sello y Firma de Autoridad</p>
-                                <p class="text-[9.5px] text-slate-500">Dirección de Tránsito y Transporte</p>
+                                <p class="text-[9.5px] text-slate-500">Depto. Estacionamiento Medido</p>
                             </div>
                         </div>
                     </div>
@@ -1206,7 +1228,7 @@
                             <div><span class="text-slate-500 block">Apellido y Nombre:</span> <strong contenteditable="true" class="text-slate-900 text-xs">${escapeHtml(record.nombreCompleto)}</strong></div>
                             <div class="grid grid-cols-2 gap-1.5">
                                 <div><span class="text-slate-500 block">DNI / Cédula:</span> <strong contenteditable="true">${escapeHtml(record.dni)}</strong></div>
-                                <div><span class="text-slate-500 block">Teléfono:</span> <strong contenteditable="true">${escapeHtml(record.telefono)}</strong></div>
+                                <div><span class="text-slate-500 block">Teléfono:</span> <strong contenteditable="true">${escapeHtml(record.telefono)}</strong> ${modalWhatsappBtn}</div>
                             </div>
                             <div><span class="text-slate-500 block">Domicilio del Garaje:</span> <strong contenteditable="true">${escapeHtml(record.domicilio)}</strong></div>
                             <div><span class="text-slate-500 block">Calidad Habitante:</span> <span contenteditable="true" class="font-semibold px-2 py-0.5 rounded ${record.calidadHabitante === 'Propietario' ? 'bg-indigo-50 text-indigo-700' : 'bg-sky-50 text-sky-700'}">${escapeHtml(record.calidadHabitante)}</span></div>
@@ -1261,8 +1283,8 @@
                             </div>
                             <div class="border-t border-slate-800 pt-1">
                                 <p class="font-bold text-xs text-slate-900">Sello y Firma de Autoridad</p>
-                                <p class="text-[9.5px] text-slate-500">Dirección de Tránsito y Transporte</p>
-                                <p class="text-[8.5px] text-slate-400 mt-0.5">Fecha de Recepción: ____/____/20___</p>
+                                <p class="text-[9.5px] text-slate-500">Depto Estacionamiento Medido</p>
+                                <p class="text-[8.5px] text-slate-400 mt-0.5">Horacio Cardozo</p>
                             </div>
                         </div>
                     </div>
