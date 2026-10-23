@@ -136,7 +136,7 @@
                         <i class="fa-solid fa-calendar-days text-xl"></i>
                     </div>
                     <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-amber-600">Frentistas</h3>
-                    <p class="text-slate-500 text-xs leading-relaxed">Gestión Frentistas.</p>
+                    <p class="text-slate-500 text-xs leading-relaxed">Gestión Frentistas: Visualización /Carga / Actualización / Baja.</p>
                 </div>
                 <div class="mt-6 flex items-center text-xs font-semibold text-amber-600">
                     Ingresar a Frentista <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
@@ -149,7 +149,7 @@
                         <i class="fa-solid fa-wheelchair text-xl"></i>
                     </div>
                     <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-emerald-600">Discapacitados</h3>
-                    <p class="text-slate-500 text-xs leading-relaxed">Gestión Discapacitados.</p>
+                    <p class="text-slate-500 text-xs leading-relaxed">Gestión Discapacitados: Visualización /Carga / Actualización / Baja.</p>
                 </div>
                 <div class="mt-6 flex items-center text-xs font-semibold text-emerald-600">
                     Ingresar a Discapacitados <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
@@ -166,6 +166,20 @@
                 </div>
                 <div class="mt-6 flex items-center text-xs font-semibold text-purple-600">
                     Acceder al Módulo <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- MÓDULO PLANILLAS CON ÍCONO DE TABLA Y ESTILO ROJO -->
+            <a id="card-mod-planillas" href="modulos/planillas/index.html" class="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                <div>
+                    <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center mb-4 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                        <i class="fa-solid fa-table-cells text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-rose-600">Planillas</h3>
+                    <p class="text-slate-500 text-xs leading-relaxed">Gestión Planillas: Planillas de ZONAS / Puntos de Venta (proximamente) / Carteleria (Proximamente).</p>
+                </div>
+                <div class="mt-6 flex items-center text-xs font-semibold text-rose-600">
+                    Ingresar a Planillas <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
 
@@ -401,7 +415,7 @@
 
         function aplicarRestriccionesModulo() {
             if (!usuarioActual) return;
-            const modulos = ['licencias', 'inspectores', 'frentistas', 'discapacitados', 'reportes'];
+            const modulos = ['licencias', 'inspectores', 'frentistas', 'discapacitados', 'reportes', 'planillas'];
 
             modulos.forEach(mod => {
                 const card = document.getElementById(`card-mod-${mod}`);
