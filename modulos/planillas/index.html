@@ -12,7 +12,7 @@
         /* Reglas optimizadas para impresión en Hoja A4 Horizontal */
         @page {
             size: A4 landscape;
-            margin: 8mm;
+            margin: 6mm;
         }
 
         @media print {
@@ -21,6 +21,7 @@
             }
             body {
                 background: #ffffff !important;
+                color: #000000 !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
@@ -39,27 +40,73 @@
             .no-print { 
                 display: none !important; 
             }
+
+            /* Estilos y contraste para blanco y negro */
             table {
-                font-size: 10px !important;
+                font-size: 14px !important;
                 width: 100% !important;
                 table-layout: fixed !important;
+                border-collapse: collapse !important;
             }
-            th, td {
-                padding: 3px 2px !important;
-                height: auto !important;
+            
+            table, th, td {
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
             }
+
+            /* Encabezados generales gris claro */
+            th.header-habiles {
+                background-color: #e2e8f0 !important;
+                color: #000000 !important;
+                padding: 6px 2px !important;
+                font-size: 16px !important;
+                text-align: center !important;
+            }
+
+            /* Encabezado de Sábados en Negro con letras Blancas */
+            th.sabado-header {
+                background-color: #000000 !important;
+                color: #ffffff !important;
+                padding: 6px 2px !important;
+                font-size: 11px !important;
+                text-align: center !important;
+            }
+
+            td {
+                padding: 6px 4px !important;
+                height: 28px !important;
+                vertical-align: middle !important;
+            }
+
+            /* Celdas del cuerpo para el día sábado */
+            .sabado-col {
+                background-color: #f1f5f9 !important;
+            }
+
             input {
                 border: none !important;
                 background: transparent !important;
-                font-size: 10px !important;
+                font-size: 14px !important;
+                font-weight: bold !important;
+                color: #000000 !important;
                 text-align: center !important;
+            }
+
+            h1 {
+                font-size: 18px !important;
+                color: #000000 !important;
+                margin-bottom: 2px !important;
+            }
+            p {
+                font-size: 11px !important;
+                color: #000000 !important;
             }
         }
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col">
 
-    <!-- Encabezado Superior Identico -->
+    <!-- Encabezado Superior -->
     <header class="bg-sky-600 text-white shadow-md z-10 no-print">
         <div class="max-w-full px-6 py-2 flex justify-between items-center relative flex-wrap gap-2">
             <!-- Título del Módulo y Estado de Conexión -->
@@ -78,9 +125,9 @@
             <div class="flex justify-center items-center">
                 <img src="../../imagenes/planilla.png" 
                      alt="Logo Planilla" 
-                     id="Planilla"
+                     id="logoPlanilla"
                      class="h-12 w-auto rounded-lg border border-sky-200/50 object-cover cursor-pointer hover:opacity-90 transition-all shadow-md hover:scale-105"
-                     onclick="openModal('../../imagenes/planilla.png', 'Logo Planilla')">
+                     onclick="openModal('../../imagenes/Planilla.png', 'Logo Planilla')">
             </div>
 
             <!-- Logo Hermes Suares -->
@@ -110,7 +157,7 @@
                     </button>
                 </div>
             </div>
- 
+
             <div class="flex items-center gap-2">
                 <button onclick="exportarAZonasXls()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
                     <i class="fa-solid fa-file-excel"></i> Exportar (.xlsx)
@@ -130,48 +177,48 @@
         <!-- ÁREA IMPRIMIBLE (PLANILLA DE ZONAS A4 HORIZONTAL) -->
         <div id="printableArea" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             
-            <div class="text-center mb-4 pb-2 border-b border-slate-300">
+            <div class="text-center mb-3 pb-2 border-b border-slate-400">
                 <h1 class="text-xl md:text-2xl font-extrabold uppercase tracking-wide text-slate-900">Parte de Asignación de Zonas de Control</h1>
-                <p class="text-xs font-semibold text-slate-600 mt-0.5">Período: <span id="lblRangoQuincena" class="text-sky-800 font-bold">--/--/---- al --/--/----</span> | Tarea: Inspectores</p>
+                <p class="text-xs font-bold text-slate-700 mt-0.5">Período: <span id="lblRangoQuincena" class="text-slate-900 font-extrabold">--/--/---- al --/--/----</span> | Tarea: Inspectores</p>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse border border-slate-300" id="tablaParteZonas">
+                <table class="w-full text-left text-sm border-collapse border border-slate-400" id="tablaParteZonas">
                     <thead>
                         <!-- Fila 1: Fechas numeradas/mes -->
-                        <tr id="trFechas" class="bg-sky-800 text-white uppercase text-[10px] text-center font-bold">
-                            <th class="p-2 border border-slate-300 text-left w-52">Fechas</th>
-                            <!-- 12 columnas dinamicas -->
+                        <tr id="trFechas" class="uppercase text-xs text-center font-bold">
+                            <th class="p-2.5 border border-slate-400 text-left w-56 text-sm bg-slate-200 text-slate-900 header-habiles">Fechas</th>
+                            <!-- 12 columnas dinámicas -->
                         </tr>
                         <!-- Fila 2: Nombre de días de la semana -->
-                        <tr id="trDiasSemana" class="bg-sky-700 text-white uppercase text-[10px] text-center font-bold">
-                            <th class="p-2 border border-slate-300 text-left uppercase">INSPECTORES</th>
-                            <!-- 12 columnas dinamicas -->
+                        <tr id="trDiasSemana" class="uppercase text-xs text-center font-bold">
+                            <th class="p-2.5 border border-slate-400 text-left uppercase text-sm bg-slate-200 text-slate-900 header-habiles">INSPECTORES</th>
+                            <!-- 12 columnas dinámicas -->
                         </tr>
                     </thead>
-                    <tbody id="tbodyZonas" class="divide-y divide-slate-200 text-slate-800">
+                    <tbody id="tbodyZonas" class="divide-y divide-slate-300 text-slate-900 font-medium">
                         <tr>
-                            <td colspan="13" class="p-4 text-center text-slate-400">Cargando nómina de inspectores...</td>
+                            <td colspan="13" class="p-4 text-center text-slate-500">Cargando nómina de inspectores...</td>
                         </tr>
                     </tbody>
                     <tfoot>
-                        <tr class="bg-sky-50 text-slate-800 font-bold text-center">
-                            <td class="p-2 border border-slate-300 text-left uppercase bg-sky-100">ZONAS ASIGNADAS</td>
-                            <td colspan="12" class="p-2 border border-slate-300 text-xs text-slate-500 italic">Espacio reservado para novedades o firmas adicionales.</td>
+                        <tr class="bg-slate-100 text-slate-900 font-bold text-center">
+                            <td class="p-2.5 border border-slate-400 text-left uppercase bg-slate-200 text-xs header-habiles">ZONAS ASIGNADAS</td>
+                            <td colspan="12" class="p-2.5 border border-slate-400 text-xs text-slate-600 italic">Espacio reservado para novedades o observaciones.</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
 
             <!-- Firmas para Impresión -->
-            <div class="hidden print:flex mt-8 pt-4 justify-between items-center text-[10px] text-slate-700 font-bold">
-                <div class="text-center border-t border-slate-400 w-56 pt-1">
+            <div class="hidden print:flex mt-10 pt-4 justify-between items-center text-xs text-slate-900 font-bold">
+                <div class="text-center border-t border-slate-800 w-60 pt-1">
                     Firma Responsable de Turno
                 </div>
-                <div class="text-center border-t border-slate-400 w-56 pt-1">
+                <div class="text-center border-t border-slate-800 w-60 pt-1">
                     Firma Encargado de Zonas
                 </div>
-                <div class="text-center border-t border-slate-400 w-56 pt-1">
+                <div class="text-center border-t border-slate-800 w-60 pt-1">
                     Firma Director General
                 </div>
             </div>
@@ -244,9 +291,8 @@
         const nombresMesesAbrev = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
         async function inicializarModuloZonas() {
-            // Establecer por defecto el lunes de esta semana o el más cercano pasado
             const hoy = new Date();
-            const diaSemana = hoy.getDay(); // 0 Dom, 1 Lun, ...
+            const diaSemana = hoy.getDay(); 
             const diffLunes = hoy.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1);
             const lunes = new Date(hoy.setDate(diffLunes));
             
@@ -269,13 +315,11 @@
                 
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    // FILTRO REQUERIDO: Solo tareas que incluyan "inspector" (ignora mayúsculas/minúsculas)
                     if (data.tarea && data.tarea.toLowerCase().includes('inspector')) {
                         inspectoresFiltrados.push(data);
                     }
                 });
 
-                // Ordenar por Apellido y Nombre
                 inspectoresFiltrados.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
             } catch (err) {
                 console.error("Error al obtener inspectores:", err);
@@ -289,7 +333,6 @@
             const [year, month, day] = fechaVal.split('-').map(Number);
             let fechaBase = new Date(year, month - 1, day);
 
-            // Asegurar que sea lunes
             if (fechaBase.getDay() !== 1) {
                 const diff = fechaBase.getDate() - fechaBase.getDay() + (fechaBase.getDay() === 0 ? -6 : 1);
                 fechaBase = new Date(fechaBase.setDate(diff));
@@ -298,7 +341,6 @@
             diasQuincena = [];
             let fechaCursor = new Date(fechaBase);
 
-            // Generar 12 días hábiles (Lunes a Sábado de 2 semanas consecutivas)
             for (let semana = 0; semana < 2; semana++) {
                 for (let d = 0; d < 6; d++) {
                     const dd = String(fechaCursor.getDate()).padStart(2, '0');
@@ -314,11 +356,9 @@
 
                     fechaCursor.setDate(fechaCursor.getDate() + 1);
                 }
-                // Saltar el Domingo para comenzar el Lunes siguiente
                 fechaCursor.setDate(fechaCursor.getDate() + 1);
             }
 
-            // Actualizar etiqueta del rango
             const fInicio = diasQuincena[0].textoHeader;
             const fFin = diasQuincena[11].textoHeader;
             document.getElementById('lblRangoQuincena').textContent = `${fInicio} al ${fFin}`;
@@ -332,17 +372,17 @@
             const trFechas = document.getElementById('trFechas');
             const trDiasSemana = document.getElementById('trDiasSemana');
 
-            // Limpiar columnas previas excepto la primera
-            trFechas.innerHTML = '<th class="p-2 border border-slate-300 text-left w-52">Fechas</th>';
-            trDiasSemana.innerHTML = '<th class="p-2 border border-slate-300 text-left uppercase">INSPECTORES</th>';
+            trFechas.innerHTML = '<th class="p-2.5 border border-slate-400 text-left w-56 text-sm bg-slate-200 text-slate-900 header-habiles">Fechas</th>';
+            trDiasSemana.innerHTML = '<th class="p-2.5 border border-slate-400 text-left uppercase text-sm bg-slate-200 text-slate-900 header-habiles">INSPECTORES</th>';
 
             diasQuincena.forEach(d => {
-                // Sábado con estilo anaranjado claro suave
-                const bgHeader1 = d.esSabado ? 'bg-amber-200 text-amber-950 border-amber-300' : 'bg-sky-900 border-sky-800';
-                const bgHeader2 = d.esSabado ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-sky-800 border-sky-700';
+                // Sábado: Fondo Negro y Letras Blancas (bg-black text-white)
+                // Días hábiles: Gris Claro Pleno (bg-slate-200 text-slate-900)
+                const bgHeader1 = d.esSabado ? 'bg-black text-white border-slate-900 sabado-header' : 'bg-slate-200 text-slate-900 border-slate-300 header-habiles';
+                const bgHeader2 = d.esSabado ? 'bg-black text-white border-slate-900 sabado-header' : 'bg-slate-200 text-slate-900 border-slate-300 header-habiles';
 
-                trFechas.innerHTML += `<th class="p-1.5 border ${bgHeader1} w-20 text-center font-bold text-[11px]">${d.textoHeader}</th>`;
-                trDiasSemana.innerHTML += `<th class="p-1.5 border ${bgHeader2} text-center font-bold text-[10px]">${d.nombreDia}</th>`;
+                trFechas.innerHTML += `<th class="p-2 border ${bgHeader1} w-20 text-center font-bold text-xs">${d.textoHeader}</th>`;
+                trDiasSemana.innerHTML += `<th class="p-2 border ${bgHeader2} text-center font-bold text-xs">${d.nombreDia}</th>`;
             });
         }
 
@@ -358,17 +398,17 @@
             inspectoresFiltrados.forEach((ins) => {
                 const safeLegajo = String(ins.legajo).replace(/\//g, '_');
                 let trHtml = `<tr class="hover:bg-sky-50/50">`;
-                trHtml += `<td class="p-2 border border-slate-300 font-bold text-slate-800 text-xs uppercase">${ins.nombre}</td>`;
+                trHtml += `<td class="p-2 border border-slate-400 font-bold text-slate-900 text-xs uppercase">${ins.nombre}</td>`;
 
                 diasQuincena.forEach((d) => {
-                    const bgSabadoCell = d.esSabado ? 'bg-amber-50/60' : '';
+                    const bgSabadoCell = d.esSabado ? 'bg-slate-100 sabado-col' : '';
                     trHtml += `
-                        <td class="p-1 border border-slate-300 text-center ${bgSabadoCell}">
+                        <td class="p-1 border border-slate-400 text-center ${bgSabadoCell}">
                             <input type="text" 
                                    id="cell_${safeLegajo}_${d.fechaIso}" 
                                    maxlength="8" 
                                    placeholder="-" 
-                                   class="w-full text-center font-bold text-sky-900 uppercase bg-transparent focus:outline-none focus:bg-amber-100/50 rounded py-1">
+                                   class="w-full text-center font-bold text-slate-950 text-xs uppercase bg-transparent focus:outline-none focus:bg-amber-100/50 rounded py-1.5">
                         </td>
                     `;
                 });
