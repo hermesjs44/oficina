@@ -25,10 +25,10 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            #printableArea, #printableArea * { 
-                visibility: visible; 
+            #printableArea, #printableArea *, .print-section, .print-section * { 
+                visibility: visible !important; 
             }
-            #printableArea { 
+            #printableArea, .print-section { 
                 position: absolute; 
                 left: 0; 
                 top: 0; 
@@ -101,6 +101,18 @@
                 font-size: 11px !important;
                 color: #000000 !important;
             }
+        }
+
+        /* Estilo para licencias / ausencias */
+        .cell-licencia {
+            background-color: #f3e8ff !important; /* violeta claro */
+            color: #6b21a8 !important;
+            font-weight: bold;
+        }
+        .cell-ausente {
+            background-color: #ffe4e6 !important; /* rojo suave */
+            color: #9f1239 !important;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -253,42 +265,70 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- SECCIÓN 3: ASIGNACIÓN RÁPIDA DE ZONAS -->
+        <!-- SECCIÓN 3: ASIGNACIÓN DE ZONAS -->
         <!-- ========================================== -->
-        <section id="asignacion-zonas" class="tab-content hidden no-print">
-            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-3xl mx-auto">
-                <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-user-check text-sky-600"></i> Asignación Individual de Inspector a Zona
-                </h3>
-                <p class="text-xs text-slate-500 mb-6">Asigne una zona determinada a un inspector en una fecha específica.</p>
-
-                <form id="formAsignacionRapida" onsubmit="guardarAsignacionRapida(event)" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
-                            <select id="selectInspectorAsignacion" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                                <option value="">Seleccionar inspector...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
-                            <input type="date" id="fechaAsignacionRapida" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                        </div>
-                    </div>
-
+        <section id="asignacion-zonas" class="tab-content hidden no-print space-y-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-4 flex-wrap">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Zona a Asignar</label>
-                        <select id="selectZonaAsignacion" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                            <option value="">Cargando zonas...</option>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cargar Planilla Guardada</label>
+                        <select id="selectPlanillaGuardadaAsignacion" onchange="cargarPlanillaSeleccionadaAsignacion()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-sky-900 focus:ring-2 focus:ring-sky-500 focus:outline-none min-w-[220px]">
+                            <option value="">Cargando planillas...</option>
                         </select>
                     </div>
-
-                    <div class="flex justify-end pt-2">
-                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow flex items-center gap-2">
-                            <i class="fa-solid fa-floppy-disk"></i> Confirmar Asignación
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Aplicar Secuencia desde Día</label>
+                        <select id="selectDiaBaseSecuencia" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">Seleccionar día base...</option>
+                        </select>
+                    </div>
+                    <div class="self-end pb-0.5">
+                        <button onclick="generarSecuenciaParaSiguientesDias()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Generar Secuencia Automática
                         </button>
                     </div>
-                </form>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="guardarAsignacionDesdeMatriz()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm overflow-hidden print-section">
+                <div class="text-center mb-3 pb-2 border-b border-slate-400">
+                    <h1 class="text-xl md:text-2xl font-extrabold uppercase tracking-wide text-slate-900">Parte de Asignación de Zonas de Control</h1>
+                    <p class="text-xs font-bold text-slate-700 mt-0.5">Período: <span id="lblRangoQuincenaAsignacion" class="text-slate-900 font-extrabold">--/--/---- al --/--/----</span> | Tarea: Inspectores</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse border border-slate-400" id="tablaParteZonasAsignacion">
+                        <thead>
+                            <tr id="trFechasAsignacion" class="uppercase text-xs text-center font-bold">
+                                <th class="p-2.5 border border-slate-400 text-left w-56 text-sm bg-slate-200 text-slate-900 header-habiles">Fechas</th>
+                            </tr>
+                            <tr id="trDiasSemanaAsignacion" class="uppercase text-xs text-center font-bold">
+                                <th class="p-2.5 border border-slate-400 text-left uppercase text-sm bg-slate-200 text-slate-900 header-habiles">INSPECTORES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyZonasAsignacion" class="divide-y divide-slate-300 text-slate-900 font-medium">
+                            <tr>
+                                <td colspan="13" class="p-4 text-center text-slate-500">Seleccione una planilla del menú desplegable para cargar la matriz de asignación...</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-slate-100 text-slate-900 font-bold text-center">
+                                <td class="p-2.5 border border-slate-400 text-left uppercase bg-slate-200 text-xs header-habiles">REFERENCIAS / LEYENDA</td>
+                                <td colspan="12" class="p-2.5 border border-slate-400 text-xs text-slate-700">
+                                    <span class="inline-flex items-center gap-1 mr-4"><span class="w-3 h-3 bg-purple-200 border border-purple-400 inline-block rounded"></span> LIC / VAC / MED (Licencias Importadas)</span>
+                                    <span class="inline-flex items-center gap-1 mr-4"><span class="w-3 h-3 bg-rose-200 border border-rose-400 inline-block rounded"></span> AUS / SUS / FAL (Ausencias Manuales)</span>
+                                    <span class="italic text-slate-500">Valores editables manualmente antes de guardar.</span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -337,15 +377,11 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm border-collapse border border-slate-400" id="tablaParteZonas">
                         <thead>
-                            <!-- Fila 1: Fechas numeradas/mes -->
                             <tr id="trFechas" class="uppercase text-xs text-center font-bold">
                                 <th class="p-2.5 border border-slate-400 text-left w-56 text-sm bg-slate-200 text-slate-900 header-habiles">Fechas</th>
-                                <!-- 12 columnas dinámicas -->
                             </tr>
-                            <!-- Fila 2: Nombre de días de la semana -->
                             <tr id="trDiasSemana" class="uppercase text-xs text-center font-bold">
                                 <th class="p-2.5 border border-slate-400 text-left uppercase text-sm bg-slate-200 text-slate-900 header-habiles">INSPECTORES</th>
-                                <!-- 12 columnas dinámicas -->
                             </tr>
                         </thead>
                         <tbody id="tbodyZonas" class="divide-y divide-slate-300 text-slate-900 font-medium">
@@ -439,8 +475,11 @@
     <!-- Lógica de Negocio y Navegación de Pestañas -->
     <script>
         let inspectoresFiltrados = [];
+        let licenciasRegistradas = []; // Datos importados de licencias
         let diasQuincena = [];
         let zonasRegistradas = [];
+        let planillasGuardadasLista = [];
+        let diasQuincenaAsignacion = [];
 
         const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
         const nombresMesesAbrev = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -463,7 +502,7 @@
 
             if (idSection === 'configuracion-zonas') cargarZonasRegistradas();
             if (idSection === 'secuencia-zonas') renderizarSecuenciaZonas();
-            if (idSection === 'asignacion-zonas') poblarSelectsAsignacion();
+            if (idSection === 'asignacion-zonas') cargarListaPlanillasParaAsignacion();
         }
 
         async function inicializarModuloZonas() {
@@ -477,9 +516,9 @@
             const dd = String(lunes.getDate()).padStart(2, '0');
             
             document.getElementById('fechaLunesInicial').value = `${yyyy}-${mm}-${dd}`;
-            document.getElementById('fechaAsignacionRapida').value = `${yyyy}-${mm}-${dd}`;
 
             await obtenerInspectores();
+            await obtenerLicenciasFirestore();
             await cargarZonasRegistradas();
             cargarFechasQuincena();
         }
@@ -502,6 +541,45 @@
             } catch (err) {
                 console.error("Error al obtener inspectores:", err);
             }
+        }
+
+        /* --- OBTENER LICENCIAS DESDE FIRESTORE (MODULO LICENCIAS) --- */
+        async function obtenerLicenciasFirestore() {
+            if (!window.db) return;
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "licencias"));
+                licenciasRegistradas = [];
+                querySnapshot.forEach((docSnap) => {
+                    licenciasRegistradas.push({ id: docSnap.id, ...docSnap.data() });
+                });
+            } catch (err) {
+                console.error("Error al cargar licencias:", err);
+            }
+        }
+
+        function buscarLicenciaInspectorEnFecha(legajo, fechaIso) {
+            if (!licenciasRegistradas || licenciasRegistradas.length === 0) return null;
+
+            const safeLegajo = String(legajo).trim();
+
+            for (const lic of licenciasRegistradas) {
+                if (String(lic.legajo).trim() === safeLegajo) {
+                    const fInicio = lic.fechaInicio || lic.fecha_desde;
+                    const fFin = lic.fechaFin || lic.fecha_hasta;
+
+                    if (fInicio && fFin) {
+                        if (fechaIso >= fInicio && fechaIso <= fFin) {
+                            // Retorna tipo o código abreviado de la licencia
+                            const tipo = (lic.tipoLicencia || lic.tipo || 'LIC').toUpperCase();
+                            if (tipo.includes('VACAC')) return 'VAC';
+                            if (tipo.includes('MEDIC') || tipo.includes('ENFERM')) return 'MED';
+                            if (tipo.includes('AUSEN')) return 'AUS';
+                            return tipo.substring(0, 4);
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         /* --- CONFIGURACIÓN DE ZONAS --- */
@@ -583,7 +661,7 @@
         async function eliminarZona(id) {
             if (!confirm("¿Está seguro de que desea eliminar esta zona?")) return;
             try {
-                await window.deleteDoc(window.doc(window.db, "zonas_config", id));
+                await window.deleteDoc(window.doc(window.doc(window.db, "zonas_config", id)));
                 await cargarZonasRegistradas();
             } catch (err) {
                 alert("Error al eliminar la zona: " + err.message);
@@ -685,44 +763,192 @@
             }
         }
 
-        /* --- ASIGNACIÓN RÁPIDA --- */
-        function poblarSelectsAsignacion() {
-            const selectIns = document.getElementById('selectInspectorAsignacion');
-            const selectZona = document.getElementById('selectZonaAsignacion');
+        /* --- ASIGNACIÓN DE ZONAS CON DETECCIÓN DE LICENCIAS Y AUSENCIAS --- */
+        async function cargarListaPlanillasParaAsignacion() {
+            const select = document.getElementById('selectPlanillaGuardadaAsignacion');
+            if (!select || !window.db) return;
 
-            selectIns.innerHTML = '<option value="">Seleccionar inspector...</option>';
-            inspectoresFiltrados.forEach(i => {
-                selectIns.innerHTML += `<option value="${i.legajo}">${i.nombre}</option>`;
-            });
+            select.innerHTML = '<option value="">Seleccionar planilla quincenal...</option>';
+            try {
+                const querySnapshot = await window.getDocs(window.collection(window.db, "planillas_zonas"));
+                planillasGuardadasLista = [];
+                querySnapshot.forEach(docSnap => planillasGuardadasLista.push({ id: docSnap.id, ...docSnap.data() }));
 
-            selectZona.innerHTML = '<option value="">Seleccionar zona...</option>';
-            // Solo muestra zonas activas en el selector
-            const zonasActivas = zonasRegistradas.filter(z => z.activa);
-            zonasActivas.forEach(z => {
-                selectZona.innerHTML += `<option value="${z.nombre}">${z.nombre} ${z.descripcion ? '(' + z.descripcion + ')' : ''}</option>`;
-            });
-        }
+                planillasGuardadasLista.sort((a, b) => (b.fechaLunesInicial || '').localeCompare(a.fechaLunesInicial || ''));
 
-        function guardarAsignacionRapida(e) {
-            e.preventDefault();
-            const legajo = document.getElementById('selectInspectorAsignacion').value;
-            const fecha = document.getElementById('fechaAsignacionRapida').value;
-            const zona = document.getElementById('selectZonaAsignacion').value;
-
-            if (!legajo || !fecha || !zona) return;
-
-            const safeLegajo = String(legajo).replace(/\//g, '_');
-            const inputCelda = document.getElementById(`cell_${safeLegajo}_${fecha}`);
-
-            if (inputCelda) {
-                inputCelda.value = zona;
-                alert(`Zona "${zona}" asignada correctamente a la planilla.`);
-            } else {
-                alert("La fecha seleccionada no pertenece a la quincena visible actual. Ajuste el lunes inicial en la pestaña de Planilla.");
+                planillasGuardadasLista.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">Planilla Semana del ${p.fechaLunesInicial || p.id}</option>`;
+                });
+            } catch (err) {
+                console.error("Error al cargar planillas guardadas:", err);
             }
         }
 
-        /* --- PLANILLA QUINCENAL (GRIP) --- */
+        async function cargarPlanillaSeleccionadaAsignacion() {
+            const planDocId = document.getElementById('selectPlanillaGuardadaAsignacion').value;
+            if (!planDocId || !window.db) return;
+
+            try {
+                const docSnap = await window.getDoc(window.doc(window.db, "planillas_zonas", planDocId));
+                if (!docSnap.exists()) return;
+
+                const pData = docSnap.data();
+                diasQuincenaAsignacion = pData.dias || [];
+
+                if (diasQuincenaAsignacion.length > 0) {
+                    const fInicio = diasQuincenaAsignacion[0].textoHeader;
+                    const fFin = diasQuincenaAsignacion[diasQuincenaAsignacion.length - 1].textoHeader;
+                    document.getElementById('lblRangoQuincenaAsignacion').textContent = `${fInicio} al ${fFin}`;
+                }
+
+                const trF = document.getElementById('trFechasAsignacion');
+                const trD = document.getElementById('trDiasSemanaAsignacion');
+                const selectDiaBase = document.getElementById('selectDiaBaseSecuencia');
+
+                trF.innerHTML = '<th class="p-2.5 border border-slate-400 text-left w-56 text-sm bg-slate-200 text-slate-900 header-habiles">Fechas</th>';
+                trD.innerHTML = '<th class="p-2.5 border border-slate-400 text-left uppercase text-sm bg-slate-200 text-slate-900 header-habiles">INSPECTORES</th>';
+                selectDiaBase.innerHTML = '<option value="">Seleccionar día base...</option>';
+
+                diasQuincenaAsignacion.forEach(d => {
+                    const bgHeader1 = d.esSabado ? 'bg-black text-white border-slate-900 sabado-header' : 'bg-slate-200 text-slate-900 border-slate-300 header-habiles';
+                    const bgHeader2 = d.esSabado ? 'bg-black text-white border-slate-900 sabado-header' : 'bg-slate-200 text-slate-900 border-slate-300 header-habiles';
+
+                    trF.innerHTML += `<th class="p-2 border ${bgHeader1} w-20 text-center font-bold text-xs">${d.textoHeader}</th>`;
+                    trD.innerHTML += `<th class="p-2 border ${bgHeader2} text-center font-bold text-xs">${d.nombreDia}</th>`;
+
+                    selectDiaBase.innerHTML += `<option value="${d.fechaIso}">${d.nombreDia} (${d.textoHeader})</option>`;
+                });
+
+                const tbody = document.getElementById('tbodyZonasAsignacion');
+                tbody.innerHTML = '';
+
+                const asignaciones = pData.asignaciones || {};
+
+                inspectoresFiltrados.forEach((ins) => {
+                    const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                    const insData = asignaciones[safeLegajo] || {};
+
+                    let trHtml = `<tr class="hover:bg-sky-50/50">`;
+                    trHtml += `<td class="p-2 border border-slate-400 font-bold text-slate-900 text-xs uppercase">${ins.nombre}</td>`;
+
+                    diasQuincenaAsignacion.forEach((d) => {
+                        let val = insData[d.fechaIso] || '';
+                        
+                        // Verificar si tiene licencia registrada en esta fecha
+                        const codigoLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, d.fechaIso);
+                        let celdaClass = d.esSabado ? 'bg-slate-100 sabado-col' : '';
+
+                        if (codigoLicencia && !val) {
+                            val = codigoLicencia; // Asigna automáticamente el código de la licencia si la celda estaba vacía
+                            celdaClass += ' cell-licencia';
+                        } else if (val === 'AUS' || val === 'SUS' || val === 'FAL') {
+                            celdaClass += ' cell-ausente';
+                        } else if (val === 'VAC' || val === 'LIC' || val === 'MED') {
+                            celdaClass += ' cell-licencia';
+                        }
+
+                        trHtml += `
+                            <td class="p-1 border border-slate-400 text-center ${celdaClass}">
+                                <input type="text" 
+                                       id="asig_${safeLegajo}_${d.fechaIso}" 
+                                       value="${val}" 
+                                       maxlength="12" 
+                                       placeholder="-" 
+                                       class="w-full text-center font-bold text-sky-950 text-xs uppercase bg-transparent focus:outline-none focus:bg-amber-100/50 rounded py-1.5">
+                            </td>
+                        `;
+                    });
+
+                    trHtml += `</tr>`;
+                    tbody.innerHTML += trHtml;
+                });
+
+            } catch (err) {
+                console.error("Error al cargar planilla de asignación:", err);
+            }
+        }
+
+        function generarSecuenciaParaSiguientesDias() {
+            const fechaIsoBase = document.getElementById('selectDiaBaseSecuencia').value;
+            if (!fechaIsoBase) {
+                alert("Por favor seleccione un día base a partir del cual generar la secuencia.");
+                return;
+            }
+
+            const zonasActivas = zonasRegistradas.filter(z => z.activa).map(z => z.nombre);
+            if (zonasActivas.length === 0) {
+                alert("No hay zonas activas configuradas en la secuencia.");
+                return;
+            }
+
+            const idxBase = diasQuincenaAsignacion.findIndex(d => d.fechaIso === fechaIsoBase);
+            if (idxBase === -1 || idxBase === diasQuincenaAsignacion.length - 1) {
+                alert("Seleccione un día base que tenga días posteriores para calcular la secuencia.");
+                return;
+            }
+
+            inspectoresFiltrados.forEach(ins => {
+                const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                const inpBase = document.getElementById(`asig_${safeLegajo}_${fechaIsoBase}`);
+                const zonaInicialVal = inpBase ? inpBase.value.trim().toUpperCase() : '';
+
+                let posZonaActual = zonasActivas.indexOf(zonaInicialVal);
+
+                if (posZonaActual !== -1) {
+                    for (let i = idxBase + 1; i < diasQuincenaAsignacion.length; i++) {
+                        const dSig = diasQuincenaAsignacion[i];
+                        
+                        // Si el inspector tiene una licencia registrada el día siguiente, se respeta la licencia
+                        const tieneLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, dSig.fechaIso);
+                        const inpTarget = document.getElementById(`asig_${safeLegajo}_${dSig.fechaIso}`);
+
+                        if (tieneLicencia) {
+                            if (inpTarget) inpTarget.value = tieneLicencia;
+                        } else {
+                            posZonaActual = (posZonaActual + 1) % zonasActivas.length;
+                            const proximaZona = zonasActivas[posZonaActual];
+                            if (inpTarget) inpTarget.value = proximaZona;
+                        }
+                    }
+                }
+            });
+
+            alert("Secuencia de zonas generada para los días siguientes respetando licencias.");
+        }
+
+        async function guardarAsignacionDesdeMatriz() {
+            const planDocId = document.getElementById('selectPlanillaGuardadaAsignacion').value;
+            if (!planDocId || !window.db) {
+                alert("Seleccione una planilla guardada para actualizar.");
+                return;
+            }
+
+            let planillaData = {};
+
+            inspectoresFiltrados.forEach(ins => {
+                const safeLegajo = String(ins.legajo).replace(/\//g, '_');
+                planillaData[safeLegajo] = {};
+
+                diasQuincenaAsignacion.forEach(d => {
+                    const inp = document.getElementById(`asig_${safeLegajo}_${d.fechaIso}`);
+                    if (inp) {
+                        planillaData[safeLegajo][d.fechaIso] = inp.value.trim().toUpperCase();
+                    }
+                });
+            });
+
+            try {
+                await window.setDoc(window.doc(window.db, "planillas_zonas", planDocId), {
+                    asignaciones: planillaData,
+                    actualizado: new Date().toISOString()
+                }, { merge: true });
+                alert("Asignaciones actualizadas correctamente en la planilla.");
+            } catch (err) {
+                alert("Error al guardar asignaciones: " + err.message);
+            }
+        }
+
+        /* --- PLANILLA QUINCENAL (GRIP PRINCIPAL) --- */
         function cargarFechasQuincena() {
             const fechaVal = document.getElementById('fechaLunesInicial').value;
             if (!fechaVal) return;
@@ -861,7 +1087,10 @@
                         const insData = asignaciones[safeLegajo] || {};
 
                         diasQuincena.forEach(d => {
-                            const val = insData[d.fechaIso] || '';
+                            let val = insData[d.fechaIso] || '';
+                            const codigoLic = buscarLicenciaInspectorEnFecha(ins.legajo, d.fechaIso);
+                            if (codigoLic && !val) val = codigoLic;
+
                             const inp = document.getElementById(`cell_${safeLegajo}_${d.fechaIso}`);
                             if (inp) inp.value = val;
                         });
