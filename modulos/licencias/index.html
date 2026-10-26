@@ -258,6 +258,26 @@
                     </div>
                 </div>
 
+                <!-- Tarjeta de Resumen de Licencias del Inspector Seleccionado -->
+                <div id="tarjetaResumenInspector" class="hidden mb-6 bg-amber-50/60 border border-amber-200 p-4 rounded-xl shadow-sm">
+                    <div class="flex items-center justify-between border-b border-amber-200/80 pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-amber-800 text-lg"></i>
+                            <div>
+                                <h3 id="resumenNombreInspector" class="text-sm font-bold text-amber-950 uppercase">---</h3>
+                                <p id="resumenDetalleInspector" class="text-[11px] text-stone-600">---</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-full border border-amber-300/80">
+                            Resumen de Días y Saldo
+                        </span>
+                    </div>
+
+                    <div id="gridCategoriasResumen" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        <!-- Las tarjetas por categoría se renderizan dinámicamente mediante JS -->
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
@@ -847,11 +867,126 @@
             }
         }
 
+        function renderizarResumenInspector(legajo, anioFiltro) {
+            const contenedor = document.getElementById('tarjetaResumenInspector');
+            const grid = document.getElementById('gridCategoriasResumen');
+
+            if (legajo === 'Todos') {
+                contenedor.classList.add('hidden');
+                grid.innerHTML = '';
+                return;
+            }
+
+            const inspector = inspectores.find(i => String(i.legajo) === String(legajo));
+            if (!inspector) {
+                contenedor.classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('resumenNombreInspector').textContent = `${inspector.nombre} (Legajo: ${inspector.legajo})`;
+            document.getElementById('resumenDetalleInspector').textContent = `Antigüedad: ${inspector.antiguedad || 0} años | Tarea: ${inspector.tarea || 'General'} | Estado: ${inspector.situacionOperativa || 'Activo'}`;
+
+            const antiguedad = parseInt(inspector.antiguedad || 0);
+            let vacacionesCorresp = 15 + (Math.floor(antiguedad / 5) * 5);
+            vacacionesCorresp = Math.min(vacacionesCorresp, 35);
+
+            const categorias = [
+                {
+                    nombre: 'Licencia Ordinaria (Vacaciones)',
+                    etiqueta: 'Ordinaria / Vacac.',
+                    corresponden: vacacionesCorresp,
+                    unidad: 'días',
+                    icono: 'fa-umbrella-beach',
+                    match: (tipo) => tipo === 'Licencia Ordinaria'
+                },
+                {
+                    nombre: 'Licencia Enfermedad',
+                    etiqueta: 'Enfermedad',
+                    corresponden: configLicencias.enfermedad || 30,
+                    unidad: 'días',
+                    icono: 'fa-user-nurse',
+                    match: (tipo) => tipo === 'Licencia Enfermedad'
+                },
+                {
+                    nombre: 'Licencia Enfermedad Familiar',
+                    etiqueta: 'Enf. Familiar',
+                    corresponden: configLicencias.enfermedadFamiliar || 20,
+                    unidad: 'días',
+                    icono: 'fa-house-medical',
+                    match: (tipo) => tipo === 'Licencia Enfermedad Familiar'
+                },
+                {
+                    nombre: 'Franco Compensatorio',
+                    etiqueta: 'Francos Comp.',
+                    corresponden: configLicencias.francoCompensatorio || 2,
+                    unidad: 'francos/mes',
+                    icono: 'fa-clock',
+                    match: (tipo) => tipo === 'Franco Compensatorio'
+                },
+                {
+                    nombre: 'Permiso',
+                    etiqueta: 'Permisos Espec.',
+                    corresponden: configLicencias.permiso || 12,
+                    unidad: 'permisos',
+                    icono: 'fa-id-card-clip',
+                    match: (tipo) => tipo === 'Permiso'
+                }
+            ];
+
+            grid.innerHTML = '';
+
+            categorias.forEach(cat => {
+                let tomados = 0;
+                licencias.forEach(lic => {
+                    if (String(lic.legajo) === String(legajo) && cat.match(lic.tipo)) {
+                        if (anioFiltro === 'Todos' || lic.anio === anioFiltro) {
+                            if (lic.tipo === 'Franco Compensatorio' || lic.tipo === 'Permiso') {
+                                tomados += 1;
+                            } else {
+                                tomados += parseInt(lic.diasHabiles || 0);
+                            }
+                        }
+                    }
+                });
+
+                const restantes = cat.corresponden - tomados;
+                const esAlerta = restantes <= 0;
+
+                grid.innerHTML += `
+                    <div class="bg-white border border-amber-200/90 rounded-lg p-3 flex flex-col justify-between shadow-sm">
+                        <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-stone-100">
+                            <span class="text-[11px] font-bold text-stone-700 truncate" title="${cat.nombre}">
+                                <i class="fa-solid ${cat.icono} text-amber-700 mr-1"></i> ${cat.etiqueta}
+                            </span>
+                        </div>
+                        <div class="space-y-1 text-[11px]">
+                            <div class="flex justify-between text-stone-600">
+                                <span>Corresponden:</span>
+                                <span class="font-bold text-stone-800">${cat.corresponden}</span>
+                            </div>
+                            <div class="flex justify-between text-stone-600">
+                                <span>Tomados:</span>
+                                <span class="font-bold text-rose-700">-${tomados}</span>
+                            </div>
+                            <div class="flex justify-between pt-1 border-t border-dashed border-stone-200 font-extrabold">
+                                <span>Restantes:</span>
+                                <span class="${esAlerta ? 'text-rose-600 font-black' : 'text-emerald-700'}">${restantes} ${cat.unidad}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            contenedor.classList.remove('hidden');
+        }
+
         function filtrarLicencias() {
             const anio = document.getElementById('filtroAnio').value;
             const legajo = document.getElementById('filtroInspector').value;
             const tbody = document.getElementById('tablaLicencias');
             tbody.innerHTML = '';
+
+            renderizarResumenInspector(legajo, anio);
 
             let resultado = licencias.filter(lic => (anio === 'Todos' || lic.anio === anio) && (legajo === 'Todos' || lic.legajo === legajo));
 
