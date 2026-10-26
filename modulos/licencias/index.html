@@ -600,6 +600,14 @@
             permiso: 12
         };
 
+        // Función Auxiliar para formatear de YYYY-MM-DD a dd/mm/aaaa
+        function formatearFechaLatina(fechaIso) {
+            if (!fechaIso) return '-';
+            const partes = fechaIso.split('-');
+            if (partes.length !== 3) return fechaIso;
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+
         async function cargarDatosIniciales() {
             await obtenerInspectoresFirebase();
             await obtenerLicenciasFirebase();
@@ -990,6 +998,9 @@
 
             let resultado = licencias.filter(lic => (anio === 'Todos' || lic.anio === anio) && (legajo === 'Todos' || lic.legajo === legajo));
 
+            // Ordenamiento descendente por fecha (desde)
+            resultado.sort((a, b) => (b.desde || '').localeCompare(a.desde || ''));
+
             if (resultado.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-stone-400">No hay licencias registradas.</td></tr>`;
                 return;
@@ -997,14 +1008,18 @@
 
             resultado.forEach(lic => {
                 let consumoStr = lic.tipo === 'Franco Compensatorio' ? '1 Franco' : (lic.tipo === 'Permiso' ? 'Permiso Horas' : `${lic.diasHabiles} háb.`);
+                
+                const fechaDesdeLat = formatearFechaLatina(lic.desde);
+                const fechaHastaLat = formatearFechaLatina(lic.fechaIngreso || lic.hasta);
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-stone-50 transition-colors">
                         <td class="p-3 font-semibold text-amber-800">${lic.legajo}</td>
                         <td class="p-3 font-bold text-stone-800">${lic.inspector}</td>
                         <td class="p-3 font-medium">${lic.tipo}</td>
                         <td class="p-3 text-stone-600">${lic.detalleHorario || lic.motivo || '-'}</td>
-                        <td class="p-3">${lic.desde}</td>
-                        <td class="p-3 font-bold text-emerald-700">${lic.fechaIngreso || lic.hasta || '-'}</td>
+                        <td class="p-3 font-semibold">${fechaDesdeLat}</td>
+                        <td class="p-3 font-bold text-emerald-700">${fechaHastaLat}</td>
                         <td class="p-3 font-bold text-amber-900">${consumoStr}</td>
                         <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">Aprobada</span></td>
                         <td class="p-3 text-center">
@@ -1081,6 +1096,10 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No existen ausencias registradas.</td></tr>`;
                 return;
             }
+
+            // Ordenamiento descendente por fecha
+            ausencias.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
             ausencias.forEach(a => {
                 let badgeClass = "bg-amber-100 text-amber-800";
                 if (a.certificado === 'Presentado') badgeClass = "bg-emerald-100 text-emerald-800";
@@ -1088,7 +1107,7 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-stone-50">
-                        <td class="p-3 font-semibold">${a.fecha}</td>
+                        <td class="p-3 font-semibold">${formatearFechaLatina(a.fecha)}</td>
                         <td class="p-3 font-bold">${a.inspector}</td>
                         <td class="p-3">${a.motivo}</td>
                         <td class="p-3"><span class="px-2 py-0.5 ${badgeClass} rounded text-[10px] font-bold">${a.certificado}</span></td>
@@ -1227,6 +1246,9 @@
 
             let resultado = pausas.filter(p => !filtroMes || p.fecha.startsWith(filtroMes));
 
+            // Ordenamiento descendente por fecha
+            resultado.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
             if (resultado.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No existen pausas registradas para el período seleccionado.</td></tr>`;
                 return;
@@ -1235,7 +1257,7 @@
             resultado.forEach(p => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-stone-50">
-                        <td class="p-3 font-semibold">${p.fecha}</td>
+                        <td class="p-3 font-semibold">${formatearFechaLatina(p.fecha)}</td>
                         <td class="p-3 font-bold text-amber-900">${p.motivo}</td>
                         <td class="p-3">${p.horaDesde} a ${p.horaHasta} hs</td>
                         <td class="p-3 font-medium">${p.autorizadoPor}</td>
