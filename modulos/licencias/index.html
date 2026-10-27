@@ -230,7 +230,7 @@
                             <option value="Licencia Enfermedad Familiar">Licencia Enfermedad Familiar</option>
                             <option value="Franco Compensatorio">Franco Compensatorio</option>
                             <option value="Permiso">Permiso Especial</option>
-                            <option value="Suspeción">Suspención</option>
+                            <option value="Suspensión">Suspensión</option>
                         </select>
                     </div>
 
@@ -436,11 +436,11 @@
 
                     <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                         <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Suspeción</h4>
-                            <p class="text-[11px] text-stone-500">Cantidad de días maximos</p>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Suspensión</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días máximos asignados por año.</p>
                         </div>
                         <div>
-                            <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            <input type="number" id="cfgSuspension" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
                         </div>
                     </div>
 
@@ -743,6 +743,7 @@
         let configLicencias = {
             enfermedad: 30,
             enfermedadFamiliar: 20,
+            suspension: 30,
             francoCompensatorio: 2,
             permiso: 12
         };
@@ -777,7 +778,6 @@
 
         // --- VERIFICACIÓN DE ROL Y CONTROL DE VISIBILIDAD DE MENÚ EXPORTACIÓN ---
         function verificarRolUsuario() {
-            // Se lee el rol guardado en localStorage o sessionStorage, por defecto 'diseñador'
             const rolUsuario = sessionStorage.getItem('rolUsuario') || localStorage.getItem('rolUsuario') || 'diseñador';
             const menuExp = document.getElementById('menu-exportacion');
 
@@ -822,10 +822,16 @@
             licencias.forEach(lic => {
                 if (lic.desde && lic.hasta && fechaConsulta >= lic.desde && fechaConsulta <= lic.hasta) {
                     legajosAusentes.add(String(lic.legajo));
+                    
+                    // Buscar inspector para obtener la tarea/función
+                    const inspectorObj = inspectores.find(i => String(i.legajo) === String(lic.legajo));
+                    const funcionInspector = inspectorObj ? (inspectorObj.tarea || 'General') : '-';
+
                     listaAusentes.push({
                         legajo: lic.legajo,
                         inspector: lic.inspector,
                         motivo: lic.tipo,
+                        tarea: funcionInspector,
                         detalle: lic.detalleHorario || lic.motivo || lic.observaciones || 'Licencia Registrada'
                     });
                 }
@@ -835,11 +841,16 @@
             ausencias.forEach(aus => {
                 if (aus.fecha === fechaConsulta && !legajosAusentes.has(String(aus.legajo))) {
                     legajosAusentes.add(String(aus.legajo));
+
+                    const inspectorObj = inspectores.find(i => String(i.legajo) === String(aus.legajo));
+                    const funcionInspector = inspectorObj ? (inspectorObj.tarea || 'General') : '-';
+
                     listaAusentes.push({
                         legajo: aus.legajo,
                         inspector: aus.inspector,
                         motivo: 'Ausencia sin aviso',
-                        detalle: `Estado Certificado: ${aus.certificado || 'Pendiente'}`
+                        tarea: funcionInspector,
+                        detalle: `Certificado: ${aus.certificado || 'Pendiente'}`
                     });
                 }
             });
@@ -856,7 +867,7 @@
 
             // Renderizar Tabla Ausentes
             if (listaAusentes.length === 0) {
-                tablaAusentes.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-stone-400 font-medium">No se registraron ausencias para esta fecha.</td></tr>`;
+                tablaAusentes.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400 font-medium">No se registraron ausencias para esta fecha.</td></tr>`;
             } else {
                 listaAusentes.forEach(aus => {
                     tablaAusentes.innerHTML += `
@@ -864,6 +875,7 @@
                             <td class="p-2 font-bold text-rose-800">${aus.legajo}</td>
                             <td class="p-2 font-bold text-stone-800">${aus.inspector}</td>
                             <td class="p-2"><span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px]">${aus.motivo}</span></td>
+                            <td class="p-2 text-stone-600">${aus.tarea}</td>
                             <td class="p-2 text-stone-600">${aus.detalle}</td>
                         </tr>
                     `;
@@ -922,6 +934,7 @@
                     configLicencias = cfgDoc.data();
                     document.getElementById('cfgEnfermedad').value = configLicencias.enfermedad || 30;
                     document.getElementById('cfgEnfermedadFamiliar').value = configLicencias.enfermedadFamiliar || 20;
+                    document.getElementById('cfgSuspension').value = configLicencias.suspension || 30;
                     document.getElementById('cfgFrancoCompensatorio').value = configLicencias.francoCompensatorio || 2;
                     document.getElementById('cfgPermiso').value = configLicencias.permiso || 12;
                 }
@@ -986,6 +999,7 @@
                 topeAnual = 15 + (Math.floor(antiguedad / 5) * 5);
             } else if (tipo === 'Licencia Enfermedad') topeAnual = configLicencias.enfermedad;
             else if (tipo === 'Licencia Enfermedad Familiar') topeAnual = configLicencias.enfermedadFamiliar;
+            else if (tipo === 'Suspensión') topeAnual = configLicencias.suspension || 30;
             else if (tipo === 'Franco Compensatorio') topeAnual = configLicencias.francoCompensatorio;
             else if (tipo === 'Permiso') topeAnual = configLicencias.permiso;
 
@@ -1293,6 +1307,7 @@
             const nuevaCfg = {
                 enfermedad: parseInt(document.getElementById('cfgEnfermedad').value),
                 enfermedadFamiliar: parseInt(document.getElementById('cfgEnfermedadFamiliar').value),
+                suspension: parseInt(document.getElementById('cfgSuspension').value),
                 francoCompensatorio: parseInt(document.getElementById('cfgFrancoCompensatorio').value),
                 permiso: parseInt(document.getElementById('cfgPermiso').value)
             };
