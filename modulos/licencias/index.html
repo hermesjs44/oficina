@@ -59,7 +59,10 @@
                 <nav class="space-y-1">
                     <p class="text-[10px] uppercase font-bold text-amber-800 px-3 mb-2 tracking-wider">Menú de Licencias</p>
                     
-                    <button onclick="showSection('cargar-licencia')" id="btn-cargar-licencia" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors bg-amber-300">
+                    <button onclick="showSection('dashboard-licencias')" id="btn-dashboard-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors bg-amber-300">
+                        <i class="fa-solid fa-chart-pie w-6 text-center mr-2 text-amber-800"></i> 0 - Dashboard
+                    </button>
+                    <button onclick="showSection('cargar-licencia')" id="btn-cargar-licencia" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
                         <i class="fa-solid fa-file-circle-plus w-6 text-center mr-2 text-amber-800"></i> 1. Cargar Licencias
                     </button>
                     <button onclick="showSection('visualizar-licencias')" id="btn-visualizar-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
@@ -104,9 +107,90 @@
 
         <!-- Contenido Central del Módulo -->
         <main class="flex-1 p-8">
+
+            <!-- SECCIÓN 0: DASHBOARD LICENCIAS / ESTADO DIARIO -->
+            <section id="dashboard-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-stone-200 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-amber-700"></i> Dashboard de Presentismo / Ausentismo
+                        </h2>
+                        <p class="text-xs text-stone-500">Visualización en tiempo real del personal presente y ausente por fecha.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        <label for="fechaDashboard" class="text-xs font-bold text-amber-900 uppercase">Fecha de Consulta:</label>
+                        <input type="date" id="fechaDashboard" onchange="renderizarDashboard()" class="px-3 py-1.5 border border-amber-300 rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <!-- Tarjetas de Métricas -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-stone-50 border border-stone-200 p-4 rounded-xl shadow-sm text-center">
+                        <span class="text-[11px] font-bold uppercase text-stone-500 block">Total Personal</span>
+                        <span id="cantTotalInspectores" class="text-2xl font-black text-stone-800">0</span>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl shadow-sm text-center">
+                        <span class="text-[11px] font-bold uppercase text-emerald-700 block">Personal Presente</span>
+                        <span id="cantInspectoresPresentes" class="text-2xl font-black text-emerald-700">0</span>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl shadow-sm text-center">
+                        <span class="text-[11px] font-bold uppercase text-rose-700 block">Personal Ausente</span>
+                        <span id="cantInspectoresAusentes" class="text-2xl font-black text-rose-700">0</span>
+                    </div>
+                </div>
+
+                <!-- Tablas de Ausentes y Presentes -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Contenedor Ausentes -->
+                    <div class="border border-rose-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-rose-700 text-white px-4 py-2.5 font-bold text-xs uppercase flex justify-between items-center">
+                            <span><i class="fa-solid fa-user-xmark mr-2"></i> Personal Ausente</span>
+                            <span id="badgeAusentes" class="bg-rose-900 text-rose-100 text-[10px] px-2 py-0.5 rounded-full">0</span>
+                        </div>
+                        <div class="p-3 bg-rose-50/30 overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-rose-200 text-stone-600 uppercase text-[10px]">
+                                        <th class="p-2">Legajo</th>
+                                        <th class="p-2">Inspector</th>
+                                        <th class="p-2">Motivo / Tipo</th>
+                                        <th class="p-2">Tarea / Función</th>
+                                        <th class="p-2">Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaDashboardAusentes" class="divide-y divide-rose-100 text-stone-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor Presentes -->
+                    <div class="border border-emerald-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-emerald-700 text-white px-4 py-2.5 font-bold text-xs uppercase flex justify-between items-center">
+                            <span><i class="fa-solid fa-user-check mr-2"></i> Personal Presente</span>
+                            <span id="badgePresentes" class="bg-emerald-900 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full">0</span>
+                        </div>
+                        <div class="p-3 bg-emerald-50/30 overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-emerald-200 text-stone-600 uppercase text-[10px]">
+                                        <th class="p-2">Legajo</th>
+                                        <th class="p-2">Inspector</th>
+                                        <th class="p-2">Tarea / Función</th>
+                                        <th class="p-2">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaDashboardPresentes" class="divide-y divide-emerald-100 text-stone-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
             <!-- SECCIÓN 1: CARGAR / EDITAR LICENCIAS -->
-            <section id="cargar-licencia" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto">
+            <section id="cargar-licencia" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto hidden">
                 <h2 id="titulo-form" class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
                     <i class="fa-solid fa-file-circle-plus text-amber-700"></i> Solicitud y Carga de Licencia
                 </h2>
@@ -146,6 +230,7 @@
                             <option value="Licencia Enfermedad Familiar">Licencia Enfermedad Familiar</option>
                             <option value="Franco Compensatorio">Franco Compensatorio</option>
                             <option value="Permiso">Permiso Especial</option>
+                            <option value="Suspeción">Suspención</option>
                         </select>
                     </div>
 
@@ -343,6 +428,16 @@
                         <div>
                             <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Enfermedad Familiar</h4>
                             <p class="text-[11px] text-stone-500">Cantidad de días asignados por año.</p>
+                        </div>
+                        <div>
+                            <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">Suspeción</h4>
+                            <p class="text-[11px] text-stone-500">Cantidad de días maximos</p>
                         </div>
                         <div>
                             <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
@@ -661,13 +756,22 @@
         }
 
         async function cargarDatosIniciales() {
+            // Establecer fecha de hoy por defecto en el Dashboard
+            const hoyIso = new Date().toISOString().split('T')[0];
+            const inputFechaDash = document.getElementById('fechaDashboard');
+            if (inputFechaDash && !inputFechaDash.value) {
+                inputFechaDash.value = hoyIso;
+            }
+
             await obtenerInspectoresFirebase();
             await obtenerLicenciasFirebase();
             await obtenerConfiguracionFirebase();
             await obtenerAusenciasFirebase();
             await obtenerCausasFirebase();
             await obtenerPausasFirebase();
+            
             verificarRolUsuario();
+            renderizarDashboard();
         }
         window.cargarDatosIniciales = cargarDatosIniciales;
 
@@ -693,11 +797,94 @@
             const activeBtn = document.getElementById(`btn-${sectionId}`);
             if (activeBtn) activeBtn.classList.add('bg-amber-300');
 
+            if (sectionId === 'dashboard-licencias') renderizarDashboard();
             if (sectionId === 'visualizar-licencias') obtenerLicenciasFirebase();
             if (sectionId === 'ausencia-sin-aviso') obtenerAusenciasFirebase();
             if (sectionId === 'causas-no-trabajado') obtenerCausasFirebase();
             if (sectionId === 'carga-pausa') renderSelectCausas();
             if (sectionId === 'listado-pausas') obtenerPausasFirebase();
+        }
+
+        // --- SECCIÓN 0: LÓGICA DASHBOARD ---
+        function renderizarDashboard() {
+            const fechaConsulta = document.getElementById('fechaDashboard').value;
+            if (!fechaConsulta) return;
+
+            const tablaAusentes = document.getElementById('tablaDashboardAusentes');
+            const tablaPresentes = document.getElementById('tablaDashboardPresentes');
+            tablaAusentes.innerHTML = '';
+            tablaPresentes.innerHTML = '';
+
+            let listaAusentes = [];
+            let legajosAusentes = new Set();
+
+            // 1. Evaluar Licencias en la fecha
+            licencias.forEach(lic => {
+                if (lic.desde && lic.hasta && fechaConsulta >= lic.desde && fechaConsulta <= lic.hasta) {
+                    legajosAusentes.add(String(lic.legajo));
+                    listaAusentes.push({
+                        legajo: lic.legajo,
+                        inspector: lic.inspector,
+                        motivo: lic.tipo,
+                        detalle: lic.detalleHorario || lic.motivo || lic.observaciones || 'Licencia Registrada'
+                    });
+                }
+            });
+
+            // 2. Evaluar Ausencias Sin Aviso en la fecha
+            ausencias.forEach(aus => {
+                if (aus.fecha === fechaConsulta && !legajosAusentes.has(String(aus.legajo))) {
+                    legajosAusentes.add(String(aus.legajo));
+                    listaAusentes.push({
+                        legajo: aus.legajo,
+                        inspector: aus.inspector,
+                        motivo: 'Ausencia sin aviso',
+                        detalle: `Estado Certificado: ${aus.certificado || 'Pendiente'}`
+                    });
+                }
+            });
+
+            // 3. Separar los inspectores Presentes
+            let listaPresentes = inspectores.filter(ins => !legajosAusentes.has(String(ins.legajo)));
+
+            // Actualizar Métricas
+            document.getElementById('cantTotalInspectores').textContent = inspectores.length;
+            document.getElementById('cantInspectoresPresentes').textContent = listaPresentes.length;
+            document.getElementById('cantInspectoresAusentes').textContent = listaAusentes.length;
+            document.getElementById('badgeAusentes').textContent = listaAusentes.length;
+            document.getElementById('badgePresentes').textContent = listaPresentes.length;
+
+            // Renderizar Tabla Ausentes
+            if (listaAusentes.length === 0) {
+                tablaAusentes.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-stone-400 font-medium">No se registraron ausencias para esta fecha.</td></tr>`;
+            } else {
+                listaAusentes.forEach(aus => {
+                    tablaAusentes.innerHTML += `
+                        <tr class="hover:bg-rose-100/50 transition-colors">
+                            <td class="p-2 font-bold text-rose-800">${aus.legajo}</td>
+                            <td class="p-2 font-bold text-stone-800">${aus.inspector}</td>
+                            <td class="p-2"><span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px]">${aus.motivo}</span></td>
+                            <td class="p-2 text-stone-600">${aus.detalle}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Renderizar Tabla Presentes
+            if (listaPresentes.length === 0) {
+                tablaPresentes.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-stone-400 font-medium">No hay inspectores registrados como presentes.</td></tr>`;
+            } else {
+                listaPresentes.forEach(pres => {
+                    tablaPresentes.innerHTML += `
+                        <tr class="hover:bg-emerald-100/50 transition-colors">
+                            <td class="p-2 font-bold text-emerald-800">${pres.legajo}</td>
+                            <td class="p-2 font-bold text-stone-800">${pres.nombre}</td>
+                            <td class="p-2 text-stone-600">${pres.tarea || 'Inspector General'}</td>
+                            <td class="p-2"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">Presente</span></td>
+                        </tr>
+                    `;
+                });
+            }
         }
 
         // --- FIREBASE LICENCIAS ---
@@ -721,6 +908,7 @@
                 querySnapshot.forEach((docSnap) => licencias.push({ id: docSnap.id, ...docSnap.data() }));
                 filtrarLicencias();
                 calcularDiasRestantes();
+                renderizarDashboard();
             } catch (error) {
                 console.error("Error al obtener licencias:", error);
             }
@@ -880,6 +1068,7 @@
                 else await window.addDoc(window.collection(window.db, "licencias"), datos);
                 alert('Licencia guardada correctamente.');
                 cancelarEdicionLicencia();
+                await obtenerLicenciasFirebase();
                 showSection('visualizar-licencias');
             } catch (error) {
                 alert("Error al guardar: " + error.message);
@@ -1124,6 +1313,7 @@
                 ausencias = [];
                 querySnapshot.forEach((docSnap) => ausencias.push({ id: docSnap.id, ...docSnap.data() }));
                 renderAusencias();
+                renderizarDashboard();
             } catch (error) {
                 console.error("Error al obtener ausencias:", error);
             }
