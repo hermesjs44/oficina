@@ -71,6 +71,9 @@
                     <button onclick="showSection('configuracion-licencias')" id="btn-configuracion-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
                         <i class="fa-solid fa-sliders w-6 text-center mr-2 text-amber-800"></i> 3. Configuración Licencias
                     </button>
+                    <button onclick="showSection('planificacion-licencias')" id="btn-planificacion-licencias" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-semibold text-amber-950 hover:bg-amber-300 transition-colors">
+                        <i class="fa-solid fa-calendar-days w-6 text-center mr-2 text-amber-800"></i> 4. Planificación Licencias
+                    </button>
                 </nav>
 
                 <!-- Menú No Trabajado -->
@@ -472,6 +475,84 @@
                 </form>
             </section>
 
+            <!-- SECCIÓN 4: PLANIFICACIÓN DE LICENCIAS -->
+            <section id="planificacion-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-stone-200 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-amber-700"></i> Planificación Mensual de Licencias por Grupo
+                        </h2>
+                        <p class="text-xs text-stone-500">Planifique licencias verificando topes diarios por función (<strong>Inspectores: Máximo 4</strong> | <strong>Atención al Público: Máximo 1</strong>).</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-stone-600 block uppercase mb-0.5">Mes Planificación:</label>
+                            <input type="month" id="mesPlanificacion" onchange="renderizarPlanificacion()" class="px-3 py-1.5 border border-amber-300 bg-amber-50 rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-stone-600 block uppercase mb-0.5">Grupo Trabajo:</label>
+                            <select id="grupoPlanificacion" onchange="renderizarPlanificacion()" class="px-3 py-1.5 border border-amber-300 bg-amber-50 rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="Inspectores">Inspectores (Max 4/día)</option>
+                                <option value="Atencion al Publico">Atención al Público (Max 1/día)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario Rápido de Carga de Planificación -->
+                <div class="bg-stone-50 border border-stone-200 p-4 rounded-xl mb-6 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase text-amber-900 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus-circle text-amber-700"></i> Nueva Carga de Planificación
+                    </h3>
+                    <form id="formPlanificacion" onsubmit="guardarPlanificacion(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Personal / Empleado</label>
+                            <select id="planifEmpleado" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <option value="">Seleccione personal...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Fecha Desde</label>
+                            <input type="date" id="planifDesde" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Fecha Hasta</label>
+                            <input type="date" id="planifHasta" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors shadow flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar Planificación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Resumen de Alertas y Restricciones -->
+                <div id="resumenAlertasPlanificacion" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                    <!-- Se llena en JS -->
+                </div>
+
+                <!-- Grilla / Matriz Mensual -->
+                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr id="headPlanificacion" class="bg-amber-800 text-white uppercase text-[10px]">
+                                <!-- Generado en JS -->
+                            </tr>
+                        </thead>
+                        <tbody id="bodyPlanificacion" class="divide-y divide-stone-200 text-stone-700 bg-white">
+                            <!-- Generado en JS -->
+                        </tbody>
+                        <tfoot>
+                            <tr id="footPlanificacion" class="bg-stone-100 font-bold text-[10px] text-stone-800">
+                                <!-- Totales diarios calculados dinámicamente -->
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </section>
+
             <!-- SUBMENÚ NO TRABAJADO 1: AUSENCIA SIN AVISO -->
             <section id="ausencia-sin-aviso" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto hidden">
                 <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
@@ -764,6 +845,12 @@
                 inputFechaDash.value = hoyIso;
             }
 
+            // Establecer mes actual para la planificación
+            const inputMesPlanif = document.getElementById('mesPlanificacion');
+            if (inputMesPlanif && !inputMesPlanif.value) {
+                inputMesPlanif.value = hoyIso.substring(0, 7);
+            }
+
             await obtenerInspectoresFirebase();
             await obtenerLicenciasFirebase();
             await obtenerConfiguracionFirebase();
@@ -799,6 +886,7 @@
 
             if (sectionId === 'dashboard-licencias') renderizarDashboard();
             if (sectionId === 'visualizar-licencias') obtenerLicenciasFirebase();
+            if (sectionId === 'planificacion-licencias') renderizarPlanificacion();
             if (sectionId === 'ausencia-sin-aviso') obtenerAusenciasFirebase();
             if (sectionId === 'causas-no-trabajado') obtenerCausasFirebase();
             if (sectionId === 'carga-pausa') renderSelectCausas();
@@ -823,7 +911,6 @@
                 if (lic.desde && lic.hasta && fechaConsulta >= lic.desde && fechaConsulta <= lic.hasta) {
                     legajosAusentes.add(String(lic.legajo));
                     
-                    // Buscar inspector para obtener la tarea/función
                     const inspectorObj = inspectores.find(i => String(i.legajo) === String(lic.legajo));
                     const funcionInspector = inspectorObj ? (inspectorObj.tarea || 'General') : '-';
 
@@ -896,6 +983,179 @@
                         </tr>
                     `;
                 });
+            }
+        }
+
+        // --- SECCIÓN 4: PLANIFICACIÓN DE LICENCIAS POR GRUPO ---
+        function renderizarPlanificacion() {
+            const mesAnio = document.getElementById('mesPlanificacion').value;
+            const grupoSelect = document.getElementById('grupoPlanificacion').value;
+
+            if (!mesAnio) return;
+
+            const [anio, mesStr] = mesAnio.split('-');
+            const mesNum = parseInt(mesStr, 10);
+            const diasEnMes = new Date(anio, mesNum, 0).getDate();
+
+            // Filtrar inspectores por el grupo de trabajo
+            const listaGrupo = inspectores.filter(i => {
+                const funcion = (i.tarea || '').toLowerCase();
+                if (grupoSelect === 'Inspectores') {
+                    return funcion.includes('inspector') || funcion.includes('fiscal') || funcion === '' || funcion === 'general';
+                } else {
+                    return funcion.includes('atencion') || funcion.includes('público') || funcion.includes('publico') || funcion.includes('mesa');
+                }
+            });
+
+            // Actualizar selector de empleados en el formulario rápido de planificación
+            const selectEmpleado = document.getElementById('planifEmpleado');
+            selectEmpleado.innerHTML = '<option value="">Seleccione personal...</option>';
+            listaGrupo.forEach(emp => {
+                selectEmpleado.innerHTML += `<option value="${emp.legajo}">${emp.nombre} (${emp.legajo})</option>`;
+            });
+
+            // Renderizar Cabecera de la Grilla
+            const thead = document.getElementById('headPlanificacion');
+            let headerHtml = `<th class="p-2 border-r border-amber-900/40 min-w-[160px] sticky left-0 bg-amber-800 z-10">Personal (${grupoSelect})</th>`;
+            
+            for (let d = 1; d <= diasEnMes; d++) {
+                const fechaDia = new Date(anio, mesNum - 1, d);
+                const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
+                headerHtml += `<th class="p-1.5 text-center min-w-[32px] border-r border-amber-700/50 ${esFinSemana ? 'bg-amber-900/60' : ''}">${d}</th>`;
+            }
+            thead.innerHTML = headerHtml;
+
+            // Renderizar Cuerpo (Filas por Empleado)
+            const tbody = document.getElementById('bodyPlanificacion');
+            tbody.innerHTML = '';
+
+            let totalesPorDia = new Array(diasEnMes + 1).fill(0);
+
+            if (listaGrupo.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${diasEnMes + 1}" class="p-4 text-center text-stone-400 font-medium">No se encontraron empleados asignados a este grupo de trabajo.</td></tr>`;
+            } else {
+                listaGrupo.forEach(emp => {
+                    let rowHtml = `<td class="p-2 font-bold text-stone-800 border-r border-stone-200 sticky left-0 bg-stone-50 z-10 shadow-sm">${emp.nombre}<br><span class="text-[10px] text-stone-500 font-normal">Leg: ${emp.legajo}</span></td>`;
+
+                    for (let d = 1; d <= diasEnMes; d++) {
+                        const diaDosDigitos = String(d).padStart(2, '0');
+                        const fechaIsoStr = `${anio}-${mesStr}-${diaDosDigitos}`;
+                        const fechaDia = new Date(anio, mesNum - 1, d);
+                        const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
+
+                        // Verificar si tiene licencia en esta fecha
+                        const tieneLicencia = licencias.some(lic => {
+                            return String(lic.legajo) === String(emp.legajo) && 
+                                   lic.desde <= fechaIsoStr && 
+                                   lic.hasta >= fechaIsoStr;
+                        });
+
+                        if (tieneLicencia) {
+                            totalesPorDia[d]++;
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 bg-amber-500 text-amber-950 font-black text-[11px]" title="${emp.nombre} en Licencia el ${diaDosDigitos}/${mesStr}">L</td>`;
+                        } else {
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-100 ${esFinSemana ? 'bg-stone-100/80 text-stone-400' : 'text-stone-300'}">-</td>`;
+                        }
+                    }
+
+                    tbody.innerHTML += `<tr class="hover:bg-stone-50 transition-colors">${rowHtml}</tr>`;
+                });
+            }
+
+            // Renderizar Footer (Totales Diarios con Validación de Cupo Límites)
+            const maximoPermitido = grupoSelect === 'Inspectores' ? 4 : 1;
+            const tfoot = document.getElementById('footPlanificacion');
+            let footHtml = `<td class="p-2 border-r border-stone-300 sticky left-0 bg-stone-200 uppercase font-bold text-[10px] z-10">Total Licencias / Día</td>`;
+
+            let diasConExceso = 0;
+
+            for (let d = 1; d <= diasEnMes; d++) {
+                const totalDia = totalesPorDia[d];
+                const superaLimite = totalDia > maximoPermitido;
+
+                if (superaLimite) diasConExceso++;
+
+                footHtml += `<td class="p-1 text-center border-r border-stone-300 text-[11px] ${superaLimite ? 'bg-rose-600 text-white font-black animate-pulse' : (totalDia > 0 ? 'bg-amber-100 text-amber-900 font-bold' : 'text-stone-400')}">${totalDia}</td>`;
+            }
+            tfoot.innerHTML = footHtml;
+
+            // Renderizar Alertas y Resumen de Estado
+            const divAlertas = document.getElementById('resumenAlertasPlanificacion');
+            divAlertas.innerHTML = `
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center gap-3">
+                    <i class="fa-solid fa-users text-amber-700 text-xl"></i>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase text-stone-500 block">Personal en Grupo</span>
+                        <span class="text-base font-extrabold text-stone-800">${listaGrupo.length} Empleados</span>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center gap-3">
+                    <i class="fa-solid fa-shield-halved text-amber-700 text-xl"></i>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase text-stone-500 block">Límite Permitido por Día</span>
+                        <span class="text-base font-extrabold text-stone-800">Máximo ${maximoPermitido} por día</span>
+                    </div>
+                </div>
+
+                <div class="${diasConExceso > 0 ? 'bg-rose-50 border border-rose-300 text-rose-900' : 'bg-emerald-50 border border-emerald-300 text-emerald-900'} p-3 rounded-lg flex items-center gap-3">
+                    <i class="fa-solid ${diasConExceso > 0 ? 'fa-triangle-exclamation text-rose-600' : 'fa-circle-check text-emerald-600'} text-xl"></i>
+                    <div>
+                        <span class="text-[10px] font-bold uppercase block ${diasConExceso > 0 ? 'text-rose-700' : 'text-emerald-700'}">Estado de Cobertura</span>
+                        <span class="text-xs font-bold">${diasConExceso > 0 ? `¡Atención! ${diasConExceso} días superan el cupo` : 'Planificación óptima dentro de cupos'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function guardarPlanificacion(e) {
+            e.preventDefault();
+            const legajo = document.getElementById('planifEmpleado').value;
+            const desde = document.getElementById('planifDesde').value;
+            const hasta = document.getElementById('planifHasta').value;
+
+            if (!legajo || !desde || !hasta) {
+                alert("Complete todos los campos del formulario de planificación.");
+                return;
+            }
+
+            if (hasta < desde) {
+                alert("La fecha hasta no puede ser menor a la fecha desde.");
+                return;
+            }
+
+            const inspectorObj = inspectores.find(i => String(i.legajo) === String(legajo));
+            const inspectorNombre = inspectorObj ? inspectorObj.nombre : 'Empleado';
+
+            let fechaInicio = new Date(desde + 'T00:00:00');
+            let fechaFin = new Date(hasta + 'T00:00:00');
+            let diasHabiles = 0;
+            let cur = new Date(fechaInicio);
+            while (cur <= fechaFin) {
+                if (cur.getDay() !== 0 && cur.getDay() !== 6) diasHabiles++;
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            let datos = {
+                legajo,
+                inspector: inspectorNombre,
+                tipo: "Licencia Ordinaria",
+                desde,
+                hasta,
+                diasHabiles,
+                anio: desde.substring(0, 4),
+                observaciones: "Cargado desde Planificación de Licencias",
+                estado: "Aprobada"
+            };
+
+            try {
+                await window.addDoc(window.collection(window.db, "licencias"), datos);
+                alert("Planificación registrada exitosamente.");
+                document.getElementById('formPlanificacion').reset();
+                await obtenerLicenciasFirebase();
+                renderizarPlanificacion();
+            } catch (error) {
+                alert("Error al guardar planificación: " + error.message);
             }
         }
 
@@ -1267,7 +1527,6 @@
 
             let resultado = licencias.filter(lic => (anio === 'Todos' || lic.anio === anio) && (legajo === 'Todos' || lic.legajo === legajo));
 
-            // Ordenamiento descendente por fecha (desde)
             resultado.sort((a, b) => (b.desde || '').localeCompare(a.desde || ''));
 
             if (resultado.length === 0) {
@@ -1368,7 +1627,6 @@
                 return;
             }
 
-            // Ordenamiento descendente por fecha
             ausencias.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
             ausencias.forEach(a => {
@@ -1517,7 +1775,6 @@
 
             let resultado = pausas.filter(p => !filtroMes || p.fecha.startsWith(filtroMes));
 
-            // Ordenamiento descendente por fecha
             resultado.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
             if (resultado.length === 0) {
@@ -1558,7 +1815,6 @@
                 return;
             }
 
-            // Filtrar licencias que inicien o incluyan el mes/año seleccionado (YYYY-MM)
             const filtradas = licencias.filter(l => (l.desde && l.desde.startsWith(mesAnio)) || (l.hasta && l.hasta.startsWith(mesAnio)));
 
             if (filtradas.length === 0) {
@@ -1636,7 +1892,6 @@
                     </thead>
                     <tbody>`;
 
-            // Pausas operativas
             pausasFiltradas.forEach(p => {
                 tablaHtml += `
                     <tr>
@@ -1649,7 +1904,6 @@
                     </tr>`;
             });
 
-            // Ausencias sin aviso
             ausenciasFiltradas.forEach(a => {
                 tablaHtml += `
                     <tr>
