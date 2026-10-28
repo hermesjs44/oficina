@@ -1672,7 +1672,7 @@
             XLSX.writeFile(workbook, `Nomina_Personal_Inspectores_${formatearFechaLatina(new Date().toISOString().split('T')[0]).replace(/\//g, '-')}.xlsx`);
         }
 
-        // 2. Exportar Horarios por Rango (Fila por Ingreso / Fila por Egreso) en dd/mm/aaaa
+        // 2. Exportar Horarios por Rango (Fila por Fecha y Tipo Registro) en dd/mm/aaaa
         async function exportarHorariosXls() {
             const desdeVal = document.getElementById('expHorarioDesde').value;
             const hastaVal = document.getElementById('expHorarioHasta').value;
@@ -1701,7 +1701,7 @@
                     anio: yyyy,
                     mes: fCur.getMonth() + 1,
                     dia: fCur.getDate(),
-                    strHeader: `${dd}/${mm}/${yyyy}`
+                    strFecha: `${dd}/${mm}/${yyyy}`
                 });
                 fCur.setDate(fCur.getDate() + 1);
             }
@@ -1728,43 +1728,61 @@
 
             let filasExportar = [];
 
-            ordenados.forEach(ins => {
-                const safeLegajo = String(ins.legajo).replace(/\//g, '_');
-
-                let filaIngreso = {
-                    "Legajo": ins.legajo,
-                    "Inspector": ins.nombre,
-                    "Tipo Registro": "INGRESO"
-                };
-
-                let filaEgreso = {
-                    "Legajo": ins.legajo,
-                    "Inspector": ins.nombre,
-                    "Tipo Registro": "EGRESO"
-                };
-
-                arrayFechas.forEach(f => {
+            arrayFechas.forEach(f => {
+                ordenados.forEach(ins => {
+                    const safeLegajo = String(ins.legajo).replace(/\//g, '_');
                     const docId = `${safeLegajo}_${f.anio}_${f.mes}`;
                     const diasGuardados = cacheHorarios[docId] || {};
                     const configDia = diasGuardados[f.dia];
 
+                    let ingM = 'Franco';
+                    let egrM = 'Franco';
+                    let ingT = 'Franco';
+                    let egrT = 'Franco';
+
                     if (configDia && configDia.tipoTurno !== 'Sin Turno') {
-                        let ingM = (configDia.ingresoManana && configDia.ingresoManana !== '00:00') ? configDia.ingresoManana : '';
-                        let ingT = (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') ? configDia.ingresoTarde : '';
-                        
-                        let egrM = (configDia.egresoManana && configDia.egresoManana !== '00:00') ? configDia.egresoManana : '';
-                        let egrT = (configDia.egresoTarde && configDia.egresoTarde !== '00:00') ? configDia.egresoTarde : '';
-
-                        filaIngreso[f.strHeader] = [ingM, ingT].filter(Boolean).join(' / ') || 'Franco';
-                        filaEgreso[f.strHeader] = [egrM, egrT].filter(Boolean).join(' / ') || 'Franco';
-                    } else {
-                        filaIngreso[f.strHeader] = 'Franco';
-                        filaEgreso[f.strHeader] = 'Franco';
+                        ingM = (configDia.ingresoManana && configDia.ingresoManana !== '00:00') ? configDia.ingresoManana : '-';
+                        egrM = (configDia.egresoManana && configDia.egresoManana !== '00:00') ? configDia.egresoManana : '-';
+                        ingT = (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') ? configDia.ingresoTarde : '-';
+                        egrT = (configDia.egresoTarde && configDia.egresoTarde !== '00:00') ? configDia.egresoTarde : '-';
                     }
-                });
 
-                filasExportar.push(filaIngreso);
-                filasExportar.push(filaEgreso);
+                    // 1° fila: Ingreso Mañana
+                    filasExportar.push({
+                        "Fecha": f.strFecha,
+                        "Legajo": ins.legajo,
+                        "Inspector": ins.nombre,
+                        "Tipo Registro": "INGRESO MAÑANA",
+                        "Horario": ingM
+                    });
+
+                    // 2° fila: Egreso Mañana
+                    filasExportar.push({
+                        "Fecha": f.strFecha,
+                        "Legajo": ins.legajo,
+                        "Inspector": ins.nombre,
+                        "Tipo Registro": "EGRESO MAÑANA",
+                        "Horario": egrM
+                    });
+
+                    // 3° fila: Ingreso Tarde
+                    filasExportar.push({
+                        "Fecha": f.strFecha,
+                        "Legajo": ins.legajo,
+                        "Inspector": ins.nombre,
+                        "Tipo Registro": "INGRESO TARDE",
+                        "Horario": ingT
+                    });
+
+                    // 4° fila: Egreso Tarde
+                    filasExportar.push({
+                        "Fecha": f.strFecha,
+                        "Legajo": ins.legajo,
+                        "Inspector": ins.nombre,
+                        "Tipo Registro": "EGRESO TARDE",
+                        "Horario": egrT
+                    });
+                });
             });
 
             const worksheet = XLSX.utils.json_to_sheet(filasExportar);
