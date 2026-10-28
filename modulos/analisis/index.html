@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría de Inspecciones y Controles (Alto Rendimiento)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-clipboard-check text-indigo-300 text-3xl"></i>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Auditoría de Inspecciones</h1>
+                    <p class="text-xs text-indigo-200">Plataforma de mapeo explícito, adición de filas e intervalos</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-plus-circle"></i> Agregar Fila Manual
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+        <!-- Import Section & Threshold Control -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- File Upload Box -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Importar Archivos
+                        </h2>
+                        <span id="filesCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">0 cargados</span>
+                    </div>
+                    
+                    <div id="dropZone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-6 text-center cursor-pointer transition-all duration-200 group">
+                        <input type="file" id="fileInput" multiple accept=".xlsx, .xls" class="hidden">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 group-hover:scale-110 transition-transform duration-200 mb-2"></i>
+                        <p class="text-sm font-semibold text-slate-700">Arrastra tus planillas Excel aquí o haz clic para examinar</p>
+                        <p class="text-xs text-slate-500 mt-1">Soporta <code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700">.xlsx</code> e <code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700">.xls</code></p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progressContainer" class="mt-4 hidden">
+                    <div class="flex justify-between items-center text-xs text-slate-600 mb-1">
+                        <span id="progressLabel" class="font-semibold">Procesando registros...</span>
+                        <span id="progressPercent" class="font-bold text-indigo-600">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-100" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="fileList" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
+            </div>
+
+            <!-- Parameters Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i> Criterios de Alerta
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-4">
+                        Define el tiempo máximo tolerado ($X$) entre dos inspecciones consecutivas del mismo inspector antes de marcar una advertencia.
+                    </p>
+
+                    <label for="thresholdInput" class="block text-xs font-bold text-slate-700 mb-1">
+                        Umbral de Inactividad ($X$ en minutos):
+                    </label>
+                    <div class="flex items-center gap-2 mb-4">
+                        <input type="number" id="thresholdInput" min="1" max="480" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-semibold text-slate-800">
+                        <span class="text-sm font-medium text-slate-600">min</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1.5 text-xs">
+                        <button onclick="setQuickThreshold(15)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">15m</button>
+                        <button onclick="setQuickThreshold(30)" class="px-2 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded font-bold transition-colors">30m</button>
+                        <button onclick="setQuickThreshold(45)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">45m</button>
+                        <button onclick="setQuickThreshold(60)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">60m</button>
+                    </div>
+                </div>
+
+                <button id="reanalyzeBtn" onclick="runAnalysisAsync()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-rotate"></i> Re-analizar Datos
+                </button>
+            </div>
+        </div>
+
+        <!-- Metrics Overview Dashboard -->
+        <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-list-check text-xl"></i></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Total Inspecciones</p>
+                    <h3 id="kpiTotal" class="text-xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-user-shield text-xl"></i></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Inspectores</p>
+                    <h3 id="kpiInspectors" class="text-xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Intervalo Promedio</p>
+                    <h3 id="kpiAvgGap" class="text-xl font-bold text-slate-800">0 min</h3>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Alertas (> X min)</p>
+                    <h3 id="kpiAlerts" class="text-xl font-bold text-rose-600">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Table & Filters -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            
+            <!-- Controls Bar -->
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <!-- Inspector Filter -->
+                    <div class="w-full sm:w-auto">
+                        <select id="inspectorSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="ALL">Todos los Inspectores</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Alert Status Filter -->
+                    <div class="w-full sm:w-auto">
+                        <select id="alertSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="ALL">Todos los registros</option>
+                            <option value="ALERTS">Solo Alertas (Inactividad &gt; X min)</option>
+                            <option value="NORMAL">Normales (&le; X min)</option>
+                            <option value="NO_CONTABILIZA">Omitidos / No contabiliza</option>
+                        </select>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="relative w-full sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, ticket, etc..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                    <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Agregar Fila
+                    </button>
+                    <button onclick="exportSummaryExcel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-invoice"></i> Resumen
+                    </button>
+                    <button onclick="exportDetailedExcel()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-export"></i> Exportar XLS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto custom-scrollbar max-h-[550px]">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4">#</th>
+                            <th class="py-3 px-4">Inspector</th>
+                            <th class="py-3 px-4">Fecha y Hora</th>
+                            <th class="py-3 px-4">Patente / Dominio</th>
+                            <th class="py-3 px-4">Resultado</th>
+                            <th class="py-3 px-4">Ticket / Acta</th>
+                            <th class="py-3 px-4 text-center">Intervalo Inter-Control</th>
+                            <th class="py-3 px-4">Estado / Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-200">
+                        <tr>
+                            <td colspan="8" class="text-center py-12 text-slate-400">
+                                <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                                Carga un archivo de inspecciones o agrega filas manualmente para iniciar.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination & Navigation Footer -->
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <span id="recordCount">Mostrando 0 registros</span>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-1">
+                        <label for="pageSizeSelect" class="text-slate-500">Filas por pág:</label>
+                        <select id="pageSizeSelect" onchange="changePageSize()" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs">
+                            <option value="100">100</option>
+                            <option value="250" selected>250</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-1">
+                        <button id="prevPageBtn" onclick="prevPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span id="pageInfo" class="font-medium px-2">Página 1 de 1</span>
+                        <button id="nextPageBtn" onclick="nextPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal para Relacionar / Mapear Campos -->
+    <div id="mappingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            
+            <div class="bg-indigo-900 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-diagram-project text-indigo-300 text-lg"></i>
+                    <h3 class="font-bold text-base" id="modalFileTitle">Relacionar Campos del Archivo</h3>
+                </div>
+                <button onclick="closeMappingModal()" class="text-indigo-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                <p class="text-xs text-slate-600 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                    <i class="fa-solid fa-circle-info text-indigo-600 me-1"></i>
+                    Define la relación de cada campo. Selecciona <strong>"-- NO RELACIONAR / OMITIR --"</strong> en las columnas que no desees utilizar.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    
+                    <!-- Inspector Field -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Inspector</label>
+                        <select id="mapInspector" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                    <!-- Date/Time combined -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Fecha / Fecha y Hora</label>
+                        <select id="mapDateTime" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                    <!-- Time optional separated -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Hora Separada</label>
+                        <select id="mapTimeOnly" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                    <!-- Patente Field -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
+                        <select id="mapPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                    <!-- Resultado Field -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
+                        <select id="mapResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                    <!-- Ticket Field -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Justificación</label>
+                        <select id="mapTicket" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                    </div>
+
+                </div>
+
+                <!-- Preview Box -->
+                <div class="mt-4 border-t border-slate-200 pt-3">
+                    <h4 class="text-xs font-bold text-slate-700 mb-2">Vista previa de datos del archivo:</h4>
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-36">
+                        <table class="w-full text-left text-[11px] border-collapse bg-slate-50" id="previewTable"></table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 p-4 border-t border-slate-200 flex justify-end space-x-2">
+                <button onclick="closeMappingModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="confirmMappingAndAnalyze()" class="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shadow">
+                    Confirmar e Importar Archivo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar Fila Manualmente -->
+    <div id="addRowModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
+            
+            <div class="bg-emerald-800 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-emerald-300 text-lg"></i>
+                    <h3 class="font-bold text-base">Agregar Registro Manual</h3>
+                </div>
+                <button onclick="closeAddRowModal()" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-5 space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Inspector <span class="text-rose-500">*</span></label>
+                    <input type="text" id="newInspector" placeholder="Ej: SANTILLAN, Pedro" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Fecha <span class="text-rose-500">*</span></label>
+                        <input type="date" id="newDate" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Hora <span class="text-rose-500">*</span></label>
+                        <input type="time" id="newTime" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
+                        <input type="text" id="newPatente" placeholder="Ej: AB123CD" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
+                        <select id="newResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
+                            <option value="Estacionado">Estacionado</option>
+                            <option value="No estacionado">No estacionado</option>
+                            <option value="Infraccionado">Infraccionado</option>
+                            <option value="Exceptuado">Exceptuado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Observación</label>
+                    <input type="text" id="newTicket" placeholder="Ej: 2026-999999" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+
+            <div class="bg-slate-100 p-4 border-t border-slate-200 flex justify-end space-x-2">
+                <button onclick="closeAddRowModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="confirmAddRow()" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow">
+                    Guardar Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // Global Application State
+        let rawAccumulatedInspections = [];
+        let auxPausesMap = new Map();
+        let auxLicenciasMap = new Map();
+        
+        let processedData = [];
+        let filteredData = [];
+        
+        let currentRawSheetData = null;
+        let currentFileName = "";
+
+        // Pagination State
+        let currentPage = 1;
+        let pageSize = 250;
+
+        // UI Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        // Setup Event Listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-100/50'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500', 'bg-indigo-100/50'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-100/50');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function setQuickThreshold(val) {
+            document.getElementById('thresholdInput').value = val;
+            runAnalysisAsync();
+        }
+
+        async function handleFiles(files) {
+            if (!files.length) return;
+            
+            for (let file of files) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['xlsx', 'xls'].includes(ext)) {
+                    alert(`El archivo ${file.name} no es una planilla Excel válida.`);
+                    continue;
+                }
+
+                try {
+                    const parsedData = await parseExcelOrHtml(file);
+                    currentRawSheetData = parsedData;
+                    currentFileName = file.name;
+                    openMappingModal(parsedData.headers, parsedData.rows);
+                    return; // Open mapping modal for EVERY file imported
+                } catch (err) {
+                    console.error("Error leyendo archivo:", err);
+                    alert(`Error al procesar ${file.name}: ${err.message}`);
+                }
+            }
+        }
+
+        function addFileBadge(name, type, colorClasses) {
+            const container = document.getElementById('fileList');
+            const badge = document.createElement('span');
+            badge.className = `inline-flex items-center px-2.5 py-1 rounded-md border text-[11px] font-medium ${colorClasses}`;
+            badge.innerHTML = `<i class="fa-solid fa-file-excel me-1"></i> ${name} (${type})`;
+            container.appendChild(badge);
+            
+            const countElem = document.getElementById('filesCount');
+            const current = parseInt(countElem.textContent) || 0;
+            countElem.textContent = `${current + 1} cargados`;
+        }
+
+        // SheetJS / HTML Parser Engine
+        function parseExcelOrHtml(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                        if (!jsonData || jsonData.length === 0) {
+                            reject(new Error("La planilla no contiene registros válidos."));
+                            return;
+                        }
+
+                        const headers = Object.keys(jsonData[0]);
+                        resolve({ headers, rows: jsonData });
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Open Mapping Modal with Explicit Omit Options
+        function openMappingModal(headers, rows) {
+            document.getElementById('modalFileTitle').textContent = `Relacionar Campos: ${currentFileName}`;
+            const selectIds = ['mapInspector', 'mapDateTime', 'mapTimeOnly', 'mapPatente', 'mapResultado', 'mapTicket'];
+            
+            selectIds.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">-- NO RELACIONAR / OMITIR --</option>';
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    select.appendChild(opt);
+                });
+            });
+
+            // Smart auto-detection of fields
+            headers.forEach(h => {
+                const lower = h.toLowerCase();
+                if (lower.includes('inspector') || lower.includes('responsable')) document.getElementById('mapInspector').value = h;
+                if (lower.includes('fecha') || lower.includes('date')) document.getElementById('mapDateTime').value = h;
+                if (lower.includes('patente') || lower.includes('dominio')) document.getElementById('mapPatente').value = h;
+                if (lower.includes('resultado') || lower.includes('estado')) document.getElementById('mapResultado').value = h;
+                if (lower.includes('ticket') || lower.includes('acta') || lower.includes('motivo')) document.getElementById('mapTicket').value = h;
+            });
+
+            // Render Preview Table
+            const previewTable = document.getElementById('previewTable');
+            let previewHTML = `<thead class="bg-slate-200"><tr>${headers.map(h => `<th class="px-2 py-1 border">${h}</th>`).join('')}</tr></thead><tbody>`;
+            rows.slice(0, 3).forEach(r => {
+                previewHTML += `<tr>${headers.map(h => `<td class="px-2 py-1 border text-slate-600">${r[h]}</td>`).join('')}</tr>`;
+            });
+            previewHTML += '</tbody>';
+            previewTable.innerHTML = previewHTML;
+
+            document.getElementById('mappingModal').classList.remove('hidden');
+        }
+
+        function closeMappingModal() {
+            document.getElementById('mappingModal').classList.add('hidden');
+        }
+
+        function confirmMappingAndAnalyze() {
+            const mapping = {
+                inspector: document.getElementById('mapInspector').value,
+                dateTime: document.getElementById('mapDateTime').value,
+                timeOnly: document.getElementById('mapTimeOnly').value,
+                patente: document.getElementById('mapPatente').value,
+                resultado: document.getElementById('mapResultado').value,
+                ticket: document.getElementById('mapTicket').value
+            };
+
+            currentRawSheetData.rows.forEach(item => {
+                const inspector = mapping.inspector ? String(item[mapping.inspector] || 'GENERAL').trim() : "SIN INSPECTOR";
+                const dt = mapping.dateTime ? parseDateTime(item[mapping.dateTime], mapping.timeOnly ? item[mapping.timeOnly] : null) : null;
+                
+                if (dt) {
+                    rawAccumulatedInspections.push({
+                        inspector,
+                        dateTime: dt,
+                        patente: mapping.patente ? item[mapping.patente] || '-' : '-',
+                        resultado: mapping.resultado ? item[mapping.resultado] || '-' : '-',
+                        ticket: mapping.ticket ? item[mapping.ticket] || '-' : '-'
+                    });
+                }
+            });
+
+            addFileBadge(currentFileName, 'Importado', 'bg-indigo-100 text-indigo-800 border-indigo-300');
+            closeMappingModal();
+            runAnalysisAsync();
+        }
+
+        // Fast Date Parser
+        function parseDateTime(dateVal, timeVal) {
+            if (!dateVal) return null;
+            if (dateVal instanceof Date && !isNaN(dateVal)) return dateVal;
+
+            let str = String(dateVal).trim();
+            if (timeVal) str += ' ' + String(timeVal).trim();
+
+            const ddmmyyyy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+            if (ddmmyyyy) {
+                const day = parseInt(ddmmyyyy[1], 10);
+                const month = parseInt(ddmmyyyy[2], 10) - 1;
+                const year = parseInt(ddmmyyyy[3], 10);
+                const hour = ddmmyyyy[4] ? parseInt(ddmmyyyy[4], 10) : 0;
+                const min = ddmmyyyy[5] ? parseInt(ddmmyyyy[5], 10) : 0;
+                return new Date(year, month, day, hour, min);
+            }
+
+            const parsed = new Date(str);
+            return isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        // Add Manual Row Functionality
+        function openAddRowModal() {
+            document.getElementById('addRowModal').classList.remove('hidden');
+        }
+
+        function closeAddRowModal() {
+            document.getElementById('addRowModal').classList.add('hidden');
+        }
+
+        function confirmAddRow() {
+            const ins = document.getElementById('newInspector').value.trim();
+            const dateVal = document.getElementById('newDate').value;
+            const timeVal = document.getElementById('newTime').value;
+            const patente = document.getElementById('newPatente').value.trim() || '-';
+            const resultado = document.getElementById('newResultado').value;
+            const ticket = document.getElementById('newTicket').value.trim() || '-';
+
+            if (!ins || !dateVal || !timeVal) {
+                alert('Por favor completa los campos obligatorios (Inspector, Fecha y Hora).');
+                return;
+            }
+
+            const dt = new Date(`${dateVal}T${timeVal}`);
+            rawAccumulatedInspections.push({ inspector: ins, dateTime: dt, patente, resultado, ticket });
+
+            closeAddRowModal();
+            runAnalysisAsync();
+        }
+
+        // Async Processing Engine
+        function runAnalysisAsync() {
+            if (!rawAccumulatedInspections.length) return;
+
+            const threshold = parseInt(document.getElementById('thresholdInput').value, 10) || 30;
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressLabel = document.getElementById('progressLabel');
+
+            progressContainer.classList.remove('hidden');
+            progressLabel.textContent = "Ordenando datos y agrupando...";
+            progressBar.style.width = "10%";
+            progressPercent.textContent = "10%";
+
+            setTimeout(() => {
+                rawAccumulatedInspections.sort((a, b) => {
+                    if (a.inspector !== b.inspector) return a.inspector.localeCompare(b.inspector);
+                    return a.dateTime - b.dateTime;
+                });
+
+                const total = rawAccumulatedInspections.length;
+                let processedList = new Array(total);
+
+                let index = 0;
+                const chunkSize = 5000;
+
+                function processChunk() {
+                    const end = Math.min(index + chunkSize, total);
+                    for (; index < end; index++) {
+                        const item = rawAccumulatedInspections[index];
+                        let gapMinutes = null;
+                        let isAlert = false;
+                        let obs = '';
+
+                        if (index > 0 && item.inspector === rawAccumulatedInspections[index - 1].inspector) {
+                            const diffMin = Math.round((item.dateTime - rawAccumulatedInspections[index - 1].dateTime) / 60000);
+                            gapMinutes = diffMin;
+
+                            if (diffMin > threshold) {
+                                isAlert = true;
+                                obs = 'Inactividad prolongada';
+                            }
+                        } else {
+                            obs = 'Inicio de Jornada';
+                        }
+
+                        // Preservar la marca manual "no contabiliza" si existía previamente
+                        const previousOverride = (processedData && processedData[index]) ? processedData[index].isNoContabiliza : false;
+
+                        processedList[index] = {
+                            id: index + 1,
+                            inspector: item.inspector,
+                            dateTime: item.dateTime,
+                            patente: item.patente,
+                            resultado: item.resultado,
+                            ticket: item.ticket,
+                            gapMinutes,
+                            isAlert,
+                            observation: obs,
+                            isNoContabiliza: previousOverride
+                        };
+                    }
+
+                    const pct = Math.round((index / total) * 90);
+                    progressBar.style.width = `${pct}%`;
+                    progressPercent.textContent = `${pct}%`;
+                    progressLabel.textContent = `Analizando intervalos (${index.toLocaleString()} de ${total.toLocaleString()})...`;
+
+                    if (index < total) {
+                        requestAnimationFrame(processChunk);
+                    } else {
+                        processedData = processedList;
+                        recalculateKPIsAndFinish();
+                    }
+                }
+
+                processChunk();
+            }, 50);
+        }
+
+        // Alternar el estado "no contabiliza" manualmente desde la tabla
+        function toggleNoContabiliza(id) {
+            const item = processedData.find(p => p.id === id);
+            if (!item) return;
+
+            item.isNoContabiliza = !item.isNoContabiliza;
+            recalculateKPIsAndFinish();
+        }
+
+        function recalculateKPIsAndFinish() {
+            document.getElementById('progressContainer').classList.add('hidden');
+
+            document.getElementById('kpiTotal').textContent = processedData.length.toLocaleString();
+            
+            const inspectorsSet = new Set(processedData.map(p => p.inspector));
+            document.getElementById('kpiInspectors').textContent = inspectorsSet.size;
+            
+            let alertCount = 0;
+            let totalGaps = 0;
+            let gapSum = 0;
+
+            processedData.forEach(p => {
+                if (!p.isNoContabiliza) {
+                    if (p.isAlert) alertCount++;
+                    if (p.gapMinutes !== null && p.gapMinutes > 0) {
+                        gapSum += p.gapMinutes;
+                        totalGaps++;
+                    }
+                }
+            });
+
+            const avgGap = totalGaps > 0 ? Math.round(gapSum / totalGaps) : 0;
+            document.getElementById('kpiAvgGap').textContent = `${avgGap} min`;
+            document.getElementById('kpiAlerts').textContent = alertCount.toLocaleString();
+
+            const select = document.getElementById('inspectorSelect');
+            const currentSelected = select.value;
+            select.innerHTML = '<option value="ALL">Todos los Inspectores</option>';
+            Array.from(inspectorsSet).sort().forEach(ins => {
+                const opt = document.createElement('option');
+                opt.value = ins;
+                opt.textContent = ins;
+                select.appendChild(opt);
+            });
+            if (inspectorsSet.has(currentSelected)) select.value = currentSelected;
+
+            applyFilters();
+        }
+
+        // Filtering and Pagination Logic
+        function applyFilters() {
+            const inspectorFilter = document.getElementById('inspectorSelect').value;
+            const alertFilter = document.getElementById('alertSelect').value;
+            const searchFilter = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredData = processedData.filter(item => {
+                if (inspectorFilter !== 'ALL' && item.inspector !== inspectorFilter) return false;
+                
+                if (alertFilter === 'ALERTS' && (item.isNoContabiliza || !item.isAlert)) return false;
+                if (alertFilter === 'NORMAL' && (item.isNoContabiliza || item.isAlert)) return false;
+                if (alertFilter === 'NO_CONTABILIZA' && !item.isNoContabiliza) return false;
+
+                if (searchFilter) {
+                    const matchText = `${item.inspector} ${item.patente} ${item.ticket} ${item.resultado}`.toLowerCase();
+                    if (!matchText.includes(searchFilter)) return false;
+                }
+                return true;
+            });
+
+            currentPage = 1;
+            renderPaginatedTable();
+        }
+
+        function renderPaginatedTable() {
+            const tbody = document.getElementById('tableBody');
+            const totalRecords = filteredData.length;
+            document.getElementById('recordCount').textContent = `Mostrando ${totalRecords.toLocaleString()} de ${processedData.length.toLocaleString()} registros`;
+
+            if (totalRecords === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No se encontraron registros.</td></tr>`;
+                document.getElementById('pageInfo').textContent = `Página 0 de 0`;
+                document.getElementById('prevPageBtn').disabled = true;
+                document.getElementById('nextPageBtn').disabled = true;
+                return;
+            }
+
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, totalRecords);
+            const pageItems = filteredData.slice(startIdx, endIdx);
+
+            let html = '';
+            pageItems.forEach((r, idx) => {
+                const dateStr = r.dateTime.toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                
+                let gapBadge = '<span class="text-slate-400">-</span>';
+                if (r.isNoContabiliza) {
+                    gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para restaurar el cálculo automático" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-eye-slash"></i> no contabiliza</button>`;
+                } else if (r.gapMinutes !== null) {
+                    if (r.isAlert) {
+                        gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="inline-flex items-center gap-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-triangle-exclamation"></i> +${r.gapMinutes} min</button>`;
+                    } else {
+                        gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] transition-colors">${r.gapMinutes} min</button>`;
+                    }
+                }
+
+                let statusBadge = r.isNoContabiliza
+                    ? `<span class="text-amber-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-ban"></i> Omitido de métricas</span>`
+                    : (r.isAlert 
+                        ? `<span class="text-rose-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> ${r.observation}</span>`
+                        : `<span class="text-emerald-600 font-medium">${r.observation || 'OK'}</span>`);
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors ${r.isNoContabiliza ? 'bg-amber-50/30' : (r.isAlert ? 'bg-rose-50/40' : '')}">
+                        <td class="py-2 px-4 text-slate-400 font-mono text-[11px]">${startIdx + idx + 1}</td>
+                        <td class="py-2 px-4 font-semibold text-slate-800">${r.inspector}</td>
+                        <td class="py-2 px-4 text-slate-600">${dateStr}</td>
+                        <td class="py-2 px-4"><span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${r.patente}</span></td>
+                        <td class="py-2 px-4 text-slate-600">${r.resultado}</td>
+                        <td class="py-2 px-4 text-slate-500 font-mono text-[11px]">${r.ticket}</td>
+                        <td class="py-2 px-4 text-center">${gapBadge}</td>
+                        <td class="py-2 px-4">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('prevPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSizeSelect').value, 10);
+            currentPage = 1;
+            renderPaginatedTable();
+        }
+
+        function prevPage() { if (currentPage > 1) { currentPage--; renderPaginatedTable(); } }
+        function nextPage() { currentPage++; renderPaginatedTable(); }
+
+        // Export Functions
+        function exportDetailedExcel() {
+            if (!processedData.length) return alert('No hay datos procesados para exportar.');
+
+            const exportRows = processedData.map(r => ({
+                'Inspector': r.inspector,
+                'Fecha y Hora': r.dateTime.toLocaleString(),
+                'Patente': r.patente,
+                'Resultado': r.resultado,
+                'Ticket': r.ticket,
+                'Diferencia (min)': r.isNoContabiliza ? 'no contabiliza' : (r.gapMinutes !== null ? r.gapMinutes : 0),
+                'Supera Umbral': r.isNoContabiliza ? 'NO' : (r.isAlert ? 'SI' : 'NO'),
+                'Observación': r.isNoContabiliza ? 'no contabiliza' : r.observation
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Detalle Inspecciones");
+            XLSX.writeFile(wb, `Auditoria_Inspecciones_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function exportSummaryExcel() {
+            if (!processedData.length) return alert('No hay datos procesados para exportar.');
+
+            const summaryMap = {};
+            processedData.forEach(r => {
+                if (!summaryMap[r.inspector]) {
+                    summaryMap[r.inspector] = { TotalControles: 0, Alertas: 0, MaxInactividad: 0, SumGap: 0, GapCount: 0, NoContabiliza: 0 };
+                }
+                const ins = summaryMap[r.inspector];
+                ins.TotalControles++;
+
+                if (r.isNoContabiliza) {
+                    ins.NoContabiliza++;
+                } else {
+                    if (r.isAlert) ins.Alertas++;
+                    if (r.gapMinutes !== null) {
+                        ins.SumGap += r.gapMinutes;
+                        ins.GapCount++;
+                        if (r.gapMinutes > ins.MaxInactividad) ins.MaxInactividad = r.gapMinutes;
+                    }
+                }
+            });
+
+            const summaryRows = Object.keys(summaryMap).map(ins => ({
+                'Inspector': ins,
+                'Total Inspecciones': summaryMap[ins].TotalControles,
+                'Alertas Inactividad (>X min)': summaryMap[ins].Alertas,
+                'Omitidos (no contabiliza)': summaryMap[ins].NoContabiliza,
+                'Máximo Lapso Inactivo (min)': summaryMap[ins].MaxInactividad,
+                'Intervalo Promedio (min)': summaryMap[ins].GapCount > 0 ? Math.round(summaryMap[ins].SumGap / summaryMap[ins].GapCount) : 0
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(summaryRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Resumen por Inspector");
+            XLSX.writeFile(wb, `Resumen_Ejecutivo_Inspectores_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+    </script>
+</body>
+</html>
