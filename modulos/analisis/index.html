@@ -10,39 +10,310 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS (xlsx) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Firebase SDK v10 (JS Modules) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, push, set, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebase Configuration - Project: medido-1b7df
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-12zDd6LGzmR06WcZdJHInurevEQmhm0",
+            authDomain: "medido-1b7df.firebaseapp.com",
+            databaseURL: "https://medido-1b7df-default-rtdb.firebaseio.com",
+            projectId: "medido-1b7df",
+            storageBucket: "medido-1b7df.firebasestorage.app",
+            messagingSenderId: "1080178525205",
+            appId: "1:1080178525205:web:66e277c243d56826d83a1c",
+            measurementId: "G-QCY8VGVLDW"
+        };
+
+        let app, dbRT, dbFS, auth;
+        let activeBackend = 'NONE'; // 'RTDB' | 'FIRESTORE' | 'REST' | 'NONE'
+
+        async function initFirebase() {
+            const statusDot = document.getElementById('fbStatusDot');
+            const statusText = document.getElementById('fbStatusText');
+            
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                
+                try {
+                    await signInAnonymously(auth);
+                } catch(e) {
+                    console.warn("Auth anónimo omitido/error:", e);
+                }
+
+                try {
+                    dbRT = getDatabase(app);
+                    activeBackend = 'RTDB';
+                } catch(err) {
+                    console.warn("Realtime DB no disponible, fallback a Firestore:", err);
+                    dbFS = getFirestore(app);
+                    activeBackend = 'FIRESTORE';
+                }
+
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                statusText.textContent = "Firebase Conectado";
+                document.getElementById('saveCloudBtn').disabled = false;
+                document.getElementById('loadCloudBtn').disabled = false;
+                
+            } catch (err) {
+                console.error("Error al conectar Firebase:", err);
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                statusText.textContent = "Firebase Desconectado";
+            }
+        }
+
+        // Operación de Guardado en Firebase
+        window.saveAnalysisToFirebase = async function() {
+            if (!window.processedData || window.processedData.length === 0) {
+                alert('No hay ningún análisis para guardar. Carga archivos o ejecuta el análisis primero.');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveCloudBtn');
+            const originalHTML = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
+
+            try {
+                const title = prompt("Asigna un nombre o etiqueta a este análisis guardado:", `Análisis ${new Date().toLocaleDateString('es-AR')} ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
+                if (!title) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalHTML;
+                    return;
+                }
+
+                const selectedInspectors = window.getSelectedInspectors();
+                const threshold = parseInt(document.getElementById('thresholdInput').value, 10) || 30;
+
+                const payload = {
+                    title: title,
+                    createdAt: new Date().toISOString(),
+                    thresholdMinutes: threshold,
+                    totalInspecciones: window.processedData.length,
+                    inspectoresSeleccionados: selectedInspectors,
+                    kpis: {
+                        total: window.processedData.length,
+                        inspectoresCount: new Set(window.processedData.map(p => p.inspector)).size,
+                        avgGapMin: document.getElementById('kpiAvgGap').textContent,
+                        totalInactivity: document.getElementById('kpiTotalInactivity').textContent,
+                        alertsCount: document.getElementById('kpiAlerts').textContent
+                    },
+                    inspecciones: window.processedData.map(p => ({
+                        inspector: p.inspector,
+                        dateTime: p.dateTime ? p.dateTime.toISOString() : null,
+                        patente: p.patente || '-',
+                        resultado: p.resultado || '-',
+                        ticket: p.ticket || '-',
+                        gapMinutes: p.gapMinutes,
+                        isAlert: p.isAlert,
+                        observation: p.observation,
+                        isNoContabiliza: p.isNoContabiliza
+                    }))
+                };
+
+                if (activeBackend === 'RTDB' && dbRT) {
+                    const newRef = push(ref(dbRT, 'analisis_inspecciones'));
+                    await set(newRef, payload);
+                } else if (activeBackend === 'FIRESTORE' && dbFS) {
+                    await addDoc(collection(dbFS, 'analisis_inspecciones'), payload);
+                } else {
+                    const restUrl = `https://medido-1b7df-default-rtdb.firebaseio.com/analisis_inspecciones.json`;
+                    const res = await fetch(restUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error("Error en petición REST Firebase");
+                }
+
+                alert(`¡Análisis "${title}" guardado con éxito en Firebase!`);
+            } catch (err) {
+                console.error("Error guardando en Firebase:", err);
+                alert(`Ocurrió un error al guardar en la nube: ${err.message}`);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHTML;
+            }
+        };
+
+        // Carga de Análisis desde Firebase
+        window.loadSavedAnalysesFromFirebase = async function() {
+            const listContainer = document.getElementById('savedAnalysesList');
+            listContainer.innerHTML = `<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2"></i><p class="text-xs">Cargando registros desde Firebase...</p></div>`;
+            document.getElementById('historyModal').classList.remove('hidden');
+
+            try {
+                let items = [];
+
+                if (activeBackend === 'RTDB' && dbRT) {
+                    const snapshot = await get(ref(dbRT, 'analisis_inspecciones'));
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        items = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    }
+                } else if (activeBackend === 'FIRESTORE' && dbFS) {
+                    const q = query(collection(dbFS, 'analisis_inspecciones'));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((docSnap) => {
+                        items.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                } else {
+                    const restUrl = `https://medido-1b7df-default-rtdb.firebaseio.com/analisis_inspecciones.json`;
+                    const res = await fetch(restUrl);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data) {
+                            items = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                        }
+                    }
+                }
+
+                if (!items.length) {
+                    listContainer.innerHTML = `<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-folder-open text-3xl mb-2 block"></i><p class="text-xs">No hay análisis guardados en Firebase aún.</p></div>`;
+                    return;
+                }
+
+                items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                let html = '';
+                items.forEach(item => {
+                    const dateFormatted = new Date(item.createdAt).toLocaleString('es-AR');
+                    const inspectoresBadge = Array.isArray(item.inspectoresSeleccionados) 
+                        ? (item.inspectoresSeleccionados.includes('ALL') ? 'Todos los inspectores' : `${item.inspectoresSeleccionados.length} personal(es)`)
+                        : 'Varios';
+
+                    html += `
+                        <div class="bg-white border border-slate-200 rounded-lg p-4 hover:border-indigo-400 transition-all shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-slate-800 text-sm">${item.title || 'Análisis Guardado'}</h4>
+                                    <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full">${dateFormatted}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
+                                    <span><i class="fa-solid fa-users text-slate-400 me-1"></i>${inspectoresBadge}</span>
+                                    <span><i class="fa-solid fa-list-check text-slate-400 me-1"></i>${item.totalInspecciones || 0} registros</span>
+                                    <span><i class="fa-solid fa-stopwatch text-slate-400 me-1"></i>Umbral: ${item.thresholdMinutes || 30} min</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 self-end sm:self-center">
+                                <button onclick="restoreAnalysis('${item.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold flex items-center gap-1 transition-colors">
+                                    <i class="fa-solid fa-download"></i> Cargar
+                                </button>
+                                <button onclick="deleteAnalysisFromFirebase('${item.id}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 rounded text-xs font-semibold transition-colors">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listContainer.innerHTML = html;
+                window.cachedSavedAnalyses = items;
+
+            } catch (err) {
+                console.error("Error al cargar historial de Firebase:", err);
+                listContainer.innerHTML = `<div class="p-4 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200"><i class="fa-solid fa-triangle-exclamation me-1"></i> Error al conectar con Firebase: ${err.message}</div>`;
+            }
+        };
+
+        window.restoreAnalysis = function(id) {
+            const item = (window.cachedSavedAnalyses || []).find(x => x.id === id);
+            if (!item) return;
+
+            if (!confirm(`¿Cargar el análisis "${item.title}"? Esto reemplazará los datos actuales en pantalla.`)) return;
+
+            window.rawAccumulatedInspections = (item.inspecciones || []).map((insp, idx) => ({
+                rawId: 'restored_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+                inspector: insp.inspector,
+                dateTime: insp.dateTime ? new Date(insp.dateTime) : new Date(),
+                patente: insp.patente || '-',
+                resultado: insp.resultado || '-',
+                ticket: insp.ticket || '-'
+            }));
+
+            if (item.thresholdMinutes) {
+                document.getElementById('thresholdInput').value = item.thresholdMinutes;
+            }
+
+            document.getElementById('historyModal').classList.add('hidden');
+            window.updateInspectorListUI();
+            window.runAnalysisAsync();
+        };
+
+        window.deleteAnalysisFromFirebase = async function(id) {
+            if (!confirm("¿Deseas eliminar permanentemente este registro de Firebase?")) return;
+
+            try {
+                if (activeBackend === 'RTDB' && dbRT) {
+                    await remove(ref(dbRT, `analisis_inspecciones/${id}`));
+                } else if (activeBackend === 'FIRESTORE' && dbFS) {
+                    await deleteDoc(doc(dbFS, 'analisis_inspecciones', id));
+                } else {
+                    const restUrl = `https://medido-1b7df-default-rtdb.firebaseio.com/analisis_inspecciones/${id}.json`;
+                    await fetch(restUrl, { method: 'DELETE' });
+                }
+
+                alert("Registro eliminado correctamente.");
+                window.loadSavedAnalysesFromFirebase();
+            } catch (err) {
+                console.error("Error al eliminar:", err);
+                alert("Error al eliminar de Firebase: " + err.message);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', initFirebase);
+    </script>
+
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
-   <!-- Navegación de Regreso -->
-    <nav class="bg-slate-900 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <!-- Botón Volver al Hub Central -->
-                <a href="../../index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors">
-                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver 
-                </a>
-            </div>
-        </div>
-
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <!-- Header -->
+    <!-- Navegación Superior -->
+    <nav class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="../../index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Volver
+                </a>
+            </div>
+
+            <!-- Estado de Firebase Indicator -->
+            <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                <span id="fbStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                <span id="fbStatusText" class="text-[11px] font-medium text-slate-300">Conectando Firebase...</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Principal -->
     <header class="bg-indigo-900 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-clipboard-check text-indigo-300 text-3xl"></i>
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Auditoría de Inspecciones</h1>
-                    <p class="text-xs text-indigo-200">Plataforma de mapeo explícito, adición de filas e intervalos</p>
+                    <h1 class="text-2xl font-bold tracking-tight">Auditoría e Inspecciones</h1>
+                    <p class="text-xs text-indigo-200">Análisis cronológico unificado, auditoría de inactividad global/individual y Firebase</p>
                 </div>
             </div>
+            
+            <!-- Acciones de Firebase y Controles -->
             <div class="flex items-center space-x-2">
-                <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-plus-circle"></i> Agregar Fila Manual
+                <button id="loadCloudBtn" disabled onclick="loadSavedAnalysesFromFirebase()" class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-200 font-semibold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-indigo-500/30">
+                    <i class="fa-solid fa-cloud-arrow-down text-indigo-400"></i> Cargar de Firebase
+                </button>
+                <button id="saveCloudBtn" disabled onclick="saveAnalysisToFirebase()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Firebase
                 </button>
             </div>
         </div>
@@ -51,31 +322,31 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-        <!-- Import Section & Threshold Control -->
+        <!-- Import Section, Threshold & Inspector Selection Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- File Upload Box -->
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Importar Archivos
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> 1. Importar Archivos
                         </h2>
                         <span id="filesCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">0 cargados</span>
                     </div>
                     
-                    <div id="dropZone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-6 text-center cursor-pointer transition-all duration-200 group">
+                    <div id="dropZone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-5 text-center cursor-pointer transition-all duration-200 group">
                         <input type="file" id="fileInput" multiple accept=".xlsx, .xls" class="hidden">
-                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 group-hover:scale-110 transition-transform duration-200 mb-2"></i>
-                        <p class="text-sm font-semibold text-slate-700">Arrastra tus planillas Excel aquí o haz clic para examinar</p>
-                        <p class="text-xs text-slate-500 mt-1">Soporta <code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700">.xlsx</code> e <code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700">.xls</code></p>
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-400 group-hover:scale-110 transition-transform duration-200 mb-1"></i>
+                        <p class="text-xs font-semibold text-slate-700">Arrastra planillas Excel aquí o haz clic</p>
+                        <p class="text-[11px] text-slate-500 mt-1">Soporta <code class="bg-slate-200 px-1 rounded text-slate-700">.xlsx</code> y <code class="bg-slate-200 px-1 rounded text-slate-700">.xls</code></p>
                     </div>
                 </div>
 
                 <!-- Progress Bar -->
                 <div id="progressContainer" class="mt-4 hidden">
                     <div class="flex justify-between items-center text-xs text-slate-600 mb-1">
-                        <span id="progressLabel" class="font-semibold">Procesando registros...</span>
+                        <span id="progressLabel" class="font-semibold">Procesando...</span>
                         <span id="progressPercent" class="font-bold text-indigo-600">0%</span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
@@ -86,22 +357,67 @@
                 <div id="fileList" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
             </div>
 
+            <!-- Inspector Selection Module -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-users text-indigo-600"></i> 2. Selección de Personal
+                        </h2>
+                        <span id="selectedInspectorsBadge" class="text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                            Todos (0)
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mb-3">
+                        Marca los inspectores a auditar. Seleccionar "Todos" auditará la secuencia global conjunta del equipo:
+                    </p>
+
+                    <!-- Quick Filter Buttons -->
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex gap-2">
+                            <button onclick="selectAllInspectors(true)" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors">
+                                Seleccionar Todos
+                            </button>
+                            <button onclick="selectAllInspectors(false)" class="text-[11px] font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors">
+                                Deseleccionar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Box for Inspectors -->
+                    <div class="relative mb-2">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+                        <input type="text" id="searchInspectorInput" onkeyup="filterInspectorListUI()" placeholder="Buscar inspector..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-7 pr-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Scrollable Checkbox List -->
+                    <div id="inspectorCheckboxContainer" class="border border-slate-200 rounded-lg max-h-36 overflow-y-auto p-2 space-y-1.5 custom-scrollbar bg-slate-50/50">
+                        <div class="text-xs text-slate-400 text-center py-4">Carga un archivo para ver el listado de personal.</div>
+                    </div>
+                </div>
+
+                <button onclick="runAnalysisAsync()" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-filter"></i> Aplicar Selección y Re-analizar
+                </button>
+            </div>
+
             <!-- Parameters Card -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-600"></i> Criterios de Alerta
+                    <h2 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i> 3. Criterios de Alerta
                     </h2>
                     <p class="text-xs text-slate-500 mb-4">
-                        Define el tiempo máximo tolerado ($X$) entre dos inspecciones consecutivas del mismo inspector antes de marcar una advertencia.
+                        Tiempo máximo tolerado entre dos inspecciones consecutivas antes de marcar advertencia.
                     </p>
 
                     <label for="thresholdInput" class="block text-xs font-bold text-slate-700 mb-1">
-                        Umbral de Inactividad ($X$ en minutos):
+                        Umbral de Inactividad (en minutos):
                     </label>
                     <div class="flex items-center gap-2 mb-4">
-                        <input type="number" id="thresholdInput" min="1" max="480" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-semibold text-slate-800">
-                        <span class="text-sm font-medium text-slate-600">min</span>
+                        <input type="number" id="thresholdInput" min="1" max="480" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
+                        <span class="text-xs font-semibold text-slate-600">min</span>
                     </div>
 
                     <div class="grid grid-cols-4 gap-1.5 text-xs">
@@ -112,36 +428,43 @@
                     </div>
                 </div>
 
-                <button id="reanalyzeBtn" onclick="runAnalysisAsync()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-sm">
-                    <i class="fa-solid fa-rotate"></i> Re-analizar Datos
+                <button onclick="runAnalysisAsync()" class="w-full mt-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-rotate"></i> Recalcular Análisis
                 </button>
             </div>
         </div>
 
-        <!-- Metrics Overview Dashboard -->
-        <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+        <!-- Metrics Dashboard -->
+        <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
                 <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-list-check text-xl"></i></div>
                 <div>
                     <p class="text-xs font-medium text-slate-500 uppercase">Total Inspecciones</p>
                     <h3 id="kpiTotal" class="text-xl font-bold text-slate-800">0</h3>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
                 <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-user-shield text-xl"></i></div>
                 <div>
                     <p class="text-xs font-medium text-slate-500 uppercase">Inspectores</p>
                     <h3 id="kpiInspectors" class="text-xl font-bold text-slate-800">0</h3>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-                <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-hourglass-half text-xl"></i></div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tiempo Inactividad Total</p>
+                    <h3 id="kpiTotalInactivity" class="text-xl font-bold text-amber-600">0h 0m</h3>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
                 <div>
                     <p class="text-xs font-medium text-slate-500 uppercase">Intervalo Promedio</p>
                     <h3 id="kpiAvgGap" class="text-xl font-bold text-slate-800">0 min</h3>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
                 <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
                 <div>
                     <p class="text-xs font-medium text-slate-500 uppercase">Alertas (> X min)</p>
@@ -156,17 +479,10 @@
             <!-- Controls Bar -->
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <!-- Inspector Filter -->
-                    <div class="w-full sm:w-auto">
-                        <select id="inspectorSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="ALL">Todos los Inspectores</option>
-                        </select>
-                    </div>
-                    
                     <!-- Alert Status Filter -->
                     <div class="w-full sm:w-auto">
                         <select id="alertSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="ALL">Todos los registros</option>
+                            <option value="ALL">Todos los registros del análisis</option>
                             <option value="ALERTS">Solo Alertas (Inactividad &gt; X min)</option>
                             <option value="NORMAL">Normales (&le; X min)</option>
                             <option value="NO_CONTABILIZA">Omitidos / No contabiliza</option>
@@ -176,20 +492,20 @@
                     <!-- Search Box -->
                     <div class="relative w-full sm:w-64">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, ticket, etc..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, ticket, inspector..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
 
                 <!-- Actions -->
                 <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
                     <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-plus"></i> Agregar Fila
+                        <i class="fa-solid fa-plus"></i> Agregar Fila Manual
                     </button>
                     <button onclick="exportSummaryExcel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-invoice"></i> Resumen
+                        <i class="fa-solid fa-file-invoice"></i> Resumen XLS
                     </button>
                     <button onclick="exportDetailedExcel()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-file-export"></i> Exportar XLS
+                        <i class="fa-solid fa-file-export"></i> Detalle XLS
                     </button>
                 </div>
             </div>
@@ -200,27 +516,28 @@
                     <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 border-b border-slate-200">
                         <tr>
                             <th class="py-3 px-4">#</th>
+                            <th class="py-3 px-4">Fecha y Hora (Orden Cronológico)</th>
                             <th class="py-3 px-4">Inspector</th>
-                            <th class="py-3 px-4">Fecha y Hora</th>
                             <th class="py-3 px-4">Patente / Dominio</th>
                             <th class="py-3 px-4">Resultado</th>
                             <th class="py-3 px-4">Ticket / Acta</th>
                             <th class="py-3 px-4 text-center">Intervalo Inter-Control</th>
                             <th class="py-3 px-4">Estado / Observación</th>
+                            <th class="py-3 px-4 text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-slate-200">
                         <tr>
-                            <td colspan="8" class="text-center py-12 text-slate-400">
+                            <td colspan="9" class="text-center py-12 text-slate-400">
                                 <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
-                                Carga un archivo de inspecciones o agrega filas manualmente para iniciar.
+                                Carga un archivo de inspecciones o recupera un análisis de Firebase para comenzar.
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination & Navigation Footer -->
+            <!-- Pagination Footer -->
             <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span id="recordCount">Mostrando 0 registros</span>
                 
@@ -246,7 +563,7 @@
 
     </main>
 
-    <!-- Modal para Relacionar / Mapear Campos -->
+    <!-- Modal Mapeo de Campos Excel -->
     <div id="mappingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
             
@@ -265,46 +582,32 @@
                 </p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    
-                    <!-- Inspector Field -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Inspector</label>
                         <select id="mapInspector" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
-                    <!-- Date/Time combined -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Fecha / Fecha y Hora</label>
                         <select id="mapDateTime" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
-                    <!-- Time optional separated -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Hora Separada</label>
                         <select id="mapTimeOnly" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
-                    <!-- Patente Field -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
                         <select id="mapPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
-                    <!-- Resultado Field -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
                         <select id="mapResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
-                    <!-- Ticket Field -->
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Justificación</label>
                         <select id="mapTicket" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
-
                 </div>
 
-                <!-- Preview Box -->
                 <div class="mt-4 border-t border-slate-200 pt-3">
                     <h4 class="text-xs font-bold text-slate-700 mb-2">Vista previa de datos del archivo:</h4>
                     <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-36">
@@ -322,10 +625,9 @@
         </div>
     </div>
 
-    <!-- Modal para Agregar Fila Manualmente -->
+    <!-- Modal Agregar Fila Manualmente -->
     <div id="addRowModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
-            
             <div class="bg-emerald-800 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-plus-circle text-emerald-300 text-lg"></i>
@@ -382,28 +684,103 @@
         </div>
     </div>
 
-    <!-- Application Script Logic -->
+    <!-- Modal Editar Registro -->
+    <div id="editRowModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
+            <div class="bg-amber-800 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-amber-300 text-lg"></i>
+                    <h3 class="font-bold text-base">Modificar Registro de Inspección</h3>
+                </div>
+                <button onclick="closeEditRowModal()" class="text-amber-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-5 space-y-3 text-xs">
+                <input type="hidden" id="editRawIndex">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Inspector <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editInspector" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Fecha <span class="text-rose-500">*</span></label>
+                        <input type="date" id="editDate" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Hora <span class="text-rose-500">*</span></label>
+                        <input type="time" id="editTime" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
+                        <input type="text" id="editPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
+                        <input type="text" id="editResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Observación</label>
+                    <input type="text" id="editTicket" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <div class="bg-slate-100 p-4 border-t border-slate-200 flex justify-end space-x-2">
+                <button onclick="closeEditRowModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="confirmEditRow()" class="px-5 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors shadow">
+                    Guardar Cambios y Recalcular
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Historial Firebase -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-cloud text-indigo-400 text-lg"></i>
+                    <h3 class="font-bold text-base">Historial de Análisis en Firebase</h3>
+                </div>
+                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div id="savedAnalysesList" class="p-5 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+            </div>
+
+            <div class="bg-slate-100 p-4 border-t border-slate-200 flex justify-end">
+                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lógica JavaScript Principal de la Aplicación -->
     <script>
-        // Global Application State
-        let rawAccumulatedInspections = [];
-        let auxPausesMap = new Map();
-        let auxLicenciasMap = new Map();
-        
-        let processedData = [];
-        let filteredData = [];
+        // Estado Global
+        window.rawAccumulatedInspections = [];
+        window.processedData = [];
+        window.filteredData = [];
         
         let currentRawSheetData = null;
         let currentFileName = "";
 
-        // Pagination State
+        // Lista global de inspectores disponibles e identificadores seleccionados
+        let allInspectorsList = [];
+        let selectedInspectorsMap = new Set(); // Nombres de inspectores seleccionados
+
+        // Paginación
         let currentPage = 1;
         let pageSize = 250;
 
-        // UI Elements
+        // UI Listeners
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
 
-        // Setup Event Listeners
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-100/50'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-500', 'bg-indigo-100/50'));
@@ -434,7 +811,7 @@
                     currentRawSheetData = parsedData;
                     currentFileName = file.name;
                     openMappingModal(parsedData.headers, parsedData.rows);
-                    return; // Open mapping modal for EVERY file imported
+                    return;
                 } catch (err) {
                     console.error("Error leyendo archivo:", err);
                     alert(`Error al procesar ${file.name}: ${err.message}`);
@@ -454,7 +831,6 @@
             countElem.textContent = `${current + 1} cargados`;
         }
 
-        // SheetJS / HTML Parser Engine
         function parseExcelOrHtml(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -482,7 +858,6 @@
             });
         }
 
-        // Open Mapping Modal with Explicit Omit Options
         function openMappingModal(headers, rows) {
             document.getElementById('modalFileTitle').textContent = `Relacionar Campos: ${currentFileName}`;
             const selectIds = ['mapInspector', 'mapDateTime', 'mapTimeOnly', 'mapPatente', 'mapResultado', 'mapTicket'];
@@ -498,7 +873,6 @@
                 });
             });
 
-            // Smart auto-detection of fields
             headers.forEach(h => {
                 const lower = h.toLowerCase();
                 if (lower.includes('inspector') || lower.includes('responsable')) document.getElementById('mapInspector').value = h;
@@ -508,7 +882,6 @@
                 if (lower.includes('ticket') || lower.includes('acta') || lower.includes('motivo')) document.getElementById('mapTicket').value = h;
             });
 
-            // Render Preview Table
             const previewTable = document.getElementById('previewTable');
             let previewHTML = `<thead class="bg-slate-200"><tr>${headers.map(h => `<th class="px-2 py-1 border">${h}</th>`).join('')}</tr></thead><tbody>`;
             rows.slice(0, 3).forEach(r => {
@@ -539,7 +912,8 @@
                 const dt = mapping.dateTime ? parseDateTime(item[mapping.dateTime], mapping.timeOnly ? item[mapping.timeOnly] : null) : null;
                 
                 if (dt) {
-                    rawAccumulatedInspections.push({
+                    window.rawAccumulatedInspections.push({
+                        rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                         inspector,
                         dateTime: dt,
                         patente: mapping.patente ? item[mapping.patente] || '-' : '-',
@@ -551,10 +925,10 @@
 
             addFileBadge(currentFileName, 'Importado', 'bg-indigo-100 text-indigo-800 border-indigo-300');
             closeMappingModal();
+            updateInspectorListUI();
             runAnalysisAsync();
         }
 
-        // Fast Date Parser
         function parseDateTime(dateVal, timeVal) {
             if (!dateVal) return null;
             if (dateVal instanceof Date && !isNaN(dateVal)) return dateVal;
@@ -576,14 +950,84 @@
             return isNaN(parsed.getTime()) ? null : parsed;
         }
 
-        // Add Manual Row Functionality
-        function openAddRowModal() {
-            document.getElementById('addRowModal').classList.remove('hidden');
+        // Módulo Checkboxes de Selección de Personal
+        window.updateInspectorListUI = function() {
+            const container = document.getElementById('inspectorCheckboxContainer');
+            const setIns = new Set(window.rawAccumulatedInspections.map(r => r.inspector));
+            allInspectorsList = Array.from(setIns).sort();
+
+            if (!allInspectorsList.length) {
+                container.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Carga un archivo para ver el listado de personal.</div>`;
+                return;
+            }
+
+            if (selectedInspectorsMap.size === 0) {
+                allInspectorsList.forEach(ins => selectedInspectorsMap.add(ins));
+            }
+
+            renderInspectorCheckboxes();
+        };
+
+        function renderInspectorCheckboxes() {
+            const container = document.getElementById('inspectorCheckboxContainer');
+            const searchVal = (document.getElementById('searchInspectorInput').value || '').toLowerCase();
+
+            let html = '';
+            allInspectorsList.forEach(ins => {
+                if (searchVal && !ins.toLowerCase().includes(searchVal)) return;
+
+                const isChecked = selectedInspectorsMap.has(ins) ? 'checked' : '';
+                html += `
+                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 hover:bg-slate-100 p-1 rounded cursor-pointer transition-colors">
+                        <input type="checkbox" value="${ins}" ${isChecked} onchange="toggleInspectorSelection('${ins}', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
+                        <span class="truncate">${ins}</span>
+                    </label>
+                `;
+            });
+
+            container.innerHTML = html || `<div class="text-xs text-slate-400 text-center py-2">Sin coincidencias</div>`;
+            updateSelectedInspectorsBadge();
         }
 
-        function closeAddRowModal() {
-            document.getElementById('addRowModal').classList.add('hidden');
+        function filterInspectorListUI() {
+            renderInspectorCheckboxes();
         }
+
+        function toggleInspectorSelection(ins, checked) {
+            if (checked) {
+                selectedInspectorsMap.add(ins);
+            } else {
+                selectedInspectorsMap.delete(ins);
+            }
+            updateSelectedInspectorsBadge();
+        }
+
+        function selectAllInspectors(select) {
+            if (select) {
+                allInspectorsList.forEach(ins => selectedInspectorsMap.add(ins));
+            } else {
+                selectedInspectorsMap.clear();
+            }
+            renderInspectorCheckboxes();
+        }
+
+        function updateSelectedInspectorsBadge() {
+            const badge = document.getElementById('selectedInspectorsBadge');
+            if (selectedInspectorsMap.size === allInspectorsList.length) {
+                badge.textContent = `Todos (${allInspectorsList.length})`;
+            } else {
+                badge.textContent = `Seleccionados: ${selectedInspectorsMap.size} / ${allInspectorsList.length}`;
+            }
+        }
+
+        window.getSelectedInspectors = function() {
+            if (selectedInspectorsMap.size === allInspectorsList.length) return ['ALL'];
+            return Array.from(selectedInspectorsMap);
+        };
+
+        // Agregar Fila Manual
+        function openAddRowModal() { document.getElementById('addRowModal').classList.remove('hidden'); }
+        function closeAddRowModal() { document.getElementById('addRowModal').classList.add('hidden'); }
 
         function confirmAddRow() {
             const ins = document.getElementById('newInspector').value.trim();
@@ -594,39 +1038,131 @@
             const ticket = document.getElementById('newTicket').value.trim() || '-';
 
             if (!ins || !dateVal || !timeVal) {
-                alert('Por favor completa los campos obligatorios (Inspector, Fecha y Hora).');
+                alert('Por favor completa los campos obligatorios.');
                 return;
             }
 
             const dt = new Date(`${dateVal}T${timeVal}`);
-            rawAccumulatedInspections.push({ inspector: ins, dateTime: dt, patente, resultado, ticket });
+            window.rawAccumulatedInspections.push({ 
+                rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                inspector: ins, 
+                dateTime: dt, 
+                patente, 
+                resultado, 
+                ticket 
+            });
 
             closeAddRowModal();
+            updateInspectorListUI();
             runAnalysisAsync();
         }
 
-        // Async Processing Engine
-        function runAnalysisAsync() {
-            if (!rawAccumulatedInspections.length) return;
+        // Edición e InLine Modificación
+        function updateDateTimeInline(rawId, newDateTimeString) {
+            if (!newDateTimeString) return;
+            const item = window.rawAccumulatedInspections.find(r => r.rawId === rawId);
+            if (!item) return;
+
+            const dt = new Date(newDateTimeString);
+            if (isNaN(dt.getTime())) return;
+
+            item.dateTime = dt;
+            runAnalysisAsync();
+        }
+
+        function openEditRowModal(rawId) {
+            const item = window.rawAccumulatedInspections.find(r => r.rawId === rawId);
+            if (!item) return;
+
+            document.getElementById('editRawIndex').value = rawId;
+            document.getElementById('editInspector').value = item.inspector;
+
+            const yyyy = item.dateTime.getFullYear();
+            const mm = String(item.dateTime.getMonth() + 1).padStart(2, '0');
+            const dd = String(item.dateTime.getDate()).padStart(2, '0');
+            document.getElementById('editDate').value = `${yyyy}-${mm}-${dd}`;
+
+            const hh = String(item.dateTime.getHours()).padStart(2, '0');
+            const min = String(item.dateTime.getMinutes()).padStart(2, '0');
+            document.getElementById('editTime').value = `${hh}:${min}`;
+
+            document.getElementById('editPatente').value = item.patente;
+            document.getElementById('editResultado').value = item.resultado;
+            document.getElementById('editTicket').value = item.ticket;
+
+            document.getElementById('editRowModal').classList.remove('hidden');
+        }
+
+        function closeEditRowModal() { document.getElementById('editRowModal').classList.add('hidden'); }
+
+        function confirmEditRow() {
+            const rawId = document.getElementById('editRawIndex').value;
+            const item = window.rawAccumulatedInspections.find(r => r.rawId === rawId);
+            if (!item) return;
+
+            const ins = document.getElementById('editInspector').value.trim();
+            const dateVal = document.getElementById('editDate').value;
+            const timeVal = document.getElementById('editTime').value;
+
+            if (!ins || !dateVal || !timeVal) {
+                alert('Por favor completa los campos obligatorios.');
+                return;
+            }
+
+            item.inspector = ins;
+            item.dateTime = new Date(`${dateVal}T${timeVal}`);
+            item.patente = document.getElementById('editPatente').value.trim() || '-';
+            item.resultado = document.getElementById('editResultado').value.trim() || '-';
+            item.ticket = document.getElementById('editTicket').value.trim() || '-';
+
+            closeEditRowModal();
+            updateInspectorListUI();
+            runAnalysisAsync();
+        }
+
+        function deleteInspectionRow(rawId) {
+            if (!confirm('¿Desea eliminar esta inspección del análisis?')) return;
+            window.rawAccumulatedInspections = window.rawAccumulatedInspections.filter(r => r.rawId !== rawId);
+            updateInspectorListUI();
+            runAnalysisAsync();
+        }
+
+        // --- MOTOR DE ANÁLISIS CRONOLÓGICO UNIFICADO E INACTIVIDAD GLOBAL/INDIVIDUAL ---
+        window.runAnalysisAsync = function() {
+            if (!window.rawAccumulatedInspections.length) {
+                window.processedData = [];
+                recalculateKPIsAndFinish();
+                return;
+            }
+
+            // Filtrar registros según inspectores seleccionados
+            const filteredRaw = window.rawAccumulatedInspections.filter(r => selectedInspectorsMap.has(r.inspector));
 
             const threshold = parseInt(document.getElementById('thresholdInput').value, 10) || 30;
+            const isSingleInspectorSelected = (selectedInspectorsMap.size === 1);
+
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressPercent = document.getElementById('progressPercent');
             const progressLabel = document.getElementById('progressLabel');
 
             progressContainer.classList.remove('hidden');
-            progressLabel.textContent = "Ordenando datos y agrupando...";
+            progressLabel.textContent = "Ordenando cronológicamente por Fecha y Hora...";
             progressBar.style.width = "10%";
             progressPercent.textContent = "10%";
 
             setTimeout(() => {
-                rawAccumulatedInspections.sort((a, b) => {
-                    if (a.inspector !== b.inspector) return a.inspector.localeCompare(b.inspector);
-                    return a.dateTime - b.dateTime;
-                });
+                const previousOverrides = {};
+                if (window.processedData && window.processedData.length) {
+                    window.processedData.forEach(p => {
+                        if (p.rawId) previousOverrides[p.rawId] = p.isNoContabiliza;
+                    });
+                }
 
-                const total = rawAccumulatedInspections.length;
+                // ORDENAMIENTO ESTRICTAMENTE CRONOLÓGICO POR FECHA Y HORA (Sin importar el inspector)
+                filteredRaw.sort((a, b) => a.dateTime - b.dateTime);
+
+                const total = filteredRaw.length;
                 let processedList = new Array(total);
 
                 let index = 0;
@@ -635,28 +1171,47 @@
                 function processChunk() {
                     const end = Math.min(index + chunkSize, total);
                     for (; index < end; index++) {
-                        const item = rawAccumulatedInspections[index];
+                        const item = filteredRaw[index];
                         let gapMinutes = null;
                         let isAlert = false;
                         let obs = '';
 
-                        if (index > 0 && item.inspector === rawAccumulatedInspections[index - 1].inspector) {
-                            const diffMin = Math.round((item.dateTime - rawAccumulatedInspections[index - 1].dateTime) / 60000);
-                            gapMinutes = diffMin;
+                        // AUDITORÍA DE INACTIVIDAD:
+                        // Si hay 1 solo inspector seleccionado, se evalúa respecto al registro previo de ese inspector.
+                        // Si "Todos" o Múltiples están seleccionados, se evalúa la inactividad global en la secuencia temporal unificada del servicio.
+                        if (index > 0) {
+                            const prevItem = filteredRaw[index - 1];
+                            const sameInspector = (item.inspector === prevItem.inspector);
 
-                            if (diffMin > threshold) {
-                                isAlert = true;
-                                obs = 'Inactividad prolongada';
+                            if (isSingleInspectorSelected || sameInspector) {
+                                const diffMin = Math.round((item.dateTime - prevItem.dateTime) / 60000);
+                                gapMinutes = diffMin;
+
+                                if (diffMin > threshold) {
+                                    isAlert = true;
+                                    obs = 'Inactividad prolongada';
+                                }
+                            } else {
+                                // Cambio de inspector en secuencia cronológica global
+                                const diffMin = Math.round((item.dateTime - prevItem.dateTime) / 60000);
+                                gapMinutes = diffMin;
+
+                                if (diffMin > threshold) {
+                                    isAlert = true;
+                                    obs = `Inactividad global equipo (> ${threshold} min)`;
+                                } else {
+                                    obs = 'Relevo / Cambio de inspector';
+                                }
                             }
                         } else {
-                            obs = 'Inicio de Jornada';
+                            obs = 'Inicio de servicio auditado';
                         }
 
-                        // Preservar la marca manual "no contabiliza" si existía previamente
-                        const previousOverride = (processedData && processedData[index]) ? processedData[index].isNoContabiliza : false;
+                        const previousOverride = previousOverrides[item.rawId] || false;
 
                         processedList[index] = {
                             id: index + 1,
+                            rawId: item.rawId,
                             inspector: item.inspector,
                             dateTime: item.dateTime,
                             patente: item.patente,
@@ -669,26 +1224,25 @@
                         };
                     }
 
-                    const pct = Math.round((index / total) * 90);
+                    const pct = Math.round((index / (total || 1)) * 90);
                     progressBar.style.width = `${pct}%`;
                     progressPercent.textContent = `${pct}%`;
-                    progressLabel.textContent = `Analizando intervalos (${index.toLocaleString()} de ${total.toLocaleString()})...`;
+                    progressLabel.textContent = `Calculando inactividades cronológicas...`;
 
                     if (index < total) {
                         requestAnimationFrame(processChunk);
                     } else {
-                        processedData = processedList;
+                        window.processedData = processedList;
                         recalculateKPIsAndFinish();
                     }
                 }
 
                 processChunk();
             }, 50);
-        }
+        };
 
-        // Alternar el estado "no contabiliza" manualmente desde la tabla
         function toggleNoContabiliza(id) {
-            const item = processedData.find(p => p.id === id);
+            const item = window.processedData.find(p => p.id === id);
             if (!item) return;
 
             item.isNoContabiliza = !item.isNoContabiliza;
@@ -698,52 +1252,50 @@
         function recalculateKPIsAndFinish() {
             document.getElementById('progressContainer').classList.add('hidden');
 
-            document.getElementById('kpiTotal').textContent = processedData.length.toLocaleString();
+            document.getElementById('kpiTotal').textContent = window.processedData.length.toLocaleString();
             
-            const inspectorsSet = new Set(processedData.map(p => p.inspector));
+            const inspectorsSet = new Set(window.processedData.map(p => p.inspector));
             document.getElementById('kpiInspectors').textContent = inspectorsSet.size;
             
             let alertCount = 0;
-            let totalGaps = 0;
-            let gapSum = 0;
+            let totalGapsCount = 0;
+            let gapSumMin = 0;          // Suma de todos los intervalos
+            let alertGapSumMin = 0;     // SUMA EXCLUSIVA de intervalos que SUPERAN EL UMBRAL DE ALERTA
 
-            processedData.forEach(p => {
+            window.processedData.forEach(p => {
                 if (!p.isNoContabiliza) {
-                    if (p.isAlert) alertCount++;
                     if (p.gapMinutes !== null && p.gapMinutes > 0) {
-                        gapSum += p.gapMinutes;
-                        totalGaps++;
+                        gapSumMin += p.gapMinutes;
+                        totalGapsCount++;
+                    }
+
+                    if (p.isAlert) {
+                        alertCount++;
+                        if (p.gapMinutes !== null && p.gapMinutes > 0) {
+                            alertGapSumMin += p.gapMinutes; // Acumular minutos si supera el umbral de alerta
+                        }
                     }
                 }
             });
 
-            const avgGap = totalGaps > 0 ? Math.round(gapSum / totalGaps) : 0;
+            // Formatear Tiempo Total de Inactividad (Solo intervalos que superan Criterios de Alerta)
+            const hours = Math.floor(alertGapSumMin / 60);
+            const mins = alertGapSumMin % 60;
+            const inactivityFormatted = `${hours}h ${mins}m`;
+            document.getElementById('kpiTotalInactivity').textContent = inactivityFormatted;
+
+            const avgGap = totalGapsCount > 0 ? Math.round(gapSumMin / totalGapsCount) : 0;
             document.getElementById('kpiAvgGap').textContent = `${avgGap} min`;
             document.getElementById('kpiAlerts').textContent = alertCount.toLocaleString();
-
-            const select = document.getElementById('inspectorSelect');
-            const currentSelected = select.value;
-            select.innerHTML = '<option value="ALL">Todos los Inspectores</option>';
-            Array.from(inspectorsSet).sort().forEach(ins => {
-                const opt = document.createElement('option');
-                opt.value = ins;
-                opt.textContent = ins;
-                select.appendChild(opt);
-            });
-            if (inspectorsSet.has(currentSelected)) select.value = currentSelected;
 
             applyFilters();
         }
 
-        // Filtering and Pagination Logic
         function applyFilters() {
-            const inspectorFilter = document.getElementById('inspectorSelect').value;
             const alertFilter = document.getElementById('alertSelect').value;
             const searchFilter = document.getElementById('searchInput').value.toLowerCase();
 
-            filteredData = processedData.filter(item => {
-                if (inspectorFilter !== 'ALL' && item.inspector !== inspectorFilter) return false;
-                
+            window.filteredData = window.processedData.filter(item => {
                 if (alertFilter === 'ALERTS' && (item.isNoContabiliza || !item.isAlert)) return false;
                 if (alertFilter === 'NORMAL' && (item.isNoContabiliza || item.isAlert)) return false;
                 if (alertFilter === 'NO_CONTABILIZA' && !item.isNoContabiliza) return false;
@@ -761,11 +1313,11 @@
 
         function renderPaginatedTable() {
             const tbody = document.getElementById('tableBody');
-            const totalRecords = filteredData.length;
-            document.getElementById('recordCount').textContent = `Mostrando ${totalRecords.toLocaleString()} de ${processedData.length.toLocaleString()} registros`;
+            const totalRecords = window.filteredData.length;
+            document.getElementById('recordCount').textContent = `Mostrando ${totalRecords.toLocaleString()} de ${window.processedData.length.toLocaleString()} registros ordenados por Fecha y Hora`;
 
             if (totalRecords === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No se encontraron registros.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">No se encontraron registros en la selección actual.</td></tr>`;
                 document.getElementById('pageInfo').textContent = `Página 0 de 0`;
                 document.getElementById('prevPageBtn').disabled = true;
                 document.getElementById('nextPageBtn').disabled = true;
@@ -777,11 +1329,17 @@
 
             const startIdx = (currentPage - 1) * pageSize;
             const endIdx = Math.min(startIdx + pageSize, totalRecords);
-            const pageItems = filteredData.slice(startIdx, endIdx);
+            const pageItems = window.filteredData.slice(startIdx, endIdx);
 
             let html = '';
             pageItems.forEach((r, idx) => {
-                const dateStr = r.dateTime.toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                const yyyy = r.dateTime.getFullYear();
+                const mm = String(r.dateTime.getMonth() + 1).padStart(2, '0');
+                const dd = String(r.dateTime.getDate()).padStart(2, '0');
+                const hh = String(r.dateTime.getHours()).padStart(2, '0');
+                const min = String(r.dateTime.getMinutes()).padStart(2, '0');
+
+                const isoDateTimeString = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
                 
                 let gapBadge = '<span class="text-slate-400">-</span>';
                 if (r.isNoContabiliza) {
@@ -803,13 +1361,21 @@
                 html += `
                     <tr class="hover:bg-slate-50 transition-colors ${r.isNoContabiliza ? 'bg-amber-50/30' : (r.isAlert ? 'bg-rose-50/40' : '')}">
                         <td class="py-2 px-4 text-slate-400 font-mono text-[11px]">${startIdx + idx + 1}</td>
+                        <td class="py-2 px-4 font-mono text-slate-800">
+                            <input type="datetime-local" value="${isoDateTimeString}" onchange="updateDateTimeInline('${r.rawId}', this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+                        </td>
                         <td class="py-2 px-4 font-semibold text-slate-800">${r.inspector}</td>
-                        <td class="py-2 px-4 text-slate-600">${dateStr}</td>
                         <td class="py-2 px-4"><span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${r.patente}</span></td>
                         <td class="py-2 px-4 text-slate-600">${r.resultado}</td>
                         <td class="py-2 px-4 text-slate-500 font-mono text-[11px]">${r.ticket}</td>
                         <td class="py-2 px-4 text-center">${gapBadge}</td>
                         <td class="py-2 px-4">${statusBadge}</td>
+                        <td class="py-2 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openEditRowModal('${r.rawId}')" title="Modificar Datos" class="p-1 text-slate-500 hover:text-amber-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="deleteInspectionRow('${r.rawId}')" title="Eliminar Registro" class="p-1 text-slate-500 hover:text-rose-600 rounded"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -830,17 +1396,17 @@
         function prevPage() { if (currentPage > 1) { currentPage--; renderPaginatedTable(); } }
         function nextPage() { currentPage++; renderPaginatedTable(); }
 
-        // Export Functions
+        // Exportación a Excel Detallado
         function exportDetailedExcel() {
-            if (!processedData.length) return alert('No hay datos procesados para exportar.');
+            if (!window.processedData.length) return alert('No hay datos procesados para exportar.');
 
-            const exportRows = processedData.map(r => ({
+            const exportRows = window.processedData.map(r => ({
+                'Fecha y Hora': r.dateTime.toLocaleString('es-AR'),
                 'Inspector': r.inspector,
-                'Fecha y Hora': r.dateTime.toLocaleString(),
                 'Patente': r.patente,
                 'Resultado': r.resultado,
                 'Ticket': r.ticket,
-                'Diferencia (min)': r.isNoContabiliza ? 'no contabiliza' : (r.gapMinutes !== null ? r.gapMinutes : 0),
+                'Intervalo Inactividad (min)': r.isNoContabiliza ? 'no contabiliza' : (r.gapMinutes !== null ? r.gapMinutes : 0),
                 'Supera Umbral': r.isNoContabiliza ? 'NO' : (r.isAlert ? 'SI' : 'NO'),
                 'Observación': r.isNoContabiliza ? 'no contabiliza' : r.observation
             }));
@@ -848,16 +1414,17 @@
             const ws = XLSX.utils.json_to_sheet(exportRows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Detalle Inspecciones");
-            XLSX.writeFile(wb, `Auditoria_Inspecciones_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.writeFile(wb, `Auditoria_Inspecciones_Cronologico_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
+        // Exportación a Excel Resumen (Tiempo Total de Inactividad sumando únicamente Alertas por Inspector)
         function exportSummaryExcel() {
-            if (!processedData.length) return alert('No hay datos procesados para exportar.');
+            if (!window.processedData.length) return alert('No hay datos procesados para exportar.');
 
             const summaryMap = {};
-            processedData.forEach(r => {
+            window.processedData.forEach(r => {
                 if (!summaryMap[r.inspector]) {
-                    summaryMap[r.inspector] = { TotalControles: 0, Alertas: 0, MaxInactividad: 0, SumGap: 0, GapCount: 0, NoContabiliza: 0 };
+                    summaryMap[r.inspector] = { TotalControles: 0, Alertas: 0, MaxInactividad: 0, SumAlertGapMin: 0, SumGapMin: 0, GapCount: 0, NoContabiliza: 0 };
                 }
                 const ins = summaryMap[r.inspector];
                 ins.TotalControles++;
@@ -865,28 +1432,42 @@
                 if (r.isNoContabiliza) {
                     ins.NoContabiliza++;
                 } else {
-                    if (r.isAlert) ins.Alertas++;
-                    if (r.gapMinutes !== null) {
-                        ins.SumGap += r.gapMinutes;
+                    if (r.gapMinutes !== null && r.gapMinutes > 0) {
+                        ins.SumGapMin += r.gapMinutes;
                         ins.GapCount++;
                         if (r.gapMinutes > ins.MaxInactividad) ins.MaxInactividad = r.gapMinutes;
+                    }
+
+                    if (r.isAlert) {
+                        ins.Alertas++;
+                        if (r.gapMinutes !== null && r.gapMinutes > 0) {
+                            ins.SumAlertGapMin += r.gapMinutes; // Acumular únicamente lapsos en Alerta
+                        }
                     }
                 }
             });
 
-            const summaryRows = Object.keys(summaryMap).map(ins => ({
-                'Inspector': ins,
-                'Total Inspecciones': summaryMap[ins].TotalControles,
-                'Alertas Inactividad (>X min)': summaryMap[ins].Alertas,
-                'Omitidos (no contabiliza)': summaryMap[ins].NoContabiliza,
-                'Máximo Lapso Inactivo (min)': summaryMap[ins].MaxInactividad,
-                'Intervalo Promedio (min)': summaryMap[ins].GapCount > 0 ? Math.round(summaryMap[ins].SumGap / summaryMap[ins].GapCount) : 0
-            }));
+            const summaryRows = Object.keys(summaryMap).map(ins => {
+                const totalAlertMin = summaryMap[ins].SumAlertGapMin;
+                const hh = Math.floor(totalAlertMin / 60);
+                const mm = totalAlertMin % 60;
+                const tiempoInactividadFormatted = `${hh}h ${mm}m (${totalAlertMin} min)`;
+
+                return {
+                    'Inspector': ins,
+                    'Total Inspecciones': summaryMap[ins].TotalControles,
+                    'Alertas Inactividad (>X min)': summaryMap[ins].Alertas,
+                    'Tiempo Total Inactividad (Alertas > X min)': tiempoInactividadFormatted,
+                    'Máximo Lapso Inactivo (min)': summaryMap[ins].MaxInactividad,
+                    'Intervalo Promedio (min)': summaryMap[ins].GapCount > 0 ? Math.round(summaryMap[ins].SumGapMin / summaryMap[ins].GapCount) : 0,
+                    'Omitidos (no contabiliza)': summaryMap[ins].NoContabiliza
+                };
+            });
 
             const ws = XLSX.utils.json_to_sheet(summaryRows);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Resumen por Inspector");
-            XLSX.writeFile(wb, `Resumen_Ejecutivo_Inspectores_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Resumen Inactividad");
+            XLSX.writeFile(wb, `Resumen_Inactividad_Inspectores_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
     </script>
 </body>
