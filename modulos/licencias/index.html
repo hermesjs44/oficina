@@ -680,14 +680,14 @@
                 </form>
             </section>
 
-            <!-- SUBMENÚ NO TRABAJADO 4: LISTADO DE PAUSAS (MODIFICADO A MATRIZ MENSUAL SIMILAR A PLANIFICACIÓN) -->
+            <!-- SUBMENÚ NO TRABAJADO 4: LISTADO DE PAUSAS (MATRIZ MENSUAL CON ORDENAMIENTO POR FECHA DESCENDENTE) -->
             <section id="listado-pausas" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto hidden">
                 <div class="flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-stone-200 pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
                             <i class="fa-solid fa-table-list text-amber-700"></i> Listado de Pausas (Matriz Mensual)
                         </h2>
-                        <p class="text-xs text-stone-500">Visualización mensual de pausas e interrupciones operativas ordenadas alfabéticamente por motivo.</p>
+                        <p class="text-xs text-stone-500">Visualización mensual de pausas e interrupciones operativas ordenadas por fecha descendente.</p>
                     </div>
 
                     <div class="flex items-center gap-3">
@@ -699,7 +699,7 @@
                 </div>
 
                 <!-- Grilla / Matriz Mensual de Pausas -->
-                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm">
+                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm mb-6">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr id="headPausas" class="bg-amber-800 text-white uppercase text-[10px]">
@@ -715,6 +715,29 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Detalle con Listado Ordenado por Fecha Descendente -->
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-4">
+                    <h3 class="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-700"></i> Detalle de Registros de Pausas (Orden Fecha Descendente)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse bg-white rounded-lg overflow-hidden border border-stone-200">
+                            <thead>
+                                <tr class="bg-stone-200 text-stone-700 uppercase text-[10px]">
+                                    <th class="p-2.5">Fecha</th>
+                                    <th class="p-2.5">Motivo / Causa</th>
+                                    <th class="p-2.5">Horario</th>
+                                    <th class="p-2.5">Autorizado Por</th>
+                                    <th class="p-2.5 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDetallePausas" class="divide-y divide-stone-100 text-stone-700">
+                                <!-- Generado en JS con orden descendente -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -1812,7 +1835,33 @@
             const mesNum = parseInt(mesStr, 10);
             const diasEnMes = new Date(anio, mesNum, 0).getDate();
 
-            // Ordenar las causas/motivos alfabéticamente
+            // Filtrar pausas del mes seleccionado y ordenar el listado de detalle por fecha descendente
+            const pausasFiltradasMes = pausas.filter(p => p.fecha && p.fecha.startsWith(mesAnio));
+            const pausasOrdenadasDesc = [...pausasFiltradasMes].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
+            // Renderizar la tabla de detalle con orden descendente por fecha
+            const tbodyDetalle = document.getElementById('tablaDetallePausas');
+            tbodyDetalle.innerHTML = '';
+
+            if (pausasOrdenadasDesc.length === 0) {
+                tbodyDetalle.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No hay registros de pausas para este período.</td></tr>`;
+            } else {
+                pausasOrdenadasDesc.forEach(p => {
+                    tbodyDetalle.innerHTML += `
+                        <tr class="hover:bg-stone-50">
+                            <td class="p-2.5 font-bold text-amber-900">${formatearFechaLatina(p.fecha)}</td>
+                            <td class="p-2.5 font-semibold text-stone-800">${p.motivo}</td>
+                            <td class="p-2.5 text-stone-600">${p.horaDesde} a ${p.horaHasta} hs</td>
+                            <td class="p-2.5 text-stone-600">${p.autorizadoPor}</td>
+                            <td class="p-2.5 text-center">
+                                <button onclick="eliminarPausa('${p.id}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Ordenar las causas/motivos alfabéticamente para la matriz
             const causasOrdenadas = [...causas].sort((a, b) => a.localeCompare(b));
 
             // Renderizar Cabecera de la Grilla (Sábados y Domingos en negro/oscuro)
@@ -1826,7 +1875,7 @@
             }
             thead.innerHTML = headerHtml;
 
-            // Renderizar Cuerpo (Filas por Causa ordenada alfabéticamente)
+            // Renderizar Cuerpo de la Matriz
             const tbody = document.getElementById('bodyPausas');
             tbody.innerHTML = '';
 
@@ -1852,7 +1901,6 @@
                         if (pausaEncontrada) {
                             totalesPorDia[d]++;
                             
-                            // Asignar colores y abreviaturas predefinidas o automáticas según el motivo
                             let colorClase = "bg-amber-500 text-amber-950";
                             let abrev = "P";
                             
@@ -1867,7 +1915,6 @@
                                 colorClase = "bg-rose-600 text-white";
                                 abrev = "FS";
                             } else {
-                                // Dinámico según índice si se agregan más causas personalizadas
                                 const paleta = [
                                     "bg-emerald-600 text-white", 
                                     "bg-indigo-600 text-white", 
