@@ -997,7 +997,7 @@
             const mesNum = parseInt(mesStr, 10);
             const diasEnMes = new Date(anio, mesNum, 0).getDate();
 
-            // Filtrar inspectores por el grupo de trabajo
+            // Filtrar inspectores por el grupo de trabajo y ordenar alfabéticamente por nombre
             const listaGrupo = inspectores.filter(i => {
                 const funcion = (i.tarea || '').toLowerCase();
                 if (grupoSelect === 'Inspectores') {
@@ -1005,7 +1005,7 @@
                 } else {
                     return funcion.includes('atencion') || funcion.includes('público') || funcion.includes('publico') || funcion.includes('mesa');
                 }
-            });
+            }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
 
             // Actualizar selector de empleados en el formulario rápido de planificación
             const selectEmpleado = document.getElementById('planifEmpleado');
@@ -1014,18 +1014,18 @@
                 selectEmpleado.innerHTML += `<option value="${emp.legajo}">${emp.nombre} (${emp.legajo})</option>`;
             });
 
-            // Renderizar Cabecera de la Grilla
+            // Renderizar Cabecera de la Grilla (Sábados y Domingos resaltados en negro/oscuro)
             const thead = document.getElementById('headPlanificacion');
             let headerHtml = `<th class="p-2 border-r border-amber-900/40 min-w-[160px] sticky left-0 bg-amber-800 z-10">Personal (${grupoSelect})</th>`;
             
             for (let d = 1; d <= diasEnMes; d++) {
                 const fechaDia = new Date(anio, mesNum - 1, d);
                 const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
-                headerHtml += `<th class="p-1.5 text-center min-w-[32px] border-r border-amber-700/50 ${esFinSemana ? 'bg-amber-900/60' : ''}">${d}</th>`;
+                headerHtml += `<th class="p-1.5 text-center min-w-[32px] border-r border-stone-700 ${esFinSemana ? 'bg-stone-900 text-amber-300 font-extrabold' : ''}">${d}</th>`;
             }
             thead.innerHTML = headerHtml;
 
-            // Renderizar Cuerpo (Filas por Empleado)
+            // Renderizar Cuerpo (Filas por Empleado ordenadas alfabéticamente)
             const tbody = document.getElementById('bodyPlanificacion');
             tbody.innerHTML = '';
 
@@ -1043,18 +1043,40 @@
                         const fechaDia = new Date(anio, mesNum - 1, d);
                         const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
 
-                        // Verificar si tiene licencia en esta fecha
-                        const tieneLicencia = licencias.some(lic => {
+                        // Buscar licencia activa para este empleado en la fecha
+                        const licEncontrada = licencias.find(lic => {
                             return String(lic.legajo) === String(emp.legajo) && 
                                    lic.desde <= fechaIsoStr && 
                                    lic.hasta >= fechaIsoStr;
                         });
 
-                        if (tieneLicencia) {
+                        if (licEncontrada) {
                             totalesPorDia[d]++;
-                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 bg-amber-500 text-amber-950 font-black text-[11px]" title="${emp.nombre} en Licencia el ${diaDosDigitos}/${mesStr}">L</td>`;
+                            
+                            // Asignar colores y abreviaturas según el tipo de licencia
+                            let colorClase = "bg-amber-500 text-amber-950";
+                            let tipoAbrev = "V"; // Licencia Ordinaria / Vacaciones por defecto
+                            
+                            if (licEncontrada.tipo === 'Licencia Enfermedad') {
+                                colorClase = "bg-rose-500 text-white";
+                                tipoAbrev = "E";
+                            } else if (licEncontrada.tipo === 'Licencia Enfermedad Familiar') {
+                                colorClase = "bg-orange-500 text-white";
+                                tipoAbrev = "EF";
+                            } else if (licEncontrada.tipo === 'Franco Compensatorio') {
+                                colorClase = "bg-blue-500 text-white";
+                                tipoAbrev = "FC";
+                            } else if (licEncontrada.tipo === 'Permiso') {
+                                colorClase = "bg-emerald-500 text-white";
+                                tipoAbrev = "P";
+                            } else if (licEncontrada.tipo === 'Suspensión') {
+                                colorClase = "bg-purple-600 text-white";
+                                tipoAbrev = "S";
+                            }
+
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 ${colorClase} font-black text-[10px]" title="${emp.nombre} - ${licEncontrada.tipo} (${diaDosDigitos}/${mesStr})">${tipoAbrev}</td>`;
                         } else {
-                            rowHtml += `<td class="p-1 text-center border-r border-stone-100 ${esFinSemana ? 'bg-stone-100/80 text-stone-400' : 'text-stone-300'}">-</td>`;
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 ${esFinSemana ? 'bg-stone-900/10 text-stone-400 font-bold' : 'text-stone-300'}">-</td>`;
                         }
                     }
 
@@ -1072,10 +1094,12 @@
             for (let d = 1; d <= diasEnMes; d++) {
                 const totalDia = totalesPorDia[d];
                 const superaLimite = totalDia > maximoPermitido;
+                const fechaDiaFooter = new Date(anio, mesNum - 1, d);
+                const esFinSemanaFooter = fechaDiaFooter.getDay() === 0 || fechaDiaFooter.getDay() === 6;
 
                 if (superaLimite) diasConExceso++;
 
-                footHtml += `<td class="p-1 text-center border-r border-stone-300 text-[11px] ${superaLimite ? 'bg-rose-600 text-white font-black animate-pulse' : (totalDia > 0 ? 'bg-amber-100 text-amber-900 font-bold' : 'text-stone-400')}">${totalDia}</td>`;
+                footHtml += `<td class="p-1 text-center border-r border-stone-300 text-[11px] ${superaLimite ? 'bg-rose-600 text-white font-black animate-pulse' : (totalDia > 0 ? 'bg-amber-100 text-amber-900 font-bold' : (esFinSemanaFooter ? 'bg-stone-900 text-stone-300 font-bold' : 'text-stone-400'))}">${totalDia}</td>`;
             }
             tfoot.innerHTML = footHtml;
 
