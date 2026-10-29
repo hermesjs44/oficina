@@ -680,34 +680,40 @@
                 </form>
             </section>
 
-            <!-- SUBMENÚ NO TRABAJADO 4: LISTADO DE PAUSAS -->
-            <section id="listado-pausas" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-6xl mx-auto hidden">
-                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <!-- SUBMENÚ NO TRABAJADO 4: LISTADO DE PAUSAS (MODIFICADO A MATRIZ MENSUAL SIMILAR A PLANIFICACIÓN) -->
+            <section id="listado-pausas" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-7xl mx-auto hidden">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 border-b border-stone-200 pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
-                            <i class="fa-solid fa-table-list text-amber-700"></i> Listado de Pausas
+                            <i class="fa-solid fa-table-list text-amber-700"></i> Listado de Pausas (Matriz Mensual)
                         </h2>
-                        <p class="text-xs text-stone-500">Consulte las pausas registradas con opción de filtrado mensual.</p>
+                        <p class="text-xs text-stone-500">Visualización mensual de pausas e interrupciones operativas ordenadas alfabéticamente por motivo.</p>
                     </div>
 
-                    <div>
-                        <input type="month" id="filtroMesPausa" onchange="filtrarPausas()" class="px-3 py-1.5 border border-stone-300 rounded-lg text-xs bg-stone-50 focus:outline-none font-semibold">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-stone-600 block uppercase mb-0.5">Mes Pausas:</label>
+                            <input type="month" id="filtroMesPausa" onchange="filtrarPausas()" class="px-3 py-1.5 border border-amber-300 bg-amber-50 rounded-lg text-xs font-bold text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        </div>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- Grilla / Matriz Mensual de Pausas -->
+                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
-                            <tr class="bg-amber-800 text-white uppercase text-[11px]">
-                                <th class="p-3 rounded-tl-lg">Fecha</th>
-                                <th class="p-3">Motivo</th>
-                                <th class="p-3">Horario (Desde - Hasta)</th>
-                                <th class="p-3">Autorizado por</th>
-                                <th class="p-3 text-center rounded-tr-lg">Acciones</th>
+                            <tr id="headPausas" class="bg-amber-800 text-white uppercase text-[10px]">
+                                <!-- Generado en JS -->
                             </tr>
                         </thead>
-                        <tbody id="tablaPausas" class="divide-y divide-stone-200 text-stone-700">
+                        <tbody id="bodyPausas" class="divide-y divide-stone-200 text-stone-700 bg-white">
+                            <!-- Generado en JS -->
                         </tbody>
+                        <tfoot>
+                            <tr id="footPausas" class="bg-stone-100 font-bold text-[10px] text-stone-800">
+                                <!-- Totales diarios calculados dinámicamente -->
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </section>
@@ -851,6 +857,12 @@
                 inputMesPlanif.value = hoyIso.substring(0, 7);
             }
 
+            // Establecer mes actual para el listado de pausas
+            const inputMesPausa = document.getElementById('filtroMesPausa');
+            if (inputMesPausa && !inputMesPausa.value) {
+                inputMesPausa.value = hoyIso.substring(0, 7);
+            }
+
             await obtenerInspectoresFirebase();
             await obtenerLicenciasFirebase();
             await obtenerConfiguracionFirebase();
@@ -890,7 +902,7 @@
             if (sectionId === 'ausencia-sin-aviso') obtenerAusenciasFirebase();
             if (sectionId === 'causas-no-trabajado') obtenerCausasFirebase();
             if (sectionId === 'carga-pausa') renderSelectCausas();
-            if (sectionId === 'listado-pausas') obtenerPausasFirebase();
+            if (sectionId === 'listado-pausas') filtrarPausas();
         }
 
         // --- SECCIÓN 0: LÓGICA DASHBOARD ---
@@ -1793,32 +1805,101 @@
         }
 
         function filtrarPausas() {
-            const filtroMes = document.getElementById('filtroMesPausa').value;
-            const tbody = document.getElementById('tablaPausas');
+            const mesAnio = document.getElementById('filtroMesPausa').value;
+            if (!mesAnio) return;
+
+            const [anio, mesStr] = mesAnio.split('-');
+            const mesNum = parseInt(mesStr, 10);
+            const diasEnMes = new Date(anio, mesNum, 0).getDate();
+
+            // Ordenar las causas/motivos alfabéticamente
+            const causasOrdenadas = [...causas].sort((a, b) => a.localeCompare(b));
+
+            // Renderizar Cabecera de la Grilla (Sábados y Domingos en negro/oscuro)
+            const thead = document.getElementById('headPausas');
+            let headerHtml = `<th class="p-2 border-r border-amber-900/40 min-w-[180px] sticky left-0 bg-amber-800 z-10">Motivo / Causa</th>`;
+            
+            for (let d = 1; d <= diasEnMes; d++) {
+                const fechaDia = new Date(anio, mesNum - 1, d);
+                const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
+                headerHtml += `<th class="p-1.5 text-center min-w-[32px] border-r border-stone-700 ${esFinSemana ? 'bg-stone-900 text-amber-300 font-extrabold' : ''}">${d}</th>`;
+            }
+            thead.innerHTML = headerHtml;
+
+            // Renderizar Cuerpo (Filas por Causa ordenada alfabéticamente)
+            const tbody = document.getElementById('bodyPausas');
             tbody.innerHTML = '';
 
-            let resultado = pausas.filter(p => !filtroMes || p.fecha.startsWith(filtroMes));
+            let totalesPorDia = new Array(diasEnMes + 1).fill(0);
 
-            resultado.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+            if (causasOrdenadas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${diasEnMes + 1}" class="p-4 text-center text-stone-400 font-medium">No hay causas de pausas configuradas.</td></tr>`;
+            } else {
+                causasOrdenadas.forEach((causaItem, index) => {
+                    let rowHtml = `<td class="p-2 font-bold text-stone-800 border-r border-stone-200 sticky left-0 bg-stone-50 z-10 shadow-sm">${causaItem}</td>`;
 
-            if (resultado.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400">No existen pausas registradas para el período seleccionado.</td></tr>`;
-                return;
+                    for (let d = 1; d <= diasEnMes; d++) {
+                        const diaDosDigitos = String(d).padStart(2, '0');
+                        const fechaIsoStr = `${anio}-${mesStr}-${diaDosDigitos}`;
+                        const fechaDia = new Date(anio, mesNum - 1, d);
+                        const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
+
+                        // Buscar pausa registrada para esta causa en la fecha
+                        const pausaEncontrada = pausas.find(p => {
+                            return p.fecha === fechaIsoStr && p.motivo === causaItem;
+                        });
+
+                        if (pausaEncontrada) {
+                            totalesPorDia[d]++;
+                            
+                            // Asignar colores y abreviaturas predefinidas o automáticas según el motivo
+                            let colorClase = "bg-amber-500 text-amber-950";
+                            let abrev = "P";
+                            
+                            const mLower = causaItem.toLowerCase();
+                            if (mLower.includes('lluvia')) {
+                                colorClase = "bg-blue-600 text-white";
+                                abrev = "LL";
+                            } else if (mLower.includes('asamblea')) {
+                                colorClase = "bg-purple-600 text-white";
+                                abrev = "AS";
+                            } else if (mLower.includes('sistema') || mLower.includes('falla')) {
+                                colorClase = "bg-rose-600 text-white";
+                                abrev = "FS";
+                            } else {
+                                // Dinámico según índice si se agregan más causas personalizadas
+                                const paleta = [
+                                    "bg-emerald-600 text-white", 
+                                    "bg-indigo-600 text-white", 
+                                    "bg-amber-600 text-white", 
+                                    "bg-teal-600 text-white"
+                                ];
+                                colorClase = paleta[index % paleta.length];
+                                abrev = causaItem.substring(0, 2).toUpperCase();
+                            }
+
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 ${colorClase} font-black text-[10px]" title="${causaItem} - ${pausaEncontrada.horaDesde} a ${pausaEncontrada.horaHasta} hs (Auth: ${pausaEncontrada.autorizadoPor})">${abrev}</td>`;
+                        } else {
+                            rowHtml += `<td class="p-1 text-center border-r border-stone-200 ${esFinSemana ? 'bg-stone-900/10 text-stone-400 font-bold' : 'text-stone-300'}">-</td>`;
+                        }
+                    }
+
+                    tbody.innerHTML += `<tr class="hover:bg-stone-50 transition-colors">${rowHtml}</tr>`;
+                });
             }
 
-            resultado.forEach(p => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-stone-50">
-                        <td class="p-3 font-semibold">${formatearFechaLatina(p.fecha)}</td>
-                        <td class="p-3 font-bold text-amber-900">${p.motivo}</td>
-                        <td class="p-3">${p.horaDesde} a ${p.horaHasta} hs</td>
-                        <td class="p-3 font-medium">${p.autorizadoPor}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="eliminarPausa('${p.id}')" class="bg-rose-600 text-white px-2 py-1 rounded text-[11px]"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
+            // Renderizar Footer (Totales Diarios de Pausas)
+            const tfoot = document.getElementById('footPausas');
+            let footHtml = `<td class="p-2 border-r border-stone-300 sticky left-0 bg-stone-200 uppercase font-bold text-[10px] z-10">Total Pausas / Día</td>`;
+
+            for (let d = 1; d <= diasEnMes; d++) {
+                const totalDia = totalesPorDia[d];
+                const fechaDiaFooter = new Date(anio, mesNum - 1, d);
+                const esFinSemanaFooter = fechaDiaFooter.getDay() === 0 || fechaDiaFooter.getDay() === 6;
+
+                footHtml += `<td class="p-1 text-center border-r border-stone-300 text-[11px] ${totalDia > 0 ? 'bg-amber-100 text-amber-900 font-bold' : (esFinSemanaFooter ? 'bg-stone-900 text-stone-300 font-bold' : 'text-stone-400')}">${totalDia}</td>`;
+            }
+            tfoot.innerHTML = footHtml;
         }
 
         async function eliminarPausa(id) {
