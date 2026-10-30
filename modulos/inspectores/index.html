@@ -1682,7 +1682,7 @@
             XLSX.writeFile(workbook, `Nomina_Personal_Inspectores_${formatearFechaLatina(new Date().toISOString().split('T')[0]).replace(/\//g, '-')}.xlsx`);
         }
 
-        // 2. Exportar Horarios por Rango (Fila por Fecha y Tipo Registro) en dd/mm/aaaa
+        // 2. Exportar Horarios por Rango (Excluyendo Domingos y Horarios 00:00) en formato dd/mm/aaaa
         async function exportarHorariosXls() {
             const desdeVal = document.getElementById('expHorarioDesde').value;
             const hastaVal = document.getElementById('expHorarioHasta').value;
@@ -1703,16 +1703,19 @@
             let arrayFechas = [];
             let fCur = new Date(fechaInicio);
             while (fCur <= fechaFin) {
-                const yyyy = fCur.getFullYear();
-                const mm = String(fCur.getMonth() + 1).padStart(2, '0');
-                const dd = String(fCur.getDate()).padStart(2, '0');
-                arrayFechas.push({
-                    iso: `${yyyy}-${mm}-${dd}`,
-                    anio: yyyy,
-                    mes: fCur.getMonth() + 1,
-                    dia: fCur.getDate(),
-                    strFecha: `${dd}/${mm}/${yyyy}`
-                });
+                // CONDICIÓN: Excluir los domingos (getDay() === 0)
+                if (fCur.getDay() !== 0) {
+                    const yyyy = fCur.getFullYear();
+                    const mm = String(fCur.getMonth() + 1).padStart(2, '0');
+                    const dd = String(fCur.getDate()).padStart(2, '0');
+                    arrayFechas.push({
+                        iso: `${yyyy}-${mm}-${dd}`,
+                        anio: yyyy,
+                        mes: fCur.getMonth() + 1,
+                        dia: fCur.getDate(),
+                        strFecha: `${dd}/${mm}/${yyyy}`
+                    });
+                }
                 fCur.setDate(fCur.getDate() + 1);
             }
 
@@ -1745,55 +1748,63 @@
                     const diasGuardados = cacheHorarios[docId] || {};
                     const configDia = diasGuardados[f.dia];
 
-                    let ingM = 'Franco';
-                    let egrM = 'Franco';
-                    let ingT = 'Franco';
-                    let egrT = 'Franco';
+                    if (configDia && configDia.tipoTurno && configDia.tipoTurno !== 'Sin Turno') {
+                        const ingM = configDia.ingresoManana || '00:00';
+                        const egrM = configDia.egresoManana || '00:00';
+                        const ingT = configDia.ingresoTarde || '00:00';
+                        const egrT = configDia.egresoTarde || '00:00';
 
-                    if (configDia && configDia.tipoTurno !== 'Sin Turno') {
-                        ingM = (configDia.ingresoManana && configDia.ingresoManana !== '00:00') ? configDia.ingresoManana : '-';
-                        egrM = (configDia.egresoManana && configDia.egresoManana !== '00:00') ? configDia.egresoManana : '-';
-                        ingT = (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') ? configDia.ingresoTarde : '-';
-                        egrT = (configDia.egresoTarde && configDia.egresoTarde !== '00:00') ? configDia.egresoTarde : '-';
+                        // Validar y agregar Ingreso Mañana (siempre que no sea 00:00)
+                        if (ingM && ingM !== '00:00' && ingM !== '-') {
+                            filasExportar.push({
+                                "Fecha": f.strFecha,
+                                "Legajo": ins.legajo,
+                                "Inspector": ins.nombre,
+                                "Tipo Registro": "INGRESO MAÑANA",
+                                "Horario": ingM
+                            });
+                        }
+
+                        // Validar y agregar Egreso Mañana (siempre que no sea 00:00)
+                        if (egrM && egrM !== '00:00' && egrM !== '-') {
+                            filasExportar.push({
+                                "Fecha": f.strFecha,
+                                "Legajo": ins.legajo,
+                                "Inspector": ins.nombre,
+                                "Tipo Registro": "EGRESO MAÑANA",
+                                "Horario": egrM
+                            });
+                        }
+
+                        // Validar y agregar Ingreso Tarde (siempre que no sea 00:00)
+                        if (ingT && ingT !== '00:00' && ingT !== '-') {
+                            filasExportar.push({
+                                "Fecha": f.strFecha,
+                                "Legajo": ins.legajo,
+                                "Inspector": ins.nombre,
+                                "Tipo Registro": "INGRESO TARDE",
+                                "Horario": ingT
+                            });
+                        }
+
+                        // Validar y agregar Egreso Tarde (siempre que no sea 00:00)
+                        if (egrT && egrT !== '00:00' && egrT !== '-') {
+                            filasExportar.push({
+                                "Fecha": f.strFecha,
+                                "Legajo": ins.legajo,
+                                "Inspector": ins.nombre,
+                                "Tipo Registro": "EGRESO TARDE",
+                                "Horario": egrT
+                            });
+                        }
                     }
-
-                    // 1° fila: Ingreso Mañana
-                    filasExportar.push({
-                        "Fecha": f.strFecha,
-                        "Legajo": ins.legajo,
-                        "Inspector": ins.nombre,
-                        "Tipo Registro": "INGRESO MAÑANA",
-                        "Horario": ingM
-                    });
-
-                    // 2° fila: Egreso Mañana
-                    filasExportar.push({
-                        "Fecha": f.strFecha,
-                        "Legajo": ins.legajo,
-                        "Inspector": ins.nombre,
-                        "Tipo Registro": "EGRESO MAÑANA",
-                        "Horario": egrM
-                    });
-
-                    // 3° fila: Ingreso Tarde
-                    filasExportar.push({
-                        "Fecha": f.strFecha,
-                        "Legajo": ins.legajo,
-                        "Inspector": ins.nombre,
-                        "Tipo Registro": "INGRESO TARDE",
-                        "Horario": ingT
-                    });
-
-                    // 4° fila: Egreso Tarde
-                    filasExportar.push({
-                        "Fecha": f.strFecha,
-                        "Legajo": ins.legajo,
-                        "Inspector": ins.nombre,
-                        "Tipo Registro": "EGRESO TARDE",
-                        "Horario": egrT
-                    });
                 });
             });
+
+            if (filasExportar.length === 0) {
+                alert("No hay registros válidos de horarios (sin domingos ni 00:00) en el rango seleccionado.");
+                return;
+            }
 
             const worksheet = XLSX.utils.json_to_sheet(filasExportar);
             const workbook = XLSX.utils.book_new();
