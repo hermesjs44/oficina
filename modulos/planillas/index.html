@@ -9,10 +9,39 @@
     <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Reglas optimizadas para impresión en Hoja A4 Horizontal */
+        /* Reglas optimizadas para impresión */
         @page {
             size: A4 landscape;
             margin: 6mm;
+        }
+
+        /* Orientación vertical específica para la vista de stickers al imprimir */
+        body.print-stickers-mode {
+            background: #ffffff !important;
+        }
+        @media print {
+            body.print-stickers-mode {
+                margin: 0 !important;
+            }
+            body.print-stickers-mode #printableAreaStickers, 
+            body.print-stickers-mode #printableAreaStickers * {
+                visibility: visible !important;
+            }
+            body.print-stickers-mode #printableAreaStickers {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                height: 100vh !important;
+            }
+            
+            @page print-portrait {
+                size: A4 portrait;
+                margin: 5mm;
+            }
+            .section-stickers-print {
+                page: print-portrait;
+            }
         }
 
         @media print {
@@ -68,7 +97,7 @@
                 background-color: #000000 !important;
                 color: #ffffff !important;
                 padding: 6px 2px !important;
-                font-size: 14px !important;
+                font-size: 11px !important;
                 text-align: center !important;
             }
 
@@ -86,7 +115,7 @@
             input {
                 border: none !important;
                 background: transparent !important;
-                font-size: 18px !important;
+                font-size: 14px !important;
                 font-weight: bold !important;
                 color: #000000 !important;
                 text-align: center !important;
@@ -98,7 +127,7 @@
                 margin-bottom: 2px !important;
             }
             p {
-                font-size: 19px !important;
+                font-size: 11px !important;
                 color: #000000 !important;
             }
         }
@@ -113,6 +142,11 @@
             background-color: #ffe4e6 !important; /* rojo suave */
             color: #9f1239 !important;
             font-weight: bold;
+        }
+
+        /* Ajustes específicos de la tabla de Stickers */
+        .tabla-stickers th, .tabla-stickers td {
+            border: 1px solid #000000;
         }
     </style>
 </head>
@@ -165,6 +199,9 @@
             </button>
             <button onclick="cambiarPestana('planilla-zonas')" id="tab-planilla-zonas" class="nav-tab px-4 py-2 rounded-lg bg-sky-900 text-white shadow flex items-center gap-2">
                 <i class="fa-solid fa-table-cells"></i> Planilla de Zonas
+            </button>
+            <button onclick="cambiarPestana('stickers')" id="tab-stickers" class="nav-tab px-4 py-2 rounded-lg text-sky-100 hover:bg-sky-600 transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-note-sticky"></i> Stickers
             </button>
         </nav>
     </header>
@@ -414,6 +451,85 @@
             </div>
         </section>
 
+        <!-- ========================================== -->
+        <!-- SECCIÓN 5: STICKERS (PLANILLA MES COMPLETO A4 VERTICAL) -->
+        <!-- ========================================== -->
+        <section id="stickers" class="tab-content hidden section-stickers-print">
+            <!-- Controles de la pestaña (No imprimibles) -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap justify-between items-center gap-4 no-print">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspector</label>
+                        <select id="selectStickerInspector" onchange="actualizarPlanillaStickers()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none min-w-[200px]">
+                            <option value="">Seleccionar Inspector...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes y Año</label>
+                        <input type="month" id="selectStickerMesAnio" onchange="generarTablaStickersMes()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Turno</label>
+                        <select id="inputStickerTurno" onchange="generarTablaStickersMes()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none uppercase">
+                            <option value="MAÑANA">MAÑANA</option>
+                            <option value="TARDE">TARDE</option>
+                            <option value="NOCHE">NOCHE</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <button onclick="imprimirStickers()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> Imprimir A4 Vertical
+                    </button>
+                </div>
+            </div>
+
+            <!-- HOJA A4 VERTICAL PARAMS (IMPRIMIBLE) -->
+            <div id="printableAreaStickers" class="bg-white p-4 rounded-xl border border-slate-300 shadow-sm max-w-[210mm] mx-auto min-h-[280mm] flex flex-col justify-between text-black font-sans">
+                <div>
+                    <!-- Encabezado ultra-compacto de 2 filas ajustado -->
+                    <div class="border border-black mb-2 text-xs font-bold text-black uppercase">
+                        <div class="flex border-b border-black bg-slate-100">
+                            <div class="w-1/2 p-1 border-r border-black flex items-center">
+                                <span class="text-xs font-black text-black tracking-wider">PLANILLA DE STICKERS</span>
+                            </div>
+                            <div class="w-1/2 p-1 flex items-center">
+                                <span class="text-[11px] font-black mr-1">TURNO:</span>
+                                <span id="lblStickerTurno" class="text-xs font-extrabold text-black">MAÑANA</span>
+                            </div>
+                        </div>
+                        <div class="flex">
+                            <div class="w-1/2 p-1 border-r border-black flex items-center">
+                                <span class="text-[11px] font-black mr-1">INSP:</span>
+                                <span id="lblStickerInspector" class="text-xs font-extrabold text-black">___________________________</span>
+                            </div>
+                            <div class="w-1/2 p-1 flex items-center">
+                                <span class="text-[11px] font-black mr-1">MES:</span>
+                                <span id="lblStickerMes" class="text-xs font-extrabold text-black">--/----</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla del Mes con altura dinámica calculada en JS -->
+                    <table class="w-full text-center border-collapse border border-black text-xs font-bold tabla-stickers">
+                        <thead>
+                            <tr class="bg-slate-200 text-black uppercase text-[11px]">
+                                <th class="border border-black p-1.5 w-28">FECHA</th>
+                                <th class="border border-black p-1.5 w-20">CANT.</th>
+                                <th class="border border-black p-1.5">FIRMA</th>
+                                <th class="border border-black p-1.5 w-24">AVISOS E</th>
+                                <th class="border border-black p-1.5 w-24">SOBRANTE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyStickersMes">
+                            <!-- Filas dinámicas generadas mediante JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Modal Lightbox -->
@@ -483,6 +599,7 @@
 
         const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
         const nombresMesesAbrev = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        const nombresMesesLargo = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
         function cambiarPestana(idSection) {
             document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
@@ -503,6 +620,7 @@
             if (idSection === 'configuracion-zonas') cargarZonasRegistradas();
             if (idSection === 'secuencia-zonas') renderizarSecuenciaZonas();
             if (idSection === 'asignacion-zonas') cargarListaPlanillasParaAsignacion();
+            if (idSection === 'stickers') inicializarPestanaStickers();
         }
 
         async function inicializarModuloZonas() {
@@ -538,6 +656,7 @@
                 });
 
                 inspectoresFiltrados.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+                poblarSelectStickersInspectores();
             } catch (err) {
                 console.error("Error al obtener inspectores:", err);
             }
@@ -569,7 +688,6 @@
 
                     if (fInicio && fFin) {
                         if (fechaIso >= fInicio && fechaIso <= fFin) {
-                            // Retorna tipo o código abreviado de la licencia
                             const tipo = (lic.tipoLicencia || lic.tipo || 'LIC').toUpperCase();
                             if (tipo.includes('VACAC')) return 'VAC';
                             if (tipo.includes('MEDIC') || tipo.includes('ENFERM')) return 'MED';
@@ -834,12 +952,11 @@
                     diasQuincenaAsignacion.forEach((d) => {
                         let val = insData[d.fechaIso] || '';
                         
-                        // Verificar si tiene licencia registrada en esta fecha
                         const codigoLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, d.fechaIso);
                         let celdaClass = d.esSabado ? 'bg-slate-100 sabado-col' : '';
 
                         if (codigoLicencia && !val) {
-                            val = codigoLicencia; // Asigna automáticamente el código de la licencia si la celda estaba vacía
+                            val = codigoLicencia;
                             celdaClass += ' cell-licencia';
                         } else if (val === 'AUS' || val === 'SUS' || val === 'FAL') {
                             celdaClass += ' cell-ausente';
@@ -898,7 +1015,6 @@
                     for (let i = idxBase + 1; i < diasQuincenaAsignacion.length; i++) {
                         const dSig = diasQuincenaAsignacion[i];
                         
-                        // Si el inspector tiene una licencia registrada el día siguiente, se respeta la licencia
                         const tieneLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, dSig.fechaIso);
                         const inpTarget = document.getElementById(`asig_${safeLegajo}_${dSig.fechaIso}`);
 
@@ -1131,6 +1247,7 @@
         }
 
         function imprimirPlanilla() {
+            document.body.classList.remove('print-stickers-mode');
             window.print();
         }
 
@@ -1144,6 +1261,95 @@
 
         function closeModal() {
             document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        /* --- SECCIÓN STICKERS --- */
+        function poblarSelectStickersInspectores() {
+            const select = document.getElementById('selectStickerInspector');
+            if (!select) return;
+            select.innerHTML = '<option value="">Seleccionar Inspector...</option>';
+            inspectoresFiltrados.forEach(ins => {
+                select.innerHTML += `<option value="${ins.nombre}">${ins.nombre}</option>`;
+            });
+        }
+
+        function inicializarPestanaStickers() {
+            poblarSelectStickersInspectores();
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            document.getElementById('selectStickerMesAnio').value = `${yyyy}-${mm}`;
+            generarTablaStickersMes();
+        }
+
+        function actualizarPlanillaStickers() {
+            const inspector = document.getElementById('selectStickerInspector').value;
+            document.getElementById('lblStickerInspector').textContent = inspector ? inspector.toUpperCase() : '___________________________';
+        }
+
+        function generarTablaStickersMes() {
+            const mesAnioVal = document.getElementById('selectStickerMesAnio').value;
+            const turnoVal = document.getElementById('inputStickerTurno').value;
+            
+            if (!mesAnioVal) return;
+
+            document.getElementById('lblStickerTurno').textContent = turnoVal;
+
+            const [year, month] = mesAnioVal.split('-').map(Number);
+            const totalDias = new Date(year, month, 0).getDate();
+            const tbody = document.getElementById('tbodyStickersMes');
+            tbody.innerHTML = '';
+
+            document.getElementById('lblStickerMes').textContent = `${nombresMesesLargo[month - 1].toUpperCase()} / ${year}`;
+
+            let diasHabilesCount = 0;
+            let fechasHabiles = [];
+
+            // Filtrar días: 
+            // Si el turno es TARDE, se excluyen Domingos (0) y Sábados (6). 
+            // Para otros turnos, solo se excluyen Domingos (0).
+            for (let dia = 1; dia <= totalDias; dia++) {
+                const fechaObj = new Date(year, month - 1, dia);
+                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+
+                if (turnoVal === 'TARDE') {
+                    if (diaSemana !== 0 && diaSemana !== 6) {
+                        fechasHabiles.push(fechaObj);
+                        diasHabilesCount++;
+                    }
+                } else {
+                    if (diaSemana !== 0) {
+                        fechasHabiles.push(fechaObj);
+                        diasHabilesCount++;
+                    }
+                }
+            }
+
+            // Altura dinámica precisa calculada para ajustar perfectamente en la página A4 vertical (aprox 790px disponibles)
+            let alturaFilaPx = Math.floor(780 / diasHabilesCount);
+            if (alturaFilaPx < 25) alturaFilaPx = 25;
+
+            fechasHabiles.forEach(f => {
+                const dd = String(f.getDate()).padStart(2, '0');
+                const mm = String(f.getMonth() + 1).padStart(2, '0');
+                const yyyy = f.getFullYear();
+                const fechaFormat = `${dd}/${mm}/${yyyy}`;
+
+                tbody.innerHTML += `
+                    <tr style="height: ${alturaFilaPx}px;">
+                        <td class="border border-black font-black text-xs text-black">${fechaFormat}</td>
+                        <td class="border border-black"></td>
+                        <td class="border border-black"></td>
+                        <td class="border border-black"></td>
+                        <td class="border border-black"></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function imprimirStickers() {
+            document.body.classList.add('print-stickers-mode');
+            window.print();
         }
     </script>
 </body>
