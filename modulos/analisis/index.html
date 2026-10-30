@@ -228,6 +228,7 @@
 
             window.rawAccumulatedInspections = (item.inspecciones || []).map((insp, idx) => ({
                 rawId: 'restored_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+                fileId: 'cloud_import',
                 inspector: insp.inspector,
                 dateTime: insp.dateTime ? new Date(insp.dateTime) : new Date(),
                 patente: insp.patente || '-'
@@ -240,6 +241,7 @@
             document.getElementById('historyModal').classList.add('hidden');
             window.updateInspectorListUI();
             window.runAnalysisAsync();
+            window.switchTab('tab-visualizaciones');
         };
 
         window.deleteAnalysisFromFirebase = async function(id) {
@@ -277,7 +279,6 @@
             @page {
                 size: A4 portrait;
                 margin: 10mm 8mm 10mm 8mm;
-                /* Indicación estándar para impresión doble faz cara larga */
                 duplex: long-edge;
             }
 
@@ -289,18 +290,21 @@
             }
 
             /* Ocultar elementos no imprimibles */
-            nav, header, #importControlsGrid, #kpiContainer, .no-print,
+            nav, header, #mainTabsNav, #tab-importar, #tab-personal, #tab-criterios, #kpiContainer, .no-print,
             .p-4.bg-slate-50.border-b, #addRowModal, #editRowModal, #mappingModal, #historyModal,
             .px-4.py-3.bg-slate-50.border-t, td button, input[type="datetime-local"] {
                 display: none !important;
             }
 
-            /* Ocultar la columna de acciones en impresión */
+            /* Asegurar visibilidad del contenedor de visualización al imprimir */
+            #tab-visualizaciones {
+                display: block !important;
+            }
+
             .col-acciones {
                 display: none !important;
             }
 
-            /* Estructura limpia e imprimible */
             .bg-white.rounded-xl.shadow-sm.border {
                 border: none !important;
                 box-shadow: none !important;
@@ -313,7 +317,6 @@
                 padding: 0 !important;
             }
 
-            /* Encabezado visible únicamente en impresión */
             #printHeader {
                 display: block !important;
                 margin-bottom: 12px;
@@ -321,7 +324,6 @@
                 padding-bottom: 6px;
             }
 
-            /* Configuración de Tabla de Impresión con Encabezados Repetidos */
             table.print-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
@@ -329,7 +331,7 @@
             }
 
             table.print-table thead {
-                display: table-header-group !important; /* Repite encabezado en cada página */
+                display: table-header-group !important;
             }
 
             table.print-table tr {
@@ -352,7 +354,6 @@
                 text-transform: uppercase !important;
             }
 
-            /* Mostrar Fecha/Hora como texto en la versión de impresión */
             .print-time-text {
                 display: inline !important;
             }
@@ -364,6 +365,13 @@
 
         #printHeader {
             display: none;
+        }
+
+        /* Estilo para pestañas activas */
+        .tab-btn.active {
+            border-bottom: 3px solid #6366f1;
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
@@ -388,22 +396,40 @@
 
     <!-- Header Principal -->
     <header class="bg-indigo-900 text-white shadow-lg no-print">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-clipboard-check text-indigo-300 text-3xl"></i>
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Auditoría e Inspecciones</h1>
-                    <p class="text-xs text-indigo-200">Análisis cronológico unificado, auditoría de inactividad global/individual y Firebase</p>
+        <div class="max-w-7xl mx-auto px-4 pt-4 pb-0 flex flex-col justify-between gap-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-clipboard-check text-indigo-300 text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">Auditoría e Inspecciones</h1>
+                        <p class="text-xs text-indigo-200">Análisis cronológico unificado, auditoría de inactividad global/individual y Firebase</p>
+                    </div>
+                </div>
+                
+                <!-- Acciones de Firebase y Controles -->
+                <div class="flex items-center space-x-2">
+                    <button id="loadCloudBtn" disabled onclick="loadSavedAnalysesFromFirebase()" class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-200 font-semibold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-indigo-500/30">
+                        <i class="fa-solid fa-cloud-arrow-down text-indigo-400"></i> Cargar de Firebase
+                    </button>
+                    <button id="saveCloudBtn" disabled onclick="saveAnalysisToFirebase()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Firebase
+                    </button>
                 </div>
             </div>
-            
-            <!-- Acciones de Firebase y Controles -->
-            <div class="flex items-center space-x-2">
-                <button id="loadCloudBtn" disabled onclick="loadSavedAnalysesFromFirebase()" class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-200 font-semibold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-indigo-500/30">
-                    <i class="fa-solid fa-cloud-arrow-down text-indigo-400"></i> Cargar de Firebase
+
+            <!-- MENÚ DE OPCIONES / PESTAÑAS (TABS) -->
+            <div id="mainTabsNav" class="flex border-b border-indigo-700 mt-2 overflow-x-auto">
+                <button onclick="switchTab('tab-importar')" id="btn-tab-importar" class="tab-btn active px-4 py-2.5 text-xs font-bold text-indigo-200 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i> Importar
                 </button>
-                <button id="saveCloudBtn" disabled onclick="saveAnalysisToFirebase()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Firebase
+                <button onclick="switchTab('tab-personal')" id="btn-tab-personal" class="tab-btn px-4 py-2.5 text-xs font-bold text-indigo-200 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-users text-indigo-300"></i> Selección de Personal
+                </button>
+                <button onclick="switchTab('tab-criterios')" id="btn-tab-criterios" class="tab-btn px-4 py-2.5 text-xs font-bold text-indigo-200 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-sliders text-amber-300"></i> Criterios de Alerta
+                </button>
+                <button onclick="switchTab('tab-visualizaciones')" id="btn-tab-visualizaciones" class="tab-btn px-4 py-2.5 text-xs font-bold text-indigo-200 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-line text-sky-300"></i> Visualizaciones
                 </button>
             </div>
         </div>
@@ -412,25 +438,24 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
-        <!-- Import Section, Threshold & Inspector Selection Grid -->
-        <div id="importControlsGrid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- File Upload Box -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-3">
+        <!-- PESTAÑA 1: IMPORTAR -->
+        <section id="tab-importar" class="tab-content block space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
                         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-file-excel text-emerald-600"></i> 1. Importar Archivos
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Importar Archivos de Inspecciones
                         </h2>
-                        <span id="filesCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">0 cargados</span>
+                        <p class="text-xs text-slate-500 mt-0.5">Sube tus planillas Excel para integrarlas al análisis cronológico general.</p>
                     </div>
-                    
-                    <div id="dropZone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-lg p-5 text-center cursor-pointer transition-all duration-200 group">
-                        <input type="file" id="fileInput" multiple accept=".xlsx, .xls" class="hidden">
-                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-400 group-hover:scale-110 transition-transform duration-200 mb-1"></i>
-                        <p class="text-xs font-semibold text-slate-700">Arrastra planillas Excel aquí o haz clic</p>
-                        <p class="text-[11px] text-slate-500 mt-1">Soporta <code class="bg-slate-200 px-1 rounded text-slate-700">.xlsx</code> y <code class="bg-slate-200 px-1 rounded text-slate-700">.xls</code></p>
-                    </div>
+                    <span id="filesCount" class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200">0 archivos cargados</span>
+                </div>
+                
+                <div id="dropZone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/40 hover:bg-indigo-50 rounded-xl p-8 text-center cursor-pointer transition-all duration-200 group">
+                    <input type="file" id="fileInput" multiple accept=".xlsx, .xls" class="hidden">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 group-hover:scale-110 transition-transform duration-200 mb-2"></i>
+                    <p class="text-sm font-bold text-slate-700">Arrastra planillas Excel aquí o haz clic para seleccionar</p>
+                    <p class="text-xs text-slate-500 mt-1">Soporta formatos <code class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700 font-mono">.xlsx</code> y <code class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700 font-mono">.xls</code></p>
                 </div>
 
                 <!-- Progress Bar -->
@@ -443,232 +468,251 @@
                         <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-100" style="width: 0%"></div>
                     </div>
                 </div>
-
-                <div id="fileList" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
             </div>
 
-            <!-- Inspector Selection Module -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-users text-indigo-600"></i> 2. Selección de Personal
-                        </h2>
-                        <span id="selectedInspectorsBadge" class="text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
-                            Todos (0)
-                        </span>
+            <!-- Listado Detallado de Archivos Importados con opción de Eliminación individual -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-tree text-indigo-600"></i> Archivos Importados Actualmente
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">Si cargaste un archivo por error, puedes eliminarlo individualmente con el botón de papelera y el sistema recalculará todo automáticamente.</p>
+                
+                <div id="importedFilesList" class="space-y-2">
+                    <div class="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                        No hay archivos cargados aún.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 2: SELECCIÓN DE PERSONAL -->
+        <section id="tab-personal" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-3xl mx-auto">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-indigo-600"></i> Selección e Inspección de Personal
+                    </h2>
+                    <span id="selectedInspectorsBadge" class="text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full">
+                        Todos (0)
+                    </span>
+                </div>
+
+                <p class="text-xs text-slate-500 mb-4">
+                    Marca los inspectores que deseas auditar. Seleccionar "Todos" auditará la secuencia global conjunta del equipo:
+                </p>
+
+                <!-- Filtros rápidos -->
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex gap-2">
+                        <button onclick="selectAllInspectors(true)" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors">
+                            Seleccionar Todos
+                        </button>
+                        <button onclick="selectAllInspectors(false)" class="text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+                            Deseleccionar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Buscador de inspectores -->
+                <div class="relative mb-3">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInspectorInput" onkeyup="filterInspectorListUI()" placeholder="Buscar inspector en la lista..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Checkbox List -->
+                <div id="inspectorCheckboxContainer" class="border border-slate-200 rounded-xl max-h-64 overflow-y-auto p-3 space-y-1.5 custom-scrollbar bg-slate-50/50">
+                    <div class="text-xs text-slate-400 text-center py-6">Carga un archivo para ver el listado de personal.</div>
+                </div>
+
+                <button onclick="runAnalysisAsync(); switchTab('tab-visualizaciones');" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-filter"></i> Aplicar Selección y Ver Visualización
+                </button>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 3: CRITERIOS DE ALERTA -->
+        <section id="tab-criterios" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl mx-auto">
+                <h2 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-600"></i> Criterios y Parámetros de Alerta
+                </h2>
+                <p class="text-xs text-slate-500 mb-6">
+                    Establece el tiempo máximo tolerado (en minutos) entre dos inspecciones consecutivas. Si el lapso supera este valor, se marcará automáticamente una advertencia de inactividad.
+                </p>
+
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 mb-6">
+                    <label for="thresholdInput" class="block text-xs font-bold text-slate-700 mb-2">
+                        Umbral Máximo de Inactividad Permitido:
+                    </label>
+                    <div class="flex items-center gap-3 mb-4">
+                        <input type="number" id="thresholdInput" min="1" max="480" value="30" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800">
+                        <span class="text-sm font-bold text-slate-600">minutos</span>
                     </div>
 
-                    <p class="text-xs text-slate-500 mb-3">
-                        Marca los inspectores a auditar. Seleccionar "Todos" auditará la secuencia global conjunta del equipo:
-                    </p>
+                    <p class="text-[11px] font-semibold text-slate-500 mb-2">Selección Rápida de Umbral:</p>
+                    <div class="grid grid-cols-4 gap-2 text-xs">
+                        <button onclick="setQuickThreshold(15)" class="px-3 py-2 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 rounded-lg font-semibold transition-colors">15 min</button>
+                        <button onclick="setQuickThreshold(30)" class="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 border border-indigo-300 rounded-lg font-bold transition-colors">30 min</button>
+                        <button onclick="setQuickThreshold(45)" class="px-3 py-2 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 rounded-lg font-semibold transition-colors">45 min</button>
+                        <button onclick="setQuickThreshold(60)" class="px-3 py-2 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 rounded-lg font-semibold transition-colors">60 min</button>
+                    </div>
+                </div>
 
-                    <!-- Quick Filter Buttons -->
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="flex gap-2">
-                            <button onclick="selectAllInspectors(true)" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors">
-                                Seleccionar Todos
-                            </button>
-                            <button onclick="selectAllInspectors(false)" class="text-[11px] font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors">
-                                Deseleccionar
-                            </button>
+                <button onclick="runAnalysisAsync(); switchTab('tab-visualizaciones');" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-rotate"></i> Recalcular Análisis y Ver Resultados
+                </button>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 4: VISUALIZACIONES (DASHBOARD, CONTROLES Y TABLA GENERAL) -->
+        <section id="tab-visualizaciones" class="tab-content hidden space-y-6">
+            
+            <!-- Dashboard de KPIs -->
+            <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-list-check text-xl"></i></div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Total Inspecciones</p>
+                        <h3 id="kpiTotal" class="text-xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-user-shield text-xl"></i></div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Inspectores</p>
+                        <h3 id="kpiInspectors" class="text-xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-hourglass-half text-xl"></i></div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Tiempo Inactividad Total</p>
+                        <h3 id="kpiTotalInactivity" class="text-xl font-bold text-amber-600">0h 0m</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Intervalo Promedio</p>
+                        <h3 id="kpiAvgGap" class="text-xl font-bold text-slate-800">0 min</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Alertas (> X min)</p>
+                        <h3 id="kpiAlerts" class="text-xl font-bold text-rose-600">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Table & Filters -->
+            <div id="printableContainer" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                
+                <!-- Encabezado exclusivo de Impresión -->
+                <div id="printHeader">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 style="font-size: 14pt; font-weight: bold; margin: 0;">INFORME DE AUDITORÍA DE INSPECCIONES Y CONTROLES</h2>
+                            <p style="font-size: 9pt; margin: 2px 0 0 0; color: #444;">Orden cronológico unificado — Formato A4 Doble Faz</p>
+                        </div>
+                        <div style="text-align: right; font-size: 8pt; color: #444;">
+                            <p style="margin:0;">Impreso: <span id="printDate"></span></p>
+                            <p style="margin:0;">Registros: <span id="printTotalCount">0</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls Bar -->
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- Alert Status Filter -->
+                        <div class="w-full sm:w-auto">
+                            <select id="alertSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="ALL">Todos los registros del análisis</option>
+                                <option value="ALERTS">Solo Alertas (Inactividad &gt; X min)</option>
+                                <option value="NORMAL">Normales (&le; X min)</option>
+                                <option value="NO_CONTABILIZA">Omitidos / No contabiliza</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Box -->
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, inspector..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                     </div>
 
-                    <!-- Search Box for Inspectors -->
-                    <div class="relative mb-2">
-                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
-                        <input type="text" id="searchInspectorInput" onkeyup="filterInspectorListUI()" placeholder="Buscar inspector..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-7 pr-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    </div>
-
-                    <!-- Scrollable Checkbox List -->
-                    <div id="inspectorCheckboxContainer" class="border border-slate-200 rounded-lg max-h-36 overflow-y-auto p-2 space-y-1.5 custom-scrollbar bg-slate-50/50">
-                        <div class="text-xs text-slate-400 text-center py-4">Carga un archivo para ver el listado de personal.</div>
-                    </div>
-                </div>
-
-                <button onclick="runAnalysisAsync()" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
-                    <i class="fa-solid fa-filter"></i> Aplicar Selección y Re-analizar
-                </button>
-            </div>
-
-            <!-- Parameters Card -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-600"></i> 3. Criterios de Alerta
-                    </h2>
-                    <p class="text-xs text-slate-500 mb-4">
-                        Tiempo máximo tolerado entre dos inspecciones consecutivas antes de marcar advertencia.
-                    </p>
-
-                    <label for="thresholdInput" class="block text-xs font-bold text-slate-700 mb-1">
-                        Umbral de Inactividad (en minutos):
-                    </label>
-                    <div class="flex items-center gap-2 mb-4">
-                        <input type="number" id="thresholdInput" min="1" max="480" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
-                        <span class="text-xs font-semibold text-slate-600">min</span>
-                    </div>
-
-                    <div class="grid grid-cols-4 gap-1.5 text-xs">
-                        <button onclick="setQuickThreshold(15)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">15m</button>
-                        <button onclick="setQuickThreshold(30)" class="px-2 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded font-bold transition-colors">30m</button>
-                        <button onclick="setQuickThreshold(45)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">45m</button>
-                        <button onclick="setQuickThreshold(60)" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">60m</button>
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
+                        <button onclick="printFullList()" class="text-xs bg-slate-900 hover:bg-black text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-print text-indigo-300"></i> Imprimir Listado
+                        </button>
+                        <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Agregar Fila
+                        </button>
+                        <button onclick="exportSummaryExcel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-invoice"></i> Resumen XLS
+                        </button>
+                        <button onclick="exportDetailedExcel()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-export"></i> Detalle XLS
+                        </button>
                     </div>
                 </div>
 
-                <button onclick="runAnalysisAsync()" class="w-full mt-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 px-3 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-xs">
-                    <i class="fa-solid fa-rotate"></i> Recalcular Análisis
-                </button>
-            </div>
-        </div>
+                <!-- Table ajustada para el ancho A4 vertical -->
+                <div class="overflow-x-auto custom-scrollbar max-h-[550px]">
+                    <table class="w-full text-left border-collapse text-xs print-table">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 border-b border-slate-200">
+                            <tr>
+                                <th class="py-2.5 px-3 w-[6%]">#</th>
+                                <th class="py-2.5 px-3 w-[26%]">Fecha y Hora</th>
+                                <th class="py-2.5 px-3 w-[28%]">Inspector</th>
+                                <th class="py-2.5 px-3 w-[15%]">Patente / Dominio</th>
+                                <th class="py-2.5 px-3 w-[12%] text-center">Intervalo</th>
+                                <th class="py-2.5 px-3 w-[13%]">Estado / Obs</th>
+                                <th class="py-2.5 px-3 w-[8%] text-center col-acciones">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-200">
+                            <tr>
+                                <td colspan="7" class="text-center py-12 text-slate-400">
+                                    <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                                    Carga un archivo de inspecciones en la sección <strong>"Importar"</strong> o recupera un análisis de Firebase para comenzar.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-        <!-- Metrics Dashboard -->
-        <div id="kpiContainer" class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-list-check text-xl"></i></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase">Total Inspecciones</p>
-                    <h3 id="kpiTotal" class="text-xl font-bold text-slate-800">0</h3>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg"><i class="fa-solid fa-user-shield text-xl"></i></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase">Inspectores</p>
-                    <h3 id="kpiInspectors" class="text-xl font-bold text-slate-800">0</h3>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-hourglass-half text-xl"></i></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase">Tiempo Inactividad Total</p>
-                    <h3 id="kpiTotalInactivity" class="text-xl font-bold text-amber-600">0h 0m</h3>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase">Intervalo Promedio</p>
-                    <h3 id="kpiAvgGap" class="text-xl font-bold text-slate-800">0 min</h3>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
-                <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
-                <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase">Alertas (> X min)</p>
-                    <h3 id="kpiAlerts" class="text-xl font-bold text-rose-600">0</h3>
-                </div>
-            </div>
-        </div>
+                <!-- Pagination Footer -->
+                <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+                    <span id="recordCount">Mostrando 0 registros</span>
+                    
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-1">
+                            <label for="pageSizeSelect" class="text-slate-500">Filas por pág:</label>
+                            <select id="pageSizeSelect" onchange="changePageSize()" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs">
+                                <option value="100">100</option>
+                                <option value="250" selected>250</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                        </div>
 
-        <!-- Main Content Table & Filters -->
-        <div id="printableContainer" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            
-            <!-- Encabezado exclusivo de Impresión -->
-            <div id="printHeader">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h2 style="font-size: 14pt; font-weight: bold; margin: 0;">INFORME DE AUDITORÍA DE INSPECCIONES Y CONTROLES</h2>
-                        <p style="font-size: 9pt; margin: 2px 0 0 0; color: #444;">Orden cronológico unificado — Formato A4 Doble Faz</p>
-                    </div>
-                    <div style="text-align: right; font-size: 8pt; color: #444;">
-                        <p style="margin:0;">Impreso: <span id="printDate"></span></p>
-                        <p style="margin:0;">Registros: <span id="printTotalCount">0</span></p>
+                        <div class="flex items-center space-x-1">
+                            <button id="prevPageBtn" onclick="prevPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span id="pageInfo" class="font-medium px-2">Página 1 de 1</span>
+                            <button id="nextPageBtn" onclick="nextPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Controls Bar -->
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
-                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <!-- Alert Status Filter -->
-                    <div class="w-full sm:w-auto">
-                        <select id="alertSelect" onchange="applyFilters()" class="w-full text-xs font-medium bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="ALL">Todos los registros del análisis</option>
-                            <option value="ALERTS">Solo Alertas (Inactividad &gt; X min)</option>
-                            <option value="NORMAL">Normales (&le; X min)</option>
-                            <option value="NO_CONTABILIZA">Omitidos / No contabiliza</option>
-                        </select>
-                    </div>
-
-                    <!-- Search Box -->
-                    <div class="relative w-full sm:w-64">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, inspector..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
-                    <button onclick="printFullList()" class="text-xs bg-slate-900 hover:bg-black text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-print text-indigo-300"></i> Imprimir Listado
-                    </button>
-                    <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-plus"></i> Agregar Fila
-                    </button>
-                    <button onclick="exportSummaryExcel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-invoice"></i> Resumen XLS
-                    </button>
-                    <button onclick="exportDetailedExcel()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-file-export"></i> Detalle XLS
-                    </button>
-                </div>
-            </div>
-
-            <!-- Table ajustada para el ancho A4 vertical -->
-            <div class="overflow-x-auto custom-scrollbar max-h-[550px]">
-                <table class="w-full text-left border-collapse text-xs print-table">
-                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 border-b border-slate-200">
-                        <tr>
-                            <th class="py-2.5 px-3 w-[6%]">#</th>
-                            <th class="py-2.5 px-3 w-[26%]">Fecha y Hora</th>
-                            <th class="py-2.5 px-3 w-[28%]">Inspector</th>
-                            <th class="py-2.5 px-3 w-[15%]">Patente / Dominio</th>
-                            <th class="py-2.5 px-3 w-[12%] text-center">Intervalo</th>
-                            <th class="py-2.5 px-3 w-[13%]">Estado / Obs</th>
-                            <th class="py-2.5 px-3 w-[8%] text-center col-acciones">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-slate-200">
-                        <tr>
-                            <td colspan="7" class="text-center py-12 text-slate-400">
-                                <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
-                                Carga un archivo de inspecciones o recupera un análisis de Firebase para comenzar.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination Footer -->
-            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
-                <span id="recordCount">Mostrando 0 registros</span>
-                
-                <div class="flex items-center space-x-3">
-                    <div class="flex items-center space-x-1">
-                        <label for="pageSizeSelect" class="text-slate-500">Filas por pág:</label>
-                        <select id="pageSizeSelect" onchange="changePageSize()" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs">
-                            <option value="100">100</option>
-                            <option value="250" selected>250</option>
-                            <option value="500">500</option>
-                            <option value="1000">1000</option>
-                        </select>
-                    </div>
-
-                    <div class="flex items-center space-x-1">
-                        <button id="prevPageBtn" onclick="prevPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>
-                        <span id="pageInfo" class="font-medium px-2">Página 1 de 1</span>
-                        <button id="nextPageBtn" onclick="nextPage()" class="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </section>
 
     </main>
 
-    <!-- Modal Mapeo de Campos Excel (Sin Resultado ni Ticket) -->
+    <!-- Modal Mapeo de Campos Excel -->
     <div id="mappingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
             
@@ -836,18 +880,33 @@
         window.processedData = [];
         window.filteredData = [];
         
+        // Registro de archivos importados
+        window.importedFiles = [];
+
         let currentRawSheetData = null;
         let currentFileName = "";
 
         // Lista global de inspectores disponibles e identificadores seleccionados
         let allInspectorsList = [];
-        let selectedInspectorsMap = new Set(); // Nombres de inspectores seleccionados
+        let selectedInspectorsMap = new Set();
 
         // Paginación
         let currentPage = 1;
         let pageSize = 250;
 
-        // UI Listeners
+        // UI Tab Switcher
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+
+            const btn = document.getElementById(`btn-${tabId}`);
+            if (btn) btn.classList.add('active');
+        };
+
+        // UI Listeners Dropzone
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
 
@@ -889,16 +948,55 @@
             }
         }
 
-        function addFileBadge(name, type, colorClasses) {
-            const container = document.getElementById('fileList');
-            const badge = document.createElement('span');
-            badge.className = `inline-flex items-center px-2.5 py-1 rounded-md border text-[11px] font-medium ${colorClasses}`;
-            badge.innerHTML = `<i class="fa-solid fa-file-excel me-1"></i> ${name} (${type})`;
-            container.appendChild(badge);
-            
+        function renderImportedFilesList() {
+            const container = document.getElementById('importedFilesList');
             const countElem = document.getElementById('filesCount');
-            const current = parseInt(countElem.textContent) || 0;
-            countElem.textContent = `${current + 1} cargados`;
+            
+            countElem.textContent = `${window.importedFiles.length} archivos cargados`;
+
+            if (window.importedFiles.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                        No hay archivos cargados aún.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            window.importedFiles.forEach(f => {
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs hover:border-indigo-300 transition-colors">
+                        <div class="flex items-center space-x-3 truncate">
+                            <i class="fa-solid fa-file-excel text-emerald-600 text-base"></i>
+                            <div class="truncate">
+                                <p class="font-bold text-slate-800 truncate">${f.name}</p>
+                                <p class="text-[10px] text-slate-500">${f.recordsCount} registros aportados • ${f.importedAt}</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteImportedFile('${f.id}')" title="Eliminar archivo e inspecciones asociadas" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg font-semibold transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-trash"></i>
+                            <span class="hidden sm:inline text-[11px]">Eliminar</span>
+                        </button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function deleteImportedFile(fileId) {
+            const fileObj = window.importedFiles.find(f => f.id === fileId);
+            if (!fileObj) return;
+
+            if (!confirm(`¿Deseas eliminar el archivo "${fileObj.name}"? Se quitarán sus ${fileObj.recordsCount} registros y se recalculará la auditoría.`)) return;
+
+            window.importedFiles = window.importedFiles.filter(f => f.id !== fileId);
+            window.rawAccumulatedInspections = window.rawAccumulatedInspections.filter(r => r.fileId !== fileId);
+
+            renderImportedFilesList();
+            updateInspectorListUI();
+            runAnalysisAsync();
         }
 
         function parseExcelOrHtml(file) {
@@ -973,6 +1071,9 @@
                 patente: document.getElementById('mapPatente').value
             };
 
+            const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+            let addedCount = 0;
+
             currentRawSheetData.rows.forEach(item => {
                 const inspector = mapping.inspector ? String(item[mapping.inspector] || 'GENERAL').trim() : "SIN INSPECTOR";
                 const dt = mapping.dateTime ? parseDateTime(item[mapping.dateTime], mapping.timeOnly ? item[mapping.timeOnly] : null) : null;
@@ -980,14 +1081,23 @@
                 if (dt) {
                     window.rawAccumulatedInspections.push({
                         rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                        fileId: fileId,
                         inspector,
                         dateTime: dt,
                         patente: mapping.patente ? item[mapping.patente] || '-' : '-'
                     });
+                    addedCount++;
                 }
             });
 
-            addFileBadge(currentFileName, 'Importado', 'bg-indigo-100 text-indigo-800 border-indigo-300');
+            window.importedFiles.push({
+                id: fileId,
+                name: currentFileName,
+                recordsCount: addedCount,
+                importedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            renderImportedFilesList();
             closeMappingModal();
             updateInspectorListUI();
             runAnalysisAsync();
@@ -1021,7 +1131,7 @@
             allInspectorsList = Array.from(setIns).sort();
 
             if (!allInspectorsList.length) {
-                container.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Carga un archivo para ver el listado de personal.</div>`;
+                container.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">Carga un archivo para ver el listado de personal.</div>`;
                 return;
             }
 
@@ -1042,7 +1152,7 @@
 
                 const isChecked = selectedInspectorsMap.has(ins) ? 'checked' : '';
                 html += `
-                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 hover:bg-slate-100 p-1 rounded cursor-pointer transition-colors">
+                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 hover:bg-slate-100 p-1.5 rounded cursor-pointer transition-colors">
                         <input type="checkbox" value="${ins}" ${isChecked} onchange="toggleInspectorSelection('${ins}', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
                         <span class="truncate">${ins}</span>
                     </label>
@@ -1107,6 +1217,7 @@
             const dt = new Date(`${dateVal}T${timeVal}`);
             window.rawAccumulatedInspections.push({ 
                 rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                fileId: 'manual_entry',
                 inspector: ins, 
                 dateTime: dt, 
                 patente 
@@ -1454,24 +1565,20 @@
                 return;
             }
 
-            // Actualizar datos del encabezado de impresión
             document.getElementById('printDate').textContent = new Date().toLocaleString('es-AR');
             document.getElementById('printTotalCount').textContent = window.filteredData.length;
 
             const tbody = document.getElementById('tableBody');
             const originalHTML = tbody.innerHTML;
 
-            // Renderizar la totalidad de las filas filtradas para la impresión
             let fullHTML = '';
             window.filteredData.forEach((r, idx) => {
                 fullHTML += generateRowHTML(r, idx + 1);
             });
             tbody.innerHTML = fullHTML;
 
-            // Disparar diálogo de impresión del navegador
             window.print();
 
-            // Restaurar vista paginada
             tbody.innerHTML = originalHTML;
         }
 
