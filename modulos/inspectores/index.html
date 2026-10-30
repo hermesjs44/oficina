@@ -493,15 +493,15 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs border-collapse border border-slate-300">
                             <thead>
-                                <tr class="bg-sky-700 text-white uppercase text-[11px] tracking-wider">
-                                    <th class="p-2.5 border border-slate-300">Legajo</th>
-                                    <th class="p-2.5 border border-slate-300">Apellido y Nombre</th>
-                                    <th class="p-2.5 border border-slate-300 text-center">Horario Ingreso</th>
-                                    <th class="p-2.5 border border-slate-300 text-center">Horario Egreso</th>
-                                    <th class="p-2.5 border border-slate-300 text-center">Estado / Novedad</th>
-                                    <th class="p-2.5 border border-slate-300 text-center">Inspector de Reemplazo</th>
-                                    <th class="p-2.5 border border-slate-300 text-center w-48">Firma del Inspector</th>
-                                    <th class="p-2.5 border border-slate-300 text-center no-print">Acciones</th>
+                                <tr class="bg-sky-700 text-white uppercase text-[10px] tracking-wider">
+                                    <th class="p-1.5 border border-slate-300 w-16 text-center">Legajo</th>
+                                    <th class="p-1.5 border border-slate-300">Apellido y Nombre</th>
+                                    <th class="p-1.5 border border-slate-300 text-center w-24">Ingreso</th>
+                                    <th class="p-1.5 border border-slate-300 text-center w-24">Egreso</th>
+                                    <th class="p-1.5 border border-slate-300 text-center w-32">Estado / Novedad</th>
+                                    <th class="p-1.5 border border-slate-300 text-center w-32">Reemplazo</th>
+                                    <th class="p-1.5 border border-slate-300 text-center w-[35%]">Firma del Inspector</th>
+                                    <th class="p-1.5 border border-slate-300 text-center no-print w-16">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tablaSabadoPersonal" class="divide-y divide-slate-300 text-slate-800">
@@ -1020,11 +1020,21 @@
                         const configDia = datosDias[numeroDia];
 
                         if (configDia && configDia.tipoTurno && configDia.tipoTurno !== 'Sin Turno') {
+                            let ingTeorico = '08:00';
+                            let egrTeorico = '12:00';
+                            if (configDia.ingresoManana && configDia.ingresoManana !== '00:00') {
+                                ingTeorico = configDia.ingresoManana;
+                                egrTeorico = configDia.egresoManana || '12:00';
+                            } else if (configDia.ingresoTarde && configDia.ingresoTarde !== '00:00') {
+                                ingTeorico = configDia.ingresoTarde;
+                                egrTeorico = configDia.egresoTarde || '20:00';
+                            }
+
                             personalSabado.push({
                                 legajo: ins.legajo,
                                 nombre: ins.nombre,
-                                ingreso: configDia.ingresoManana && configDia.ingresoManana !== '00:00' ? configDia.ingresoManana : (configDia.ingresoTarde || '08:00'),
-                                egreso: configDia.egresoManana && configDia.egresoManana !== '00:00' ? configDia.egresoManana : (configDia.egresoTarde || '12:00'),
+                                ingreso: ingTeorico,
+                                egreso: egrTeorico,
                                 estado: 'Presente',
                                 reemplazoLegajo: ''
                             });
@@ -1089,32 +1099,32 @@
 
                 tbody.innerHTML += `
                     <tr class="${esAusente ? 'bg-slate-50 opacity-75' : 'hover:bg-slate-50'}">
-                        <td class="p-2.5 border border-slate-300 font-bold text-sky-800">${p.legajo}</td>
-                        <td class="p-2.5 border border-slate-300 font-bold">${p.nombre}</td>
-                        <td class="p-2.5 border border-slate-300 text-center">
-                            <input type="time" value="${p.ingreso || '08:00'}" onchange="actualizarDatoPersonal(${idx}, 'ingreso', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold">
+                        <td class="p-1.5 border border-slate-300 font-bold text-sky-800 text-center">${p.legajo}</td>
+                        <td class="p-1.5 border border-slate-300 font-bold">${p.nombre}</td>
+                        <td class="p-1.5 border border-slate-300 text-center">
+                            <input type="time" value="${p.ingreso || '08:00'}" onchange="actualizarDatoPersonal(${idx}, 'ingreso', this.value)" class="px-1 py-0.5 border border-slate-300 rounded text-xs text-center font-bold w-20">
                         </td>
-                        <td class="p-2.5 border border-slate-300 text-center">
-                            <input type="time" value="${p.egreso || '12:00'}" onchange="actualizarDatoPersonal(${idx}, 'egreso', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold">
+                        <td class="p-1.5 border border-slate-300 text-center">
+                            <input type="time" value="${p.egreso || '12:00'}" onchange="actualizarDatoPersonal(${idx}, 'egreso', this.value)" class="px-1 py-0.5 border border-slate-300 rounded text-xs text-center font-bold w-20">
                         </td>
-                        <td class="p-2.5 border border-slate-300 text-center">
-                            <select onchange="actualizarDatoPersonal(${idx}, 'estado', this.value)" class="px-2 py-1 border border-slate-300 rounded text-xs font-bold">
+                        <td class="p-1.5 border border-slate-300 text-center">
+                            <select onchange="actualizarDatoPersonal(${idx}, 'estado', this.value)" class="px-1 py-0.5 border border-slate-300 rounded text-[11px] font-bold w-full">
                                 <option value="Presente" ${p.estado === 'Presente' ? 'selected' : ''}>Presente</option>
-                                <option value="Franco" ${p.estado === 'Franco' ? 'selected' : ''}>Franco / Sin Asignación</option>
-                                <option value="Ausente" ${p.estado === 'Ausente' ? 'selected' : ''}>Ausente / Falto</option>
-                                <option value="Cambio / Reemplazo" ${p.estado === 'Cambio / Reemplazo' ? 'selected' : ''}>Cambio por Reemplazo</option>
-                                <option value="Justificado" ${p.estado === 'Justificado' ? 'selected' : ''}>Ausencia Justificada</option>
+                                <option value="Franco" ${p.estado === 'Franco' ? 'selected' : ''}>Franco</option>
+                                <option value="Ausente" ${p.estado === 'Ausente' ? 'selected' : ''}>Ausente</option>
+                                <option value="Cambio / Reemplazo" ${p.estado === 'Cambio / Reemplazo' ? 'selected' : ''}>Reemplazo</option>
+                                <option value="Justificado" ${p.estado === 'Justificado' ? 'selected' : ''}>Justificado</option>
                             </select>
                         </td>
-                        <td class="p-2.5 border border-slate-300 text-center">
-                            <select onchange="actualizarDatoPersonal(${idx}, 'reemplazoLegajo', this.value)" class="w-full px-2 py-1 border border-slate-300 rounded text-xs">
+                        <td class="p-1.5 border border-slate-300 text-center">
+                            <select onchange="actualizarDatoPersonal(${idx}, 'reemplazoLegajo', this.value)" class="w-full px-1 py-0.5 border border-slate-300 rounded text-[11px]">
                                 ${optionsReemplazo}
                             </select>
                         </td>
-                        <td class="p-2.5 border border-slate-300 text-center">
-                            <div class="h-8 border-b border-dashed border-slate-400"></div>
+                        <td class="p-1.5 border border-slate-300 text-center">
+                            <div class="h-10 border-b border-dashed border-slate-400"></div>
                         </td>
-                        <td class="p-2.5 border border-slate-300 text-center no-print">
+                        <td class="p-1.5 border border-slate-300 text-center no-print">
                             <button onclick="quitarInspectorSabado(${idx})" class="text-rose-600 hover:text-rose-800 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
