@@ -108,8 +108,6 @@
                         inspector: p.inspector,
                         dateTime: p.dateTime ? p.dateTime.toISOString() : null,
                         patente: p.patente || '-',
-                        resultado: p.resultado || '-',
-                        ticket: p.ticket || '-',
                         gapMinutes: p.gapMinutes,
                         isAlert: p.isAlert,
                         observation: p.observation,
@@ -232,9 +230,7 @@
                 rawId: 'restored_' + idx + '_' + Math.random().toString(36).substr(2, 4),
                 inspector: insp.inspector,
                 dateTime: insp.dateTime ? new Date(insp.dateTime) : new Date(),
-                patente: insp.patente || '-',
-                resultado: insp.resultado || '-',
-                ticket: insp.ticket || '-'
+                patente: insp.patente || '-'
             }));
 
             if (item.thresholdMinutes) {
@@ -275,12 +271,106 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Configuración Estricta de Impresión A4 Doble Faz */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 8mm 10mm 8mm;
+                /* Indicación estándar para impresión doble faz cara larga */
+                duplex: long-edge;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 10pt !important;
+                font-family: Arial, Helvetica, sans-serif !important;
+            }
+
+            /* Ocultar elementos no imprimibles */
+            nav, header, #importControlsGrid, #kpiContainer, .no-print,
+            .p-4.bg-slate-50.border-b, #addRowModal, #editRowModal, #mappingModal, #historyModal,
+            .px-4.py-3.bg-slate-50.border-t, td button, input[type="datetime-local"] {
+                display: none !important;
+            }
+
+            /* Ocultar la columna de acciones en impresión */
+            .col-acciones {
+                display: none !important;
+            }
+
+            /* Estructura limpia e imprimible */
+            .bg-white.rounded-xl.shadow-sm.border {
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            #printableContainer {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Encabezado visible únicamente en impresión */
+            #printHeader {
+                display: block !important;
+                margin-bottom: 12px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 6px;
+            }
+
+            /* Configuración de Tabla de Impresión con Encabezados Repetidos */
+            table.print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+            }
+
+            table.print-table thead {
+                display: table-header-group !important; /* Repite encabezado en cada página */
+            }
+
+            table.print-table tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            table.print-table th, table.print-table td {
+                border: 1px solid #666 !important;
+                padding: 4px 6px !important;
+                font-size: 9pt !important;
+                word-wrap: break-word !important;
+                overflow: hidden !important;
+            }
+
+            table.print-table th {
+                background-color: #f0f0f0 !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                text-transform: uppercase !important;
+            }
+
+            /* Mostrar Fecha/Hora como texto en la versión de impresión */
+            .print-time-text {
+                display: inline !important;
+            }
+        }
+
+        .print-time-text {
+            display: none;
+        }
+
+        #printHeader {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
 
     <!-- Navegación Superior -->
-    <nav class="bg-slate-900 text-white shadow-md">
+    <nav class="bg-slate-900 text-white shadow-md no-print">
         <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-4">
                 <a href="../../index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors">
@@ -297,7 +387,7 @@
     </nav>
 
     <!-- Header Principal -->
-    <header class="bg-indigo-900 text-white shadow-lg">
+    <header class="bg-indigo-900 text-white shadow-lg no-print">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-clipboard-check text-indigo-300 text-3xl"></i>
@@ -323,7 +413,7 @@
     <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
         <!-- Import Section, Threshold & Inspector Selection Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="importControlsGrid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- File Upload Box -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
@@ -474,8 +564,22 @@
         </div>
 
         <!-- Main Content Table & Filters -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        <div id="printableContainer" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
             
+            <!-- Encabezado exclusivo de Impresión -->
+            <div id="printHeader">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2 style="font-size: 14pt; font-weight: bold; margin: 0;">INFORME DE AUDITORÍA DE INSPECCIONES Y CONTROLES</h2>
+                        <p style="font-size: 9pt; margin: 2px 0 0 0; color: #444;">Orden cronológico unificado — Formato A4 Doble Faz</p>
+                    </div>
+                    <div style="text-align: right; font-size: 8pt; color: #444;">
+                        <p style="margin:0;">Impreso: <span id="printDate"></span></p>
+                        <p style="margin:0;">Registros: <span id="printTotalCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Controls Bar -->
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -492,14 +596,17 @@
                     <!-- Search Box -->
                     <div class="relative w-full sm:w-64">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, ticket, inspector..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Buscar patente, inspector..." class="w-full text-xs bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
+                    <button onclick="printFullList()" class="text-xs bg-slate-900 hover:bg-black text-white font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-print text-indigo-300"></i> Imprimir Listado
+                    </button>
                     <button onclick="openAddRowModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-plus"></i> Agregar Fila Manual
+                        <i class="fa-solid fa-plus"></i> Agregar Fila
                     </button>
                     <button onclick="exportSummaryExcel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
                         <i class="fa-solid fa-file-invoice"></i> Resumen XLS
@@ -510,25 +617,23 @@
                 </div>
             </div>
 
-            <!-- Table -->
+            <!-- Table ajustada para el ancho A4 vertical -->
             <div class="overflow-x-auto custom-scrollbar max-h-[550px]">
-                <table class="w-full text-left border-collapse text-xs">
+                <table class="w-full text-left border-collapse text-xs print-table">
                     <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 z-10 border-b border-slate-200">
                         <tr>
-                            <th class="py-3 px-4">#</th>
-                            <th class="py-3 px-4">Fecha y Hora (Orden Cronológico)</th>
-                            <th class="py-3 px-4">Inspector</th>
-                            <th class="py-3 px-4">Patente / Dominio</th>
-                            <th class="py-3 px-4">Resultado</th>
-                            <th class="py-3 px-4">Ticket / Acta</th>
-                            <th class="py-3 px-4 text-center">Intervalo Inter-Control</th>
-                            <th class="py-3 px-4">Estado / Observación</th>
-                            <th class="py-3 px-4 text-center">Acciones</th>
+                            <th class="py-2.5 px-3 w-[6%]">#</th>
+                            <th class="py-2.5 px-3 w-[26%]">Fecha y Hora</th>
+                            <th class="py-2.5 px-3 w-[28%]">Inspector</th>
+                            <th class="py-2.5 px-3 w-[15%]">Patente / Dominio</th>
+                            <th class="py-2.5 px-3 w-[12%] text-center">Intervalo</th>
+                            <th class="py-2.5 px-3 w-[13%]">Estado / Obs</th>
+                            <th class="py-2.5 px-3 w-[8%] text-center col-acciones">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-slate-200">
                         <tr>
-                            <td colspan="9" class="text-center py-12 text-slate-400">
+                            <td colspan="7" class="text-center py-12 text-slate-400">
                                 <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
                                 Carga un archivo de inspecciones o recupera un análisis de Firebase para comenzar.
                             </td>
@@ -563,7 +668,7 @@
 
     </main>
 
-    <!-- Modal Mapeo de Campos Excel -->
+    <!-- Modal Mapeo de Campos Excel (Sin Resultado ni Ticket) -->
     <div id="mappingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
             
@@ -578,7 +683,7 @@
             <div class="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                 <p class="text-xs text-slate-600 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
                     <i class="fa-solid fa-circle-info text-indigo-600 me-1"></i>
-                    Define la relación de cada campo. Selecciona <strong>"-- NO RELACIONAR / OMITIR --"</strong> en las columnas que no desees utilizar.
+                    Define la relación de cada campo obligatorio. Selecciona <strong>"-- NO RELACIONAR / OMITIR --"</strong> en las columnas que no desees utilizar.
                 </p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -591,20 +696,12 @@
                         <select id="mapDateTime" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Hora Separada</label>
+                        <label class="block font-bold text-slate-700 mb-1">Hora Separada (Opcional)</label>
                         <select id="mapTimeOnly" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
                         <select id="mapPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
-                        <select id="mapResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Justificación</label>
-                        <select id="mapTicket" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                     </div>
                 </div>
 
@@ -627,7 +724,7 @@
 
     <!-- Modal Agregar Fila Manualmente -->
     <div id="addRowModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 flex flex-col">
             <div class="bg-emerald-800 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-plus-circle text-emerald-300 text-lg"></i>
@@ -653,25 +750,9 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
-                        <input type="text" id="newPatente" placeholder="Ej: AB123CD" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
-                        <select id="newResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
-                            <option value="Estacionado">Estacionado</option>
-                            <option value="No estacionado">No estacionado</option>
-                            <option value="Infraccionado">Infraccionado</option>
-                            <option value="Exceptuado">Exceptuado</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Observación</label>
-                    <input type="text" id="newTicket" placeholder="Ej: 2026-999999" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
+                    <input type="text" id="newPatente" placeholder="Ej: AB123CD" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                 </div>
             </div>
 
@@ -686,7 +767,7 @@
 
     <!-- Modal Editar Registro -->
     <div id="editRowModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 flex flex-col">
             <div class="bg-amber-800 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-pen-to-square text-amber-300 text-lg"></i>
@@ -713,27 +794,16 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
-                        <input type="text" id="editPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Resultado / Estado</label>
-                        <input type="text" id="editResultado" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
-                    </div>
-                </div>
-
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Ticket / Acta / Observación</label>
-                    <input type="text" id="editTicket" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
+                    <label class="block font-bold text-slate-700 mb-1">Patente / Dominio</label>
+                    <input type="text" id="editPatente" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500">
                 </div>
             </div>
 
             <div class="bg-slate-100 p-4 border-t border-slate-200 flex justify-end space-x-2">
                 <button onclick="closeEditRowModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
                 <button onclick="confirmEditRow()" class="px-5 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors shadow">
-                    Guardar Cambios y Recalcular
+                    Guardar Cambios
                 </button>
             </div>
         </div>
@@ -860,7 +930,7 @@
 
         function openMappingModal(headers, rows) {
             document.getElementById('modalFileTitle').textContent = `Relacionar Campos: ${currentFileName}`;
-            const selectIds = ['mapInspector', 'mapDateTime', 'mapTimeOnly', 'mapPatente', 'mapResultado', 'mapTicket'];
+            const selectIds = ['mapInspector', 'mapDateTime', 'mapTimeOnly', 'mapPatente'];
             
             selectIds.forEach(id => {
                 const select = document.getElementById(id);
@@ -878,8 +948,6 @@
                 if (lower.includes('inspector') || lower.includes('responsable')) document.getElementById('mapInspector').value = h;
                 if (lower.includes('fecha') || lower.includes('date')) document.getElementById('mapDateTime').value = h;
                 if (lower.includes('patente') || lower.includes('dominio')) document.getElementById('mapPatente').value = h;
-                if (lower.includes('resultado') || lower.includes('estado')) document.getElementById('mapResultado').value = h;
-                if (lower.includes('ticket') || lower.includes('acta') || lower.includes('motivo')) document.getElementById('mapTicket').value = h;
             });
 
             const previewTable = document.getElementById('previewTable');
@@ -902,9 +970,7 @@
                 inspector: document.getElementById('mapInspector').value,
                 dateTime: document.getElementById('mapDateTime').value,
                 timeOnly: document.getElementById('mapTimeOnly').value,
-                patente: document.getElementById('mapPatente').value,
-                resultado: document.getElementById('mapResultado').value,
-                ticket: document.getElementById('mapTicket').value
+                patente: document.getElementById('mapPatente').value
             };
 
             currentRawSheetData.rows.forEach(item => {
@@ -916,9 +982,7 @@
                         rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                         inspector,
                         dateTime: dt,
-                        patente: mapping.patente ? item[mapping.patente] || '-' : '-',
-                        resultado: mapping.resultado ? item[mapping.resultado] || '-' : '-',
-                        ticket: mapping.ticket ? item[mapping.ticket] || '-' : '-'
+                        patente: mapping.patente ? item[mapping.patente] || '-' : '-'
                     });
                 }
             });
@@ -1034,8 +1098,6 @@
             const dateVal = document.getElementById('newDate').value;
             const timeVal = document.getElementById('newTime').value;
             const patente = document.getElementById('newPatente').value.trim() || '-';
-            const resultado = document.getElementById('newResultado').value;
-            const ticket = document.getElementById('newTicket').value.trim() || '-';
 
             if (!ins || !dateVal || !timeVal) {
                 alert('Por favor completa los campos obligatorios.');
@@ -1047,9 +1109,7 @@
                 rawId: 'raw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                 inspector: ins, 
                 dateTime: dt, 
-                patente, 
-                resultado, 
-                ticket 
+                patente 
             });
 
             closeAddRowModal();
@@ -1087,8 +1147,6 @@
             document.getElementById('editTime').value = `${hh}:${min}`;
 
             document.getElementById('editPatente').value = item.patente;
-            document.getElementById('editResultado').value = item.resultado;
-            document.getElementById('editTicket').value = item.ticket;
 
             document.getElementById('editRowModal').classList.remove('hidden');
         }
@@ -1112,8 +1170,6 @@
             item.inspector = ins;
             item.dateTime = new Date(`${dateVal}T${timeVal}`);
             item.patente = document.getElementById('editPatente').value.trim() || '-';
-            item.resultado = document.getElementById('editResultado').value.trim() || '-';
-            item.ticket = document.getElementById('editTicket').value.trim() || '-';
 
             closeEditRowModal();
             updateInspectorListUI();
@@ -1127,7 +1183,7 @@
             runAnalysisAsync();
         }
 
-        // --- MOTOR DE ANÁLISIS CRONOLÓGICO UNIFICADO E INACTIVIDAD GLOBAL/INDIVIDUAL ---
+        // --- MOTOR DE ANÁLISIS CRONOLÓGICO UNIFICADO ---
         window.runAnalysisAsync = function() {
             if (!window.rawAccumulatedInspections.length) {
                 window.processedData = [];
@@ -1135,7 +1191,6 @@
                 return;
             }
 
-            // Filtrar registros según inspectores seleccionados
             const filteredRaw = window.rawAccumulatedInspections.filter(r => selectedInspectorsMap.has(r.inspector));
 
             const threshold = parseInt(document.getElementById('thresholdInput').value, 10) || 30;
@@ -1159,7 +1214,6 @@
                     });
                 }
 
-                // ORDENAMIENTO ESTRICTAMENTE CRONOLÓGICO POR FECHA Y HORA (Sin importar el inspector)
                 filteredRaw.sort((a, b) => a.dateTime - b.dateTime);
 
                 const total = filteredRaw.length;
@@ -1176,9 +1230,6 @@
                         let isAlert = false;
                         let obs = '';
 
-                        // AUDITORÍA DE INACTIVIDAD:
-                        // Si hay 1 solo inspector seleccionado, se evalúa respecto al registro previo de ese inspector.
-                        // Si "Todos" o Múltiples están seleccionados, se evalúa la inactividad global en la secuencia temporal unificada del servicio.
                         if (index > 0) {
                             const prevItem = filteredRaw[index - 1];
                             const sameInspector = (item.inspector === prevItem.inspector);
@@ -1192,7 +1243,6 @@
                                     obs = 'Inactividad prolongada';
                                 }
                             } else {
-                                // Cambio de inspector en secuencia cronológica global
                                 const diffMin = Math.round((item.dateTime - prevItem.dateTime) / 60000);
                                 gapMinutes = diffMin;
 
@@ -1215,8 +1265,6 @@
                             inspector: item.inspector,
                             dateTime: item.dateTime,
                             patente: item.patente,
-                            resultado: item.resultado,
-                            ticket: item.ticket,
                             gapMinutes,
                             isAlert,
                             observation: obs,
@@ -1259,8 +1307,8 @@
             
             let alertCount = 0;
             let totalGapsCount = 0;
-            let gapSumMin = 0;          // Suma de todos los intervalos
-            let alertGapSumMin = 0;     // SUMA EXCLUSIVA de intervalos que SUPERAN EL UMBRAL DE ALERTA
+            let gapSumMin = 0;
+            let alertGapSumMin = 0;
 
             window.processedData.forEach(p => {
                 if (!p.isNoContabiliza) {
@@ -1272,13 +1320,12 @@
                     if (p.isAlert) {
                         alertCount++;
                         if (p.gapMinutes !== null && p.gapMinutes > 0) {
-                            alertGapSumMin += p.gapMinutes; // Acumular minutos si supera el umbral de alerta
+                            alertGapSumMin += p.gapMinutes;
                         }
                     }
                 }
             });
 
-            // Formatear Tiempo Total de Inactividad (Solo intervalos que superan Criterios de Alerta)
             const hours = Math.floor(alertGapSumMin / 60);
             const mins = alertGapSumMin % 60;
             const inactivityFormatted = `${hours}h ${mins}m`;
@@ -1301,7 +1348,7 @@
                 if (alertFilter === 'NO_CONTABILIZA' && !item.isNoContabiliza) return false;
 
                 if (searchFilter) {
-                    const matchText = `${item.inspector} ${item.patente} ${item.ticket} ${item.resultado}`.toLowerCase();
+                    const matchText = `${item.inspector} ${item.patente}`.toLowerCase();
                     if (!matchText.includes(searchFilter)) return false;
                 }
                 return true;
@@ -1317,7 +1364,7 @@
             document.getElementById('recordCount').textContent = `Mostrando ${totalRecords.toLocaleString()} de ${window.processedData.length.toLocaleString()} registros ordenados por Fecha y Hora`;
 
             if (totalRecords === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">No se encontraron registros en la selección actual.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">No se encontraron registros en la selección actual.</td></tr>`;
                 document.getElementById('pageInfo').textContent = `Página 0 de 0`;
                 document.getElementById('prevPageBtn').disabled = true;
                 document.getElementById('nextPageBtn').disabled = true;
@@ -1333,51 +1380,7 @@
 
             let html = '';
             pageItems.forEach((r, idx) => {
-                const yyyy = r.dateTime.getFullYear();
-                const mm = String(r.dateTime.getMonth() + 1).padStart(2, '0');
-                const dd = String(r.dateTime.getDate()).padStart(2, '0');
-                const hh = String(r.dateTime.getHours()).padStart(2, '0');
-                const min = String(r.dateTime.getMinutes()).padStart(2, '0');
-
-                const isoDateTimeString = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-                
-                let gapBadge = '<span class="text-slate-400">-</span>';
-                if (r.isNoContabiliza) {
-                    gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para restaurar el cálculo automático" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-eye-slash"></i> no contabiliza</button>`;
-                } else if (r.gapMinutes !== null) {
-                    if (r.isAlert) {
-                        gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="inline-flex items-center gap-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-triangle-exclamation"></i> +${r.gapMinutes} min</button>`;
-                    } else {
-                        gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] transition-colors">${r.gapMinutes} min</button>`;
-                    }
-                }
-
-                let statusBadge = r.isNoContabiliza
-                    ? `<span class="text-amber-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-ban"></i> Omitido de métricas</span>`
-                    : (r.isAlert 
-                        ? `<span class="text-rose-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> ${r.observation}</span>`
-                        : `<span class="text-emerald-600 font-medium">${r.observation || 'OK'}</span>`);
-
-                html += `
-                    <tr class="hover:bg-slate-50 transition-colors ${r.isNoContabiliza ? 'bg-amber-50/30' : (r.isAlert ? 'bg-rose-50/40' : '')}">
-                        <td class="py-2 px-4 text-slate-400 font-mono text-[11px]">${startIdx + idx + 1}</td>
-                        <td class="py-2 px-4 font-mono text-slate-800">
-                            <input type="datetime-local" value="${isoDateTimeString}" onchange="updateDateTimeInline('${r.rawId}', this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
-                        </td>
-                        <td class="py-2 px-4 font-semibold text-slate-800">${r.inspector}</td>
-                        <td class="py-2 px-4"><span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${r.patente}</span></td>
-                        <td class="py-2 px-4 text-slate-600">${r.resultado}</td>
-                        <td class="py-2 px-4 text-slate-500 font-mono text-[11px]">${r.ticket}</td>
-                        <td class="py-2 px-4 text-center">${gapBadge}</td>
-                        <td class="py-2 px-4">${statusBadge}</td>
-                        <td class="py-2 px-4 text-center">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="openEditRowModal('${r.rawId}')" title="Modificar Datos" class="p-1 text-slate-500 hover:text-amber-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button onclick="deleteInspectionRow('${r.rawId}')" title="Eliminar Registro" class="p-1 text-slate-500 hover:text-rose-600 rounded"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                html += generateRowHTML(r, startIdx + idx + 1);
             });
 
             tbody.innerHTML = html;
@@ -1385,6 +1388,54 @@
             document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
             document.getElementById('prevPageBtn').disabled = currentPage === 1;
             document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+        }
+
+        function generateRowHTML(r, rowNum) {
+            const yyyy = r.dateTime.getFullYear();
+            const mm = String(r.dateTime.getMonth() + 1).padStart(2, '0');
+            const dd = String(r.dateTime.getDate()).padStart(2, '0');
+            const hh = String(r.dateTime.getHours()).padStart(2, '0');
+            const min = String(r.dateTime.getMinutes()).padStart(2, '0');
+
+            const isoDateTimeString = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+            const formattedPrintDate = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+            
+            let gapBadge = '<span class="text-slate-400">-</span>';
+            if (r.isNoContabiliza) {
+                gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para restaurar el cálculo automático" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-eye-slash"></i> no contabiliza</button>`;
+            } else if (r.gapMinutes !== null) {
+                if (r.isAlert) {
+                    gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="inline-flex items-center gap-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-2 py-0.5 rounded text-[11px] transition-colors"><i class="fa-solid fa-triangle-exclamation"></i> +${r.gapMinutes} min</button>`;
+                } else {
+                    gapBadge = `<button onclick="toggleNoContabiliza(${r.id})" title="Haz clic para cambiar a 'no contabiliza'" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[11px] transition-colors">${r.gapMinutes} min</button>`;
+                }
+            }
+
+            let statusBadge = r.isNoContabiliza
+                ? `<span class="text-amber-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-ban"></i> Omitido</span>`
+                : (r.isAlert 
+                    ? `<span class="text-rose-600 font-semibold flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> ${r.observation}</span>`
+                    : `<span class="text-emerald-600 font-medium">${r.observation || 'OK'}</span>`);
+
+            return `
+                <tr class="hover:bg-slate-50 transition-colors ${r.isNoContabiliza ? 'bg-amber-50/30' : (r.isAlert ? 'bg-rose-50/40' : '')}">
+                    <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${rowNum}</td>
+                    <td class="py-2 px-3 font-mono text-slate-800">
+                        <input type="datetime-local" value="${isoDateTimeString}" onchange="updateDateTimeInline('${r.rawId}', this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 no-print">
+                        <span class="print-time-text font-semibold">${formattedPrintDate}</span>
+                    </td>
+                    <td class="py-2 px-3 font-semibold text-slate-800">${r.inspector}</td>
+                    <td class="py-2 px-3"><span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${r.patente}</span></td>
+                    <td class="py-2 px-3 text-center">${gapBadge}</td>
+                    <td class="py-2 px-3">${statusBadge}</td>
+                    <td class="py-2 px-3 text-center col-acciones">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openEditRowModal('${r.rawId}')" title="Modificar Datos" class="p-1 text-slate-500 hover:text-amber-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteInspectionRow('${r.rawId}')" title="Eliminar Registro" class="p-1 text-slate-500 hover:text-rose-600 rounded"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
 
         function changePageSize() {
@@ -1396,6 +1447,34 @@
         function prevPage() { if (currentPage > 1) { currentPage--; renderPaginatedTable(); } }
         function nextPage() { currentPage++; renderPaginatedTable(); }
 
+        // --- MÓDULO DE IMPRESIÓN COMPLETA DOBLE FAZ A4 ---
+        function printFullList() {
+            if (!window.filteredData || window.filteredData.length === 0) {
+                alert('No hay datos en el listado para imprimir.');
+                return;
+            }
+
+            // Actualizar datos del encabezado de impresión
+            document.getElementById('printDate').textContent = new Date().toLocaleString('es-AR');
+            document.getElementById('printTotalCount').textContent = window.filteredData.length;
+
+            const tbody = document.getElementById('tableBody');
+            const originalHTML = tbody.innerHTML;
+
+            // Renderizar la totalidad de las filas filtradas para la impresión
+            let fullHTML = '';
+            window.filteredData.forEach((r, idx) => {
+                fullHTML += generateRowHTML(r, idx + 1);
+            });
+            tbody.innerHTML = fullHTML;
+
+            // Disparar diálogo de impresión del navegador
+            window.print();
+
+            // Restaurar vista paginada
+            tbody.innerHTML = originalHTML;
+        }
+
         // Exportación a Excel Detallado
         function exportDetailedExcel() {
             if (!window.processedData.length) return alert('No hay datos procesados para exportar.');
@@ -1404,8 +1483,6 @@
                 'Fecha y Hora': r.dateTime.toLocaleString('es-AR'),
                 'Inspector': r.inspector,
                 'Patente': r.patente,
-                'Resultado': r.resultado,
-                'Ticket': r.ticket,
                 'Intervalo Inactividad (min)': r.isNoContabiliza ? 'no contabiliza' : (r.gapMinutes !== null ? r.gapMinutes : 0),
                 'Supera Umbral': r.isNoContabiliza ? 'NO' : (r.isAlert ? 'SI' : 'NO'),
                 'Observación': r.isNoContabiliza ? 'no contabiliza' : r.observation
@@ -1417,7 +1494,7 @@
             XLSX.writeFile(wb, `Auditoria_Inspecciones_Cronologico_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // Exportación a Excel Resumen (Tiempo Total de Inactividad sumando únicamente Alertas por Inspector)
+        // Exportación a Excel Resumen
         function exportSummaryExcel() {
             if (!window.processedData.length) return alert('No hay datos procesados para exportar.');
 
@@ -1441,7 +1518,7 @@
                     if (r.isAlert) {
                         ins.Alertas++;
                         if (r.gapMinutes !== null && r.gapMinutes > 0) {
-                            ins.SumAlertGapMin += r.gapMinutes; // Acumular únicamente lapsos en Alerta
+                            ins.SumAlertGapMin += r.gapMinutes;
                         }
                     }
                 }
