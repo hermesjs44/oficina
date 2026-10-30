@@ -112,13 +112,16 @@
                 background-color: #f1f5f9 !important;
             }
 
-            input {
+            select {
                 border: none !important;
                 background: transparent !important;
-                font-size: 14px !important;
+                font-size: 12px !important;
                 font-weight: bold !important;
                 color: #000000 !important;
                 text-align: center !important;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
             }
 
             h1 {
@@ -951,7 +954,6 @@
 
                     diasQuincenaAsignacion.forEach((d) => {
                         let val = insData[d.fechaIso] || '';
-                        
                         const codigoLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, d.fechaIso);
                         let celdaClass = d.esSabado ? 'bg-slate-100 sabado-col' : '';
 
@@ -966,12 +968,13 @@
 
                         trHtml += `
                             <td class="p-1 border border-slate-400 text-center ${celdaClass}">
-                                <input type="text" 
-                                       id="asig_${safeLegajo}_${d.fechaIso}" 
-                                       value="${val}" 
-                                       maxlength="12" 
-                                       placeholder="-" 
-                                       class="w-full text-center font-bold text-sky-950 text-xs uppercase bg-transparent focus:outline-none focus:bg-amber-100/50 rounded py-1.5">
+                                <select id="asig_${safeLegajo}_${d.fechaIso}" 
+                                        onchange="actualizarOpcionesDisponibles('${d.fechaIso}')"
+                                        class="w-full text-center font-bold text-sky-950 text-xs uppercase bg-transparent focus:outline-none focus:bg-amber-100/50 rounded py-1.5 select-zona-dia-${d.fechaIso}">
+                                    <option value="">-</option>
+                                    ${val && !['LIC', 'VAC', 'MED', 'AUS', 'SUS', 'FAL'].includes(val) ? `<option value="${val}" selected>${val}</option>` : ''}
+                                    ${['LIC', 'VAC', 'MED', 'AUS', 'SUS', 'FAL'].includes(val) ? `<option value="${val}" selected>${val}</option>` : ''}
+                                </select>
                             </td>
                         `;
                     });
@@ -980,9 +983,50 @@
                     tbody.innerHTML += trHtml;
                 });
 
+                // Cargar opciones completas en los selects iniciales
+                diasQuincenaAsignacion.forEach(d => {
+                    actualizarOpcionesDisponibles(d.fechaIso);
+                });
+
             } catch (err) {
                 console.error("Error al cargar planilla de asignación:", err);
             }
+        }
+
+        function actualizarOpcionesDisponibles(fechaIso) {
+            const zonasActivas = zonasRegistradas.filter(z => z.activa).map(z => z.nombre);
+            const selectsDelDia = document.querySelectorAll(`.select-zona-dia-${fechaIso}`);
+            
+            // Recopilar valores seleccionados actualmente en ese día
+            let valoresSeleccionados = [];
+            selectsDelDia.forEach(sel => {
+                const val = sel.value;
+                if (val && !['LIC', 'VAC', 'MED', 'AUS', 'SUS', 'FAL'].includes(val)) {
+                    valoresSeleccionados.push(val);
+                }
+            });
+
+            // Actualizar cada select preservando su propia selección y excluyendo las elegidas por otros
+            selectsDelDia.forEach(sel => {
+                const valorActual = sel.value;
+                
+                let htmlOpciones = `<option value="">-</option>`;
+                
+                // Si la celda tiene una licencia especial, mantenerla
+                if (['LIC', 'VAC', 'MED', 'AUS', 'SUS', 'FAL'].includes(valorActual)) {
+                    htmlOpciones += `<option value="${valorActual}" selected>${valorActual}</option>`;
+                }
+
+                zonasActivas.forEach(zona => {
+                    // Mostrar si la zona no está tomada por otro inspector, o si es la que este inspector ya tiene seleccionada
+                    if (!valoresSeleccionados.includes(zona) || zona === valorActual) {
+                        const seleccionadaAttr = (zona === valorActual) ? 'selected' : '';
+                        htmlOpciones += `<option value="${zona}" ${seleccionadaAttr}>${zona}</option>`;
+                    }
+                });
+
+                sel.innerHTML = htmlOpciones;
+            });
         }
 
         function generarSecuenciaParaSiguientesDias() {
@@ -1006,8 +1050,8 @@
 
             inspectoresFiltrados.forEach(ins => {
                 const safeLegajo = String(ins.legajo).replace(/\//g, '_');
-                const inpBase = document.getElementById(`asig_${safeLegajo}_${fechaIsoBase}`);
-                const zonaInicialVal = inpBase ? inpBase.value.trim().toUpperCase() : '';
+                const selBase = document.getElementById(`asig_${safeLegajo}_${fechaIsoBase}`);
+                const zonaInicialVal = selBase ? selBase.value.trim().toUpperCase() : '';
 
                 let posZonaActual = zonasActivas.indexOf(zonaInicialVal);
 
@@ -1016,19 +1060,20 @@
                         const dSig = diasQuincenaAsignacion[i];
                         
                         const tieneLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, dSig.fechaIso);
-                        const inpTarget = document.getElementById(`asig_${safeLegajo}_${dSig.fechaIso}`);
+                        const selTarget = document.getElementById(`asig_${safeLegajo}_${dSig.fechaIso}`);
 
                         if (tieneLicencia) {
-                            if (inpTarget) inpTarget.value = tieneLicencia;
+                            if (selTarget) selTarget.value = tieneLicencia;
                         } else {
                             posZonaActual = (posZonaActual + 1) % zonasActivas.length;
                             const proximaZona = zonasActivas[posZonaActual];
-                            if (inpTarget) inpTarget.value = proximaZona;
+                            if (selTarget) selTarget.value = proximaZona;
                         }
                     }
                 }
             });
 
+            diasQuincenaAsignacion.forEach(d => actualizarOpcionesDisponibles(d.fechaIso));
             alert("Secuencia de zonas generada para los días siguientes respetando licencias.");
         }
 
@@ -1046,9 +1091,9 @@
                 planillaData[safeLegajo] = {};
 
                 diasQuincenaAsignacion.forEach(d => {
-                    const inp = document.getElementById(`asig_${safeLegajo}_${d.fechaIso}`);
-                    if (inp) {
-                        planillaData[safeLegajo][d.fechaIso] = inp.value.trim().toUpperCase();
+                    const sel = document.getElementById(`asig_${safeLegajo}_${d.fechaIso}`);
+                    if (sel) {
+                        planillaData[safeLegajo][d.fechaIso] = sel.value.trim().toUpperCase();
                     }
                 });
             });
@@ -1305,12 +1350,9 @@
             let diasHabilesCount = 0;
             let fechasHabiles = [];
 
-            // Filtrar días: 
-            // Si el turno es TARDE, se excluyen Domingos (0) y Sábados (6). 
-            // Para otros turnos, solo se excluyen Domingos (0).
             for (let dia = 1; dia <= totalDias; dia++) {
                 const fechaObj = new Date(year, month - 1, dia);
-                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+                const diaSemana = fechaObj.getDay();
 
                 if (turnoVal === 'TARDE') {
                     if (diaSemana !== 0 && diaSemana !== 6) {
@@ -1325,7 +1367,6 @@
                 }
             }
 
-            // Altura dinámica precisa calculada para ajustar perfectamente en la página A4 vertical (aprox 790px disponibles)
             let alturaFilaPx = Math.floor(780 / diasHabilesCount);
             if (alturaFilaPx < 25) alturaFilaPx = 25;
 
