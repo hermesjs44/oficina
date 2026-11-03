@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!------------------------ Modulo Licencias ------------------------------>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -400,71 +401,137 @@
             </section>
 
             <!-- SECCIÓN 3: CONFIGURACIÓN DE LICENCIAS -->
-            <section id="configuracion-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-4xl mx-auto hidden">
-                <h2 class="text-xl font-bold text-stone-800 mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-amber-700"></i> Parámetros y Configuración de Licencias
-                </h2>
-                <p class="text-sm text-stone-600 mb-6">Ajuste los topes de días asignados al año o por mes para cada tipo de licencia.</p>
+            <section id="configuracion-licencias" class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm max-w-5xl mx-auto hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-amber-700"></i> Parámetros y Configuración de Licencias
+                        </h2>
+                        <p class="text-sm text-stone-600">Ajuste los topes de días asignados, las abreviaciones para planillas y cree nuevos tipos de licencias con sus características.</p>
+                    </div>
+                </div>
 
+                <!-- Formulario para Agregar Nuevo Tipo de Licencia -->
+                <div class="mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
+                    <h3 class="text-xs font-bold uppercase text-amber-900 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus-circle text-amber-700"></i> Agregar Nuevo Tipo de Licencia
+                    </h3>
+                    <form id="formNuevaLicenciaConfig" onsubmit="agregarNuevoTipoLicencia(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div class="md:col-span-1">
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Nombre Licencia</label>
+                            <input type="text" id="nuevaLicNombre" required placeholder="Ej. Licencia Maternidad" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Abreviación Planilla</label>
+                            <input type="text" id="nuevaLicAbrev" required maxlength="4" placeholder="Ej. M" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">Tope Días / Francos</label>
+                            <input type="number" id="nuevaLicTope" required min="1" value="30" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors shadow flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Añadir Licencia
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulario de Configuración General -->
                 <form id="formConfiguracion" onsubmit="guardarConfiguracion(event)" class="space-y-4">
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Ordinaria (Vacaciones)</h4>
-                            <p class="text-[11px] text-stone-500">Calculada automáticamente según antigüedad laboral.</p>
+                    <div id="contenedorTiposLicencias" class="space-y-3">
+                        <!-- Licencias por defecto con Abreviación -->
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Ordinaria (Vacaciones)</h4>
+                                <p class="text-[11px] text-stone-500">Calculada automáticamente según antigüedad laboral.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevOrdinaria" value="V" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div class="text-right">
+                                <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded font-bold text-xs">Según Antigüedad</span>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded font-bold text-xs">Según Antigüedad</span>
-                        </div>
-                    </div>
 
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia por Enfermedad</h4>
-                            <p class="text-[11px] text-stone-500">Cantidad de días hábiles asignados por año.</p>
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia por Enfermedad</h4>
+                                <p class="text-[11px] text-stone-500">Días hábiles asignados por año.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevEnfermedad" value="E" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Anual (Días)</label>
+                                <input type="number" id="cfgEnfermedad" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="cfgEnfermedad" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
-                        </div>
-                    </div>
 
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Enfermedad Familiar</h4>
-                            <p class="text-[11px] text-stone-500">Cantidad de días asignados por año.</p>
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Licencia Enfermedad Familiar</h4>
+                                <p class="text-[11px] text-stone-500">Días asignados por año.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevEnfermedadFamiliar" value="EF" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Anual (Días)</label>
+                                <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="cfgEnfermedadFamiliar" value="20" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
-                        </div>
-                    </div>
 
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Suspensión</h4>
-                            <p class="text-[11px] text-stone-500">Cantidad de días máximos asignados por año.</p>
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Suspensión</h4>
+                                <p class="text-[11px] text-stone-500">Días máximos asignados por año.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevSuspension" value="S" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Anual (Días)</label>
+                                <input type="number" id="cfgSuspension" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="cfgSuspension" value="30" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
-                        </div>
-                    </div>
 
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Franco Compensatorio</h4>
-                            <p class="text-[11px] text-stone-500">Tope máximo de francos por mes.</p>
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Franco Compensatorio</h4>
+                                <p class="text-[11px] text-stone-500">Tope máximo de francos por mes.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevFrancoCompensatorio" value="FC" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Mensual (Francos)</label>
+                                <input type="number" id="cfgFrancoCompensatorio" value="2" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="cfgFrancoCompensatorio" value="2" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
-                        </div>
-                    </div>
 
-                    <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <h4 class="font-bold text-stone-800 text-xs uppercase">Permiso Especial</h4>
-                            <p class="text-[11px] text-stone-500">Tope anual en días para permisos generales.</p>
+                        <div class="p-4 rounded-lg bg-stone-50 border border-stone-200 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-stone-800 text-xs uppercase">Permiso Especial</h4>
+                                <p class="text-[11px] text-stone-500">Tope anual en días para permisos generales.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                                <input type="text" id="cfgAbrevPermiso" value="P" maxlength="4" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Anual (Días)</label>
+                                <input type="number" id="cfgPermiso" value="12" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="cfgPermiso" value="12" min="1" required class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
-                        </div>
+
+                        <!-- Contenedor para tipos de licencias personalizados creados dinámicamente -->
+                        <div id="listaLicenciasPersonalizadas" class="space-y-3"></div>
                     </div>
 
                     <div class="flex justify-end pt-3">
@@ -850,15 +917,36 @@
         let ausencias = [];
         let causas = ["Lluvia", "Asamblea", "Falla del Sistema"];
         let pausas = [];
+        
+        // Configuración de licencias con soporte de abreviaciones y licencias personalizadas
         let configLicencias = {
-            enfermedad: 30,
-            enfermedadFamiliar: 20,
-            suspension: 30,
-            francoCompensatorio: 2,
-            permiso: 12
+            ordinariaAbrev: "V",
+            enfermedad: 30, enfermedadAbrev: "E",
+            enfermedadFamiliar: 20, enfermedadFamiliarAbrev: "EF",
+            suspension: 30, suspensionAbrev: "S",
+            francoCompensatorio: 2, francoCompensatorioAbrev: "FC",
+            permiso: 12, permisoAbrev: "P",
+            personalizadas: []
         };
 
-        // Función Auxiliar para formatear de YYYY-MM-DD a dd/mm/aaaa
+        // Función Auxiliar para obtener la abreviación de una licencia
+        function obtenerAbreviacionLicencia(tipoLicencia) {
+            if (tipoLicencia === 'Licencia Ordinaria') return configLicencias.ordinariaAbrev || "V";
+            if (tipoLicencia === 'Licencia Enfermedad') return configLicencias.enfermedadAbrev || "E";
+            if (tipoLicencia === 'Licencia Enfermedad Familiar') return configLicencias.enfermedadFamiliarAbrev || "EF";
+            if (tipoLicencia === 'Franco Compensatorio') return configLicencias.francoCompensatorioAbrev || "FC";
+            if (tipoLicencia === 'Permiso') return configLicencias.permisoAbrev || "P";
+            if (tipoLicencia === 'Suspensión') return configLicencias.suspensionAbrev || "S";
+
+            if (configLicencias.personalizadas) {
+                const personalizada = configLicencias.personalizadas.find(p => p.nombre === tipoLicencia);
+                if (personalizada) return personalizada.abrev;
+            }
+
+            return tipoLicencia ? tipoLicencia.substring(0, 2).toUpperCase() : "L";
+        }
+
+        // Función Auxiliar para formatear de YYYY-MM-DD a dd/mm/yyyy
         function formatearFechaLatina(fechaIso) {
             if (!fechaIso) return '-';
             const partes = fechaIso.split('-');
@@ -867,28 +955,25 @@
         }
 
         async function cargarDatosIniciales() {
-            // Establecer fecha de hoy por defecto en el Dashboard
             const hoyIso = new Date().toISOString().split('T')[0];
             const inputFechaDash = document.getElementById('fechaDashboard');
             if (inputFechaDash && !inputFechaDash.value) {
                 inputFechaDash.value = hoyIso;
             }
 
-            // Establecer mes actual para la planificación
             const inputMesPlanif = document.getElementById('mesPlanificacion');
             if (inputMesPlanif && !inputMesPlanif.value) {
                 inputMesPlanif.value = hoyIso.substring(0, 7);
             }
 
-            // Establecer mes actual para el listado de pausas
             const inputMesPausa = document.getElementById('filtroMesPausa');
             if (inputMesPausa && !inputMesPausa.value) {
                 inputMesPausa.value = hoyIso.substring(0, 7);
             }
 
             await obtenerInspectoresFirebase();
-            await obtenerLicenciasFirebase();
             await obtenerConfiguracionFirebase();
+            await obtenerLicenciasFirebase();
             await obtenerAusenciasFirebase();
             await obtenerCausasFirebase();
             await obtenerPausasFirebase();
@@ -898,7 +983,6 @@
         }
         window.cargarDatosIniciales = cargarDatosIniciales;
 
-        // --- VERIFICACIÓN DE ROL Y CONTROL DE VISIBILIDAD DE MENÚ EXPORTACIÓN ---
         function verificarRolUsuario() {
             const rolUsuario = sessionStorage.getItem('rolUsuario') || localStorage.getItem('rolUsuario') || 'diseñador';
             const menuExp = document.getElementById('menu-exportacion');
@@ -910,7 +994,6 @@
             }
         }
 
-        // --- MANEJO DE SECCIONES ---
         function showSection(sectionId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
@@ -928,7 +1011,6 @@
             if (sectionId === 'listado-pausas') filtrarPausas();
         }
 
-        // --- SECCIÓN 0: LÓGICA DASHBOARD ---
         function renderizarDashboard() {
             const fechaConsulta = document.getElementById('fechaDashboard').value;
             if (!fechaConsulta) return;
@@ -941,7 +1023,6 @@
             let listaAusentes = [];
             let legajosAusentes = new Set();
 
-            // 1. Evaluar Licencias en la fecha
             licencias.forEach(lic => {
                 if (lic.desde && lic.hasta && fechaConsulta >= lic.desde && fechaConsulta <= lic.hasta) {
                     legajosAusentes.add(String(lic.legajo));
@@ -959,7 +1040,6 @@
                 }
             });
 
-            // 2. Evaluar Ausencias Sin Aviso en la fecha
             ausencias.forEach(aus => {
                 if (aus.fecha === fechaConsulta && !legajosAusentes.has(String(aus.legajo))) {
                     legajosAusentes.add(String(aus.legajo));
@@ -977,17 +1057,14 @@
                 }
             });
 
-            // 3. Separar los inspectores Presentes
             let listaPresentes = inspectores.filter(ins => !legajosAusentes.has(String(ins.legajo)));
 
-            // Actualizar Métricas
             document.getElementById('cantTotalInspectores').textContent = inspectores.length;
             document.getElementById('cantInspectoresPresentes').textContent = listaPresentes.length;
             document.getElementById('cantInspectoresAusentes').textContent = listaAusentes.length;
             document.getElementById('badgeAusentes').textContent = listaAusentes.length;
             document.getElementById('badgePresentes').textContent = listaPresentes.length;
 
-            // Renderizar Tabla Ausentes
             if (listaAusentes.length === 0) {
                 tablaAusentes.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-400 font-medium">No se registraron ausencias para esta fecha.</td></tr>`;
             } else {
@@ -1004,7 +1081,6 @@
                 });
             }
 
-            // Renderizar Tabla Presentes
             if (listaPresentes.length === 0) {
                 tablaPresentes.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-stone-400 font-medium">No hay inspectores registrados como presentes.</td></tr>`;
             } else {
@@ -1021,7 +1097,6 @@
             }
         }
 
-        // --- SECCIÓN 4: PLANIFICACIÓN DE LICENCIAS POR GRUPO ---
         function renderizarPlanificacion() {
             const mesAnio = document.getElementById('mesPlanificacion').value;
             const grupoSelect = document.getElementById('grupoPlanificacion').value;
@@ -1032,7 +1107,6 @@
             const mesNum = parseInt(mesStr, 10);
             const diasEnMes = new Date(anio, mesNum, 0).getDate();
 
-            // Filtrar inspectores por el grupo de trabajo y ordenar alfabéticamente por nombre
             const listaGrupo = inspectores.filter(i => {
                 const funcion = (i.tarea || '').toLowerCase();
                 if (grupoSelect === 'Inspectores') {
@@ -1042,14 +1116,12 @@
                 }
             }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
 
-            // Actualizar selector de empleados en el formulario rápido de planificación
             const selectEmpleado = document.getElementById('planifEmpleado');
             selectEmpleado.innerHTML = '<option value="">Seleccione personal...</option>';
             listaGrupo.forEach(emp => {
                 selectEmpleado.innerHTML += `<option value="${emp.legajo}">${emp.nombre} (${emp.legajo})</option>`;
             });
 
-            // Renderizar Cabecera de la Grilla (Sábados y Domingos resaltados en negro/oscuro)
             const thead = document.getElementById('headPlanificacion');
             let headerHtml = `<th class="p-2 border-r border-amber-900/40 min-w-[160px] sticky left-0 bg-amber-800 z-10">Personal (${grupoSelect})</th>`;
             
@@ -1060,7 +1132,6 @@
             }
             thead.innerHTML = headerHtml;
 
-            // Renderizar Cuerpo (Filas por Empleado ordenadas alfabéticamente)
             const tbody = document.getElementById('bodyPlanificacion');
             tbody.innerHTML = '';
 
@@ -1078,7 +1149,6 @@
                         const fechaDia = new Date(anio, mesNum - 1, d);
                         const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
 
-                        // Buscar licencia activa para este empleado en la fecha
                         const licEncontrada = licencias.find(lic => {
                             return String(lic.legajo) === String(emp.legajo) && 
                                    lic.desde <= fechaIsoStr && 
@@ -1088,25 +1158,19 @@
                         if (licEncontrada) {
                             totalesPorDia[d]++;
                             
-                            // Asignar colores y abreviaturas según el tipo de licencia
                             let colorClase = "bg-amber-500 text-amber-950";
-                            let tipoAbrev = "V"; // Licencia Ordinaria / Vacaciones por defecto
+                            let tipoAbrev = obtenerAbreviacionLicencia(licEncontrada.tipo);
                             
                             if (licEncontrada.tipo === 'Licencia Enfermedad') {
                                 colorClase = "bg-rose-500 text-white";
-                                tipoAbrev = "E";
                             } else if (licEncontrada.tipo === 'Licencia Enfermedad Familiar') {
                                 colorClase = "bg-orange-500 text-white";
-                                tipoAbrev = "EF";
                             } else if (licEncontrada.tipo === 'Franco Compensatorio') {
                                 colorClase = "bg-blue-500 text-white";
-                                tipoAbrev = "FC";
                             } else if (licEncontrada.tipo === 'Permiso') {
                                 colorClase = "bg-emerald-500 text-white";
-                                tipoAbrev = "P";
                             } else if (licEncontrada.tipo === 'Suspensión') {
                                 colorClase = "bg-purple-600 text-white";
-                                tipoAbrev = "S";
                             }
 
                             rowHtml += `<td class="p-1 text-center border-r border-stone-200 ${colorClase} font-black text-[10px]" title="${emp.nombre} - ${licEncontrada.tipo} (${diaDosDigitos}/${mesStr})">${tipoAbrev}</td>`;
@@ -1119,7 +1183,6 @@
                 });
             }
 
-            // Renderizar Footer (Totales Diarios con Validación de Cupo Límites)
             const maximoPermitido = grupoSelect === 'Inspectores' ? 4 : 1;
             const tfoot = document.getElementById('footPlanificacion');
             let footHtml = `<td class="p-2 border-r border-stone-300 sticky left-0 bg-stone-200 uppercase font-bold text-[10px] z-10">Total Licencias / Día</td>`;
@@ -1138,7 +1201,6 @@
             }
             tfoot.innerHTML = footHtml;
 
-            // Renderizar Alertas y Resumen de Estado
             const divAlertas = document.getElementById('resumenAlertasPlanificacion');
             divAlertas.innerHTML = `
                 <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center gap-3">
@@ -1218,7 +1280,6 @@
             }
         }
 
-        // --- FIREBASE LICENCIAS ---
         async function obtenerInspectoresFirebase() {
             if (!window.db) return;
             try {
@@ -1250,16 +1311,115 @@
             try {
                 const cfgDoc = await window.getDoc(window.doc(window.db, "config_licencias", "general"));
                 if (cfgDoc.exists()) {
-                    configLicencias = cfgDoc.data();
+                    configLicencias = { ...configLicencias, ...cfgDoc.data() };
+                    
+                    document.getElementById('cfgAbrevOrdinaria').value = configLicencias.ordinariaAbrev || "V";
                     document.getElementById('cfgEnfermedad').value = configLicencias.enfermedad || 30;
+                    document.getElementById('cfgAbrevEnfermedad').value = configLicencias.enfermedadAbrev || "E";
                     document.getElementById('cfgEnfermedadFamiliar').value = configLicencias.enfermedadFamiliar || 20;
+                    document.getElementById('cfgAbrevEnfermedadFamiliar').value = configLicencias.enfermedadFamiliarAbrev || "EF";
                     document.getElementById('cfgSuspension').value = configLicencias.suspension || 30;
+                    document.getElementById('cfgAbrevSuspension').value = configLicencias.suspensionAbrev || "S";
                     document.getElementById('cfgFrancoCompensatorio').value = configLicencias.francoCompensatorio || 2;
+                    document.getElementById('cfgAbrevFrancoCompensatorio').value = configLicencias.francoCompensatorioAbrev || "FC";
                     document.getElementById('cfgPermiso').value = configLicencias.permiso || 12;
+                    document.getElementById('cfgAbrevPermiso').value = configLicencias.permisoAbrev || "P";
+                    
+                    renderizarLicenciasPersonalizadasConfig();
+                    actualizarSelectTipoLicenciaForm();
                 }
             } catch (error) {
                 console.error("Error al obtener configuración:", error);
             }
+        }
+
+        function agregarNuevoTipoLicencia(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('nuevaLicNombre').value.trim();
+            const abrev = document.getElementById('nuevaLicAbrev').value.trim().toUpperCase();
+            const tope = parseInt(document.getElementById('nuevaLicTope').value);
+
+            if (!nombre || !abrev) return;
+
+            if (!configLicencias.personalizadas) configLicencias.personalizadas = [];
+
+            const existe = configLicencias.personalizadas.some(l => l.nombre.toLowerCase() === nombre.toLowerCase());
+            if (existe) {
+                alert("Ya existe un tipo de licencia con este nombre.");
+                return;
+            }
+
+            configLicencias.personalizadas.push({
+                id: 'lic_' + Date.now(),
+                nombre,
+                abrev,
+                tope
+            });
+
+            document.getElementById('formNuevaLicenciaConfig').reset();
+            renderizarLicenciasPersonalizadasConfig();
+            actualizarSelectTipoLicenciaForm();
+        }
+
+        function eliminarLicenciaPersonalizada(id) {
+            if (!confirm("¿Desea quitar este tipo de licencia?")) return;
+            configLicencias.personalizadas = configLicencias.personalizadas.filter(l => l.id !== id);
+            renderizarLicenciasPersonalizadasConfig();
+            actualizarSelectTipoLicenciaForm();
+        }
+
+        function renderizarLicenciasPersonalizadasConfig() {
+            const contenedor = document.getElementById('listaLicenciasPersonalizadas');
+            contenedor.innerHTML = '';
+
+            if (!configLicencias.personalizadas) configLicencias.personalizadas = [];
+
+            configLicencias.personalizadas.forEach((lic, idx) => {
+                contenedor.innerHTML += `
+                    <div class="p-4 rounded-lg bg-amber-50/50 border border-amber-200 grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                        <div>
+                            <h4 class="font-bold text-stone-800 text-xs uppercase">${lic.nombre}</h4>
+                            <p class="text-[11px] text-stone-500">Licencia personalizada configurada.</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Abreviación Planilla</label>
+                            <input type="text" value="${lic.abrev}" maxlength="4" onchange="configLicencias.personalizadas[${idx}].abrev = this.value.toUpperCase()" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-amber-900 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Tope Anual (Días)</label>
+                            <input type="number" value="${lic.tope}" min="1" onchange="configLicencias.personalizadas[${idx}].tope = parseInt(this.value)" class="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-bold text-stone-800">
+                        </div>
+                        <div class="text-right">
+                            <button type="button" onclick="eliminarLicenciaPersonalizada('${lic.id}')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow transition-colors">
+                                <i class="fa-solid fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function actualizarSelectTipoLicenciaForm() {
+            const select = document.getElementById('tipoLicencia');
+            if (!select) return;
+
+            const valorSeleccionado = select.value;
+            select.innerHTML = `
+                <option value="Licencia Ordinaria">Licencia Ordinaria (Vacaciones)</option>
+                <option value="Licencia Enfermedad">Licencia Enfermedad</option>
+                <option value="Licencia Enfermedad Familiar">Licencia Enfermedad Familiar</option>
+                <option value="Franco Compensatorio">Franco Compensatorio</option>
+                <option value="Permiso">Permiso Especial</option>
+                <option value="Suspensión">Suspensión</option>
+            `;
+
+            if (configLicencias.personalizadas) {
+                configLicencias.personalizadas.forEach(lic => {
+                    select.innerHTML += `<option value="${lic.nombre}">${lic.nombre}</option>`;
+                });
+            }
+
+            if (valorSeleccionado) select.value = valorSeleccionado;
         }
 
         function poblarSelectInspectores() {
@@ -1321,6 +1481,10 @@
             else if (tipo === 'Suspensión') topeAnual = configLicencias.suspension || 30;
             else if (tipo === 'Franco Compensatorio') topeAnual = configLicencias.francoCompensatorio;
             else if (tipo === 'Permiso') topeAnual = configLicencias.permiso;
+            else if (configLicencias.personalizadas) {
+                const pers = configLicencias.personalizadas.find(p => p.nombre === tipo);
+                if (pers) topeAnual = pers.tope;
+            }
 
             let consumidos = 0;
             const editId = document.getElementById('editLicenciaId').value;
@@ -1486,7 +1650,7 @@
             let vacacionesCorresp = 15 + (Math.floor(antiguedad / 5) * 5);
             vacacionesCorresp = Math.min(vacacionesCorresp, 35);
 
-            const categorias = [
+            let categorias = [
                 {
                     nombre: 'Licencia Ordinaria (Vacaciones)',
                     etiqueta: 'Ordinaria / Vacac.',
@@ -1528,6 +1692,19 @@
                     match: (tipo) => tipo === 'Permiso'
                 }
             ];
+
+            if (configLicencias.personalizadas) {
+                configLicencias.personalizadas.forEach(p => {
+                    categorias.push({
+                        nombre: p.nombre,
+                        etiqueta: p.nombre,
+                        corresponden: p.tope || 30,
+                        unidad: 'días',
+                        icono: 'fa-folder-plus',
+                        match: (tipo) => tipo === p.nombre
+                    });
+                });
+            }
 
             grid.innerHTML = '';
 
@@ -1623,22 +1800,29 @@
         async function guardarConfiguracion(e) {
             e.preventDefault();
             const nuevaCfg = {
+                ordinariaAbrev: document.getElementById('cfgAbrevOrdinaria').value.trim().toUpperCase() || "V",
                 enfermedad: parseInt(document.getElementById('cfgEnfermedad').value),
+                enfermedadAbrev: document.getElementById('cfgAbrevEnfermedad').value.trim().toUpperCase() || "E",
                 enfermedadFamiliar: parseInt(document.getElementById('cfgEnfermedadFamiliar').value),
+                enfermedadFamiliarAbrev: document.getElementById('cfgAbrevEnfermedadFamiliar').value.trim().toUpperCase() || "EF",
                 suspension: parseInt(document.getElementById('cfgSuspension').value),
+                suspensionAbrev: document.getElementById('cfgAbrevSuspension').value.trim().toUpperCase() || "S",
                 francoCompensatorio: parseInt(document.getElementById('cfgFrancoCompensatorio').value),
-                permiso: parseInt(document.getElementById('cfgPermiso').value)
+                francoCompensatorioAbrev: document.getElementById('cfgAbrevFrancoCompensatorio').value.trim().toUpperCase() || "FC",
+                permiso: parseInt(document.getElementById('cfgPermiso').value),
+                permisoAbrev: document.getElementById('cfgAbrevPermiso').value.trim().toUpperCase() || "P",
+                personalizadas: configLicencias.personalizadas || []
             };
+
             try {
                 await window.setDoc(window.doc(window.db, "config_licencias", "general"), nuevaCfg);
                 configLicencias = nuevaCfg;
-                alert('Configuración guardada correctamente.');
+                alert('Configuración y abreviaciones guardadas correctamente.');
             } catch (error) {
-                alert("Error: " + error.message);
+                alert("Error al guardar configuración: " + error.message);
             }
         }
 
-        // --- SUBMÓDULO: AUSENCIA SIN AVISO ---
         async function obtenerAusenciasFirebase() {
             if (!window.db) return;
             try {
@@ -1735,7 +1919,6 @@
             }
         }
 
-        // --- SUBMÓDULO: CAUSAS POR LAS QUE NO SE TRABAJÓ ---
         async function obtenerCausasFirebase() {
             if (!window.db) return;
             try {
@@ -1794,7 +1977,6 @@
             });
         }
 
-        // --- SUBMÓDULO: PAUSAS ---
         async function obtenerPausasFirebase() {
             if (!window.db) return;
             try {
@@ -1835,11 +2017,9 @@
             const mesNum = parseInt(mesStr, 10);
             const diasEnMes = new Date(anio, mesNum, 0).getDate();
 
-            // Filtrar pausas del mes seleccionado y ordenar el listado de detalle por fecha descendente
             const pausasFiltradasMes = pausas.filter(p => p.fecha && p.fecha.startsWith(mesAnio));
             const pausasOrdenadasDesc = [...pausasFiltradasMes].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
-            // Renderizar la tabla de detalle con orden descendente por fecha
             const tbodyDetalle = document.getElementById('tablaDetallePausas');
             tbodyDetalle.innerHTML = '';
 
@@ -1861,10 +2041,8 @@
                 });
             }
 
-            // Ordenar las causas/motivos alfabéticamente para la matriz
             const causasOrdenadas = [...causas].sort((a, b) => a.localeCompare(b));
 
-            // Renderizar Cabecera de la Grilla (Sábados y Domingos en negro/oscuro)
             const thead = document.getElementById('headPausas');
             let headerHtml = `<th class="p-2 border-r border-amber-900/40 min-w-[180px] sticky left-0 bg-amber-800 z-10">Motivo / Causa</th>`;
             
@@ -1875,7 +2053,6 @@
             }
             thead.innerHTML = headerHtml;
 
-            // Renderizar Cuerpo de la Matriz
             const tbody = document.getElementById('bodyPausas');
             tbody.innerHTML = '';
 
@@ -1893,7 +2070,6 @@
                         const fechaDia = new Date(anio, mesNum - 1, d);
                         const esFinSemana = fechaDia.getDay() === 0 || fechaDia.getDay() === 6;
 
-                        // Buscar pausa registrada para esta causa en la fecha
                         const pausaEncontrada = pausas.find(p => {
                             return p.fecha === fechaIsoStr && p.motivo === causaItem;
                         });
@@ -1935,7 +2111,6 @@
                 });
             }
 
-            // Renderizar Footer (Totales Diarios de Pausas)
             const tfoot = document.getElementById('footPausas');
             let footHtml = `<td class="p-2 border-r border-stone-300 sticky left-0 bg-stone-200 uppercase font-bold text-[10px] z-10">Total Pausas / Día</td>`;
 
@@ -1959,7 +2134,6 @@
             }
         }
 
-        // --- SUBMÓDULO: EXPORTACIÓN A EXCEL (.XLS) ---
         function generarXlsLicencias() {
             const mesAnio = document.getElementById('expLicenciaMesAnio').value;
             if (!mesAnio) {
@@ -2111,7 +2285,6 @@
             document.body.removeChild(link);
         }
 
-        // --- MODAL / LIGHTBOX ---
         function openModal(imageSrc, altText) {
             const modal = document.getElementById('imageModal');
             const modalImg = document.getElementById('modalImg');
