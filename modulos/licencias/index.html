@@ -275,7 +275,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-stone-700 uppercase mb-1">Fecha Franco</label>
-                                <input type="date" id="fechaFranco" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <input type="date" id="fechaFranco" onchange="calcularDiasRestantes()" class="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                             </div>
                         </div>
 
@@ -601,7 +601,7 @@
                 </div>
 
                 <!-- Grilla / Matriz Mensual -->
-                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm">
+                <div class="overflow-x-auto border border-stone-200 rounded-xl shadow-sm mb-4">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr id="headPlanificacion" class="bg-amber-800 text-white uppercase text-[10px]">
@@ -617,6 +617,16 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Suma por Motivo de Licencia Registrada en el Período -->
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-3 shadow-sm">
+                    <div class="text-[11px] font-bold uppercase text-amber-900 mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-ol text-amber-700"></i> Suma de Motivos en el Período Seleccionado
+                    </div>
+                    <div id="totalesMotivosPlanificacion" class="flex flex-wrap items-center gap-3 text-xs overflow-x-auto pb-1">
+                        <!-- Generado dinámicamente desde JS -->
+                    </div>
                 </div>
             </section>
 
@@ -910,7 +920,7 @@
         }
     </script>
 
-    <!-- Script de lógica e interacción -->
+    <!-- Script de lógica e interacción unificada -->
     <script>
         let inspectores = [];
         let licencias = [];
@@ -929,7 +939,6 @@
             personalizadas: []
         };
 
-        // Función Auxiliar para obtener la abreviación de una licencia
         function obtenerAbreviacionLicencia(tipoLicencia) {
             if (tipoLicencia === 'Licencia Ordinaria') return configLicencias.ordinariaAbrev || "V";
             if (tipoLicencia === 'Licencia Enfermedad') return configLicencias.enfermedadAbrev || "E";
@@ -946,7 +955,6 @@
             return tipoLicencia ? tipoLicencia.substring(0, 2).toUpperCase() : "L";
         }
 
-        // Función Auxiliar para formatear de YYYY-MM-DD a dd/mm/yyyy
         function formatearFechaLatina(fechaIso) {
             if (!fechaIso) return '-';
             const partes = fechaIso.split('-');
@@ -1136,6 +1144,7 @@
             tbody.innerHTML = '';
 
             let totalesPorDia = new Array(diasEnMes + 1).fill(0);
+            let sumaMotivosPeriodo = {};
 
             if (listaGrupo.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="${diasEnMes + 1}" class="p-4 text-center text-stone-400 font-medium">No se encontraron empleados asignados a este grupo de trabajo.</td></tr>`;
@@ -1157,10 +1166,10 @@
 
                         if (licEncontrada) {
                             totalesPorDia[d]++;
+                            let tipoAbrev = obtenerAbreviacionLicencia(licEncontrada.tipo);
+                            sumaMotivosPeriodo[tipoAbrev] = (sumaMotivosPeriodo[tipoAbrev] || 0) + 1;
                             
                             let colorClase = "bg-amber-500 text-amber-950";
-                            let tipoAbrev = obtenerAbreviacionLicencia(licEncontrada.tipo);
-                            
                             if (licEncontrada.tipo === 'Licencia Enfermedad') {
                                 colorClase = "bg-rose-500 text-white";
                             } else if (licEncontrada.tipo === 'Licencia Enfermedad Familiar') {
@@ -1227,6 +1236,25 @@
                     </div>
                 </div>
             `;
+
+            const contenedorTotalesMotivos = document.getElementById('totalesMotivosPlanificacion');
+            const clavesMotivos = Object.keys(sumaMotivosPeriodo).sort();
+
+            if (clavesMotivos.length === 0) {
+                contenedorTotalesMotivos.innerHTML = `<span class="text-stone-400 font-medium italic">No se registraron licencias en el mes seleccionado.</span>`;
+            } else {
+                let htmlMotivos = '';
+                clavesMotivos.forEach(abrev => {
+                    const cantidad = sumaMotivosPeriodo[abrev];
+                    htmlMotivos += `
+                        <div class="flex items-center gap-1.5 bg-white border border-stone-300 px-3 py-1 rounded-lg shadow-sm">
+                            <span class="font-extrabold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">${abrev}</span>
+                            <span class="font-bold text-stone-700">${cantidad}</span>
+                        </div>
+                    `;
+                });
+                contenedorTotalesMotivos.innerHTML = htmlMotivos;
+            }
         }
 
         async function guardarPlanificacion(e) {
@@ -1445,6 +1473,13 @@
             document.getElementById('legajoInspector').value = legajo || '';
             const inspector = inspectores.find(i => i.legajo === legajo);
             document.getElementById('infoAntiguedad').textContent = inspector ? `Antigüedad: ${inspector.antiguedad || 0} años | Tarea: ${inspector.tarea || 'General'}` : `Seleccione un inspector...`;
+            
+            // Asignar fecha por defecto de hoy al Franco si está vacía
+            const fechaFrancoInput = document.getElementById('fechaFranco');
+            if (fechaFrancoInput && !fechaFrancoInput.value) {
+                fechaFrancoInput.value = new Date().toISOString().split('T')[0];
+            }
+
             calcularDiasRestantes();
         }
 
@@ -1455,6 +1490,13 @@
             document.getElementById('bloqueReincorporacion').classList.toggle('hidden', tipo === 'Franco Compensatorio' || tipo === 'Permiso');
             document.getElementById('bloqueFranco').classList.toggle('hidden', tipo !== 'Franco Compensatorio');
             document.getElementById('bloquePermiso').classList.toggle('hidden', tipo !== 'Permiso');
+            
+            if (tipo === 'Franco Compensatorio') {
+                const fechaFrancoInput = document.getElementById('fechaFranco');
+                if (fechaFrancoInput && !fechaFrancoInput.value) {
+                    fechaFrancoInput.value = new Date().toISOString().split('T')[0];
+                }
+            }
             calcularDiasRestantes();
         }
 
@@ -1487,14 +1529,38 @@
             }
 
             let consumidos = 0;
+            let francosTotalesMes = 0;
+            
+            // Determinar mes en curso basándose en la fecha del franco seleccionada o mes actual
+            const fechaFrancoVal = document.getElementById('fechaFranco').value;
+            const mesEnCurso = fechaFrancoVal ? fechaFrancoVal.substring(0, 7) : new Date().toISOString().substring(0, 7);
+            
             const editId = document.getElementById('editLicenciaId').value;
+            
             licencias.forEach(lic => {
                 if (lic.legajo === legajo && lic.tipo === tipo && lic.id !== editId) {
-                    consumidos += (tipo === 'Franco Compensatorio' || tipo === 'Permiso') ? 1 : parseInt(lic.diasHabiles || 0);
+                    if (tipo === 'Franco Compensatorio') {
+                        const fechaLic = lic.desde || '';
+                        // Contar únicamente los del mes en curso
+                        if (fechaLic.startsWith(mesEnCurso)) {
+                            consumidos += 1;
+                            if (lic.detalleHorario && (lic.detalleHorario.toLowerCase().includes('todo el dia') || lic.detalleHorario.toLowerCase().includes('todo el día'))) {
+                                francosTotalesMes += 1;
+                            }
+                        }
+                    } else if (tipo === 'Permiso') {
+                        consumidos += 1;
+                    } else {
+                        consumidos += parseInt(lic.diasHabiles || 0);
+                    }
                 }
             });
 
-            labelSpan.textContent = `${topeAnual - consumidos} ${tipo === 'Franco Compensatorio' ? 'Francos/mes' : 'días'}`;
+            if (tipo === 'Franco Compensatorio') {
+                labelSpan.textContent = `${topeAnual - consumidos} francos libres (Tomados este mes: ${consumidos}, Total/es: ${francosTotalesMes})`;
+            } else {
+                labelSpan.textContent = `${topeAnual - consumidos} días`;
+            }
         }
 
         function calcularDiasHabilesYRegreso() {
@@ -1657,7 +1723,7 @@
                     corresponden: vacacionesCorresp,
                     unidad: 'días',
                     icono: 'fa-umbrella-beach',
-                    match: (tipo) => tipo === 'Licencia Ordinaria'
+                    match: (lic) => lic.tipo === 'Licencia Ordinaria'
                 },
                 {
                     nombre: 'Licencia Enfermedad',
@@ -1665,7 +1731,7 @@
                     corresponden: configLicencias.enfermedad || 30,
                     unidad: 'días',
                     icono: 'fa-user-nurse',
-                    match: (tipo) => tipo === 'Licencia Enfermedad'
+                    match: (lic) => lic.tipo === 'Licencia Enfermedad'
                 },
                 {
                     nombre: 'Licencia Enfermedad Familiar',
@@ -1673,15 +1739,22 @@
                     corresponden: configLicencias.enfermedadFamiliar || 20,
                     unidad: 'días',
                     icono: 'fa-house-medical',
-                    match: (tipo) => tipo === 'Licencia Enfermedad Familiar'
+                    match: (lic) => lic.tipo === 'Licencia Enfermedad Familiar'
                 },
                 {
                     nombre: 'Franco Compensatorio',
-                    etiqueta: 'Francos Comp.',
+                    etiqueta: 'Francos Comp. (Mes)',
                     corresponden: configLicencias.francoCompensatorio || 2,
                     unidad: 'francos/mes',
                     icono: 'fa-clock',
-                    match: (tipo) => tipo === 'Franco Compensatorio'
+                    match: (lic) => {
+                        if (lic.tipo !== 'Franco Compensatorio') return false;
+                        const fechaLic = lic.desde || '';
+                        if (!fechaLic) return false;
+                        const mesActualIso = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+                        const mesEvaluado = anioFiltro !== 'Todos' && anioFiltro.length === 4 ? mesActualIso : fechaLic.substring(0, 7);
+                        return fechaLic.startsWith(mesEvaluado);
+                    }
                 },
                 {
                     nombre: 'Permiso',
@@ -1689,7 +1762,7 @@
                     corresponden: configLicencias.permiso || 12,
                     unidad: 'permisos',
                     icono: 'fa-id-card-clip',
-                    match: (tipo) => tipo === 'Permiso'
+                    match: (lic) => lic.tipo === 'Permiso'
                 }
             ];
 
@@ -1701,7 +1774,7 @@
                         corresponden: p.tope || 30,
                         unidad: 'días',
                         icono: 'fa-folder-plus',
-                        match: (tipo) => tipo === p.nombre
+                        match: (lic) => lic.tipo === p.nombre
                     });
                 });
             }
@@ -1710,10 +1783,27 @@
 
             categorias.forEach(cat => {
                 let tomados = 0;
+                let francosTotalesCount = 0;
+
                 licencias.forEach(lic => {
-                    if (String(lic.legajo) === String(legajo) && cat.match(lic.tipo)) {
-                        if (anioFiltro === 'Todos' || lic.anio === anioFiltro) {
-                            if (lic.tipo === 'Franco Compensatorio' || lic.tipo === 'Permiso') {
+                    if (String(lic.legajo) === String(legajo)) {
+                        let esMatch = false;
+                        if (typeof cat.match === 'function') {
+                            esMatch = cat.match(lic);
+                        } else {
+                            esMatch = (lic.tipo === cat.nombre);
+                            if (esMatch && anioFiltro !== 'Todos' && lic.anio !== anioFiltro) {
+                                esMatch = false;
+                            }
+                        }
+
+                        if (esMatch) {
+                            if (cat.nombre === 'Franco Compensatorio') {
+                                tomados += 1;
+                                if (lic.detalleHorario && (lic.detalleHorario.toLowerCase().includes('todo el dia') || lic.detalleHorario.toLowerCase().includes('todo el día'))) {
+                                    francosTotalesCount += 1;
+                                }
+                            } else if (cat.tipo === 'Permiso') {
                                 tomados += 1;
                             } else {
                                 tomados += parseInt(lic.diasHabiles || 0);
@@ -1724,6 +1814,13 @@
 
                 const restantes = cat.corresponden - tomados;
                 const esAlerta = restantes <= 0;
+
+                let detalleExtraHtml = '';
+                if (cat.nombre === 'Franco Compensatorio') {
+                    detalleExtraHtml = `<div class="text-[10px] text-amber-900 font-semibold mt-1 bg-amber-100/60 px-1.5 py-0.5 rounded border border-amber-200">
+                        Tomados este mes: ${tomados} (${francosTotalesCount} Franco Total)
+                    </div>`;
+                }
 
                 grid.innerHTML += `
                     <div class="bg-white border border-amber-200/90 rounded-lg p-3 flex flex-col justify-between shadow-sm">
@@ -1745,6 +1842,7 @@
                                 <span>Restantes:</span>
                                 <span class="${esAlerta ? 'text-rose-600 font-black' : 'text-emerald-700'}">${restantes} ${cat.unidad}</span>
                             </div>
+                            ${detalleExtraHtml}
                         </div>
                     </div>
                 `;
