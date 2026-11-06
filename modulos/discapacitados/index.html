@@ -276,7 +276,7 @@
                             <input type="radio" name="tipoTramite" value="foraneo" onchange="toggleTipoTramite('foraneo')" class="w-4 h-4 text-brand-600 focus:ring-brand-500">
                             <div>
                                 <span class="text-sm font-bold text-slate-800 block">2) FORÁNEOS</span>
-                                <span class="text-xs text-slate-500 block">Vehículos provenientes de otras localidades.</span>
+                                <span class="text-xs text-slate-500 block">Vehículos provenientes de otras localidades. Se deberan cargar <strong>TODOS los datos al REGISTRARLO<strong></span>
                             </div>
                         </label>
                     </div>
@@ -287,7 +287,7 @@
                     <i class="fa-solid fa-circle-info text-amber-600 text-xl flex-shrink-0"></i>
                     <div>
                         <strong class="font-bold uppercase text-amber-950 block">Atención - Trámite Local</strong>
-                        El trámite de la Oblea y Permiso Local se realiza de forma presencial en el área de <strong>Tránsito</strong>. Cuando el beneficiario se presenta, se deben cargar los datos indicados a continuación.
+                        El trámite de la Oblea y Permiso Local se realiza de forma presencial en el área de <strong>Carnet de Conducir</strong>.
                     </div>
                 </div>
 
@@ -343,31 +343,55 @@
                 <!-- SECCIÓN: CARGA DE ADJUNTOS / IMÁGENES -->
                 <div class="space-y-4 pt-2">
                     <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2 border-b pb-2">
-                        <i class="fa-solid fa-file-image"></i> Documentación e Imágenes Adjuntas
+                        <i class="fa-solid fa-file-image"></i> Documentación e Imágenes Adjuntas (Opcional)
                     </h3>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- IMAGEN AUTORIZACIÓN TRÁNSITO (LOCALES) -->
-                        <div id="upload-local-container" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <!-- CONTENEDOR LOCALES -->
+                    <div id="upload-local-container" class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                             <label class="block text-xs font-bold text-slate-700">
-                                Imagen de Autorización de Tránsito *
+                                Planilla Autorización
                             </label>
-                            <p class="text-[11px] text-slate-500">Adjunte la foto o escaneo del permiso o autorización emitido por Tránsito.</p>
+                            <p class="text-[11px] text-slate-500">Adjunte la foto o escaneo de la planilla de autorización (opcional).</p>
                             <input type="file" id="fotoAutorizacion" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
                             <div id="preview-autorizacion" class="hidden pt-2">
-                                <img src="" alt="Vista previa autorización" class="h-28 object-contain rounded border border-slate-300">
+                                <img src="" alt="Vista previa planilla autorización" class="h-28 object-contain rounded border border-slate-300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR FORÁNEOS -->
+                    <div id="upload-foraneo-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">
+                                Simbolo de MI ARGENTINA
+                            </label>
+                            <p class="text-[11px] text-slate-500">Adjunte captura o foto del Símbolo de Mi Argentina (opcional).</p>
+                            <input type="file" id="fotoMiArgentina" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <div id="preview-miargentina" class="hidden pt-2">
+                                <img src="" alt="Vista previa Mi Argentina" class="h-28 object-contain rounded border border-slate-300">
                             </div>
                         </div>
 
-                        <!-- IMAGEN QR MI ARGENTINA (FORÁNEOS) -->
-                        <div id="upload-foraneo-container" class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hidden">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                             <label class="block text-xs font-bold text-slate-700">
-                                Imagen de QR de Mi Argentina *
+                                Resultado del QR
                             </label>
-                            <p class="text-[11px] text-slate-500">Adjunte la captura o foto del código QR de la credencial digital de Mi Argentina.</p>
+                            <p class="text-[11px] text-slate-500">Adjunte la captura o foto del resultado del QR (opcional).</p>
                             <input type="file" id="fotoQr" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                             <div id="preview-qr" class="hidden pt-2">
                                 <img src="" alt="Vista previa QR" class="h-28 object-contain rounded border border-slate-300">
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">
+                                DNI titular
+                            </label>
+                            <p class="text-[11px] text-slate-500">Adjunte foto del DNI del titular (opcional).</p>
+                            <input type="file" id="fotoDniTitular" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <div id="preview-dnititular" class="hidden pt-2">
+                                <img src="" alt="Vista previa DNI Titular" class="h-28 object-contain rounded border border-slate-300">
                             </div>
                         </div>
                     </div>
@@ -460,7 +484,6 @@
         const db = getFirestore(app);
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'frentistas-app';
-        // Mantenemos la colección en Firestore para persistencia de datos
         const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'discapacitados');
 
         window.discapacitados = [];
@@ -571,16 +594,26 @@
             }
 
             const fotoAutorizacionFile = document.getElementById('fotoAutorizacion').files[0];
+            const fotoMiArgentinaFile = document.getElementById('fotoMiArgentina').files[0];
             const fotoQrFile = document.getElementById('fotoQr').files[0];
+            const fotoDniTitularFile = document.getElementById('fotoDniTitular').files[0];
 
             let fotoAutorizacionBase64 = existingRecord ? existingRecord.fotoAutorizacion || null : null;
+            let fotoMiArgentinaBase64 = existingRecord ? existingRecord.fotoMiArgentina || null : null;
             let fotoQrBase64 = existingRecord ? existingRecord.fotoQr || null : null;
+            let fotoDniTitularBase64 = existingRecord ? existingRecord.fotoDniTitular || null : null;
 
             if (fotoAutorizacionFile) {
                 fotoAutorizacionBase64 = await window.fileToBase64(fotoAutorizacionFile);
             }
+            if (fotoMiArgentinaFile) {
+                fotoMiArgentinaBase64 = await window.fileToBase64(fotoMiArgentinaFile);
+            }
             if (fotoQrFile) {
                 fotoQrBase64 = await window.fileToBase64(fotoQrFile);
+            }
+            if (fotoDniTitularFile) {
+                fotoDniTitularBase64 = await window.fileToBase64(fotoDniTitularFile);
             }
 
             updateFirebaseStatus('connecting', 'Guardando...');
@@ -597,7 +630,9 @@
                     cud: cud,
                     localidad: localidad,
                     fotoAutorizacion: fotoAutorizacionBase64,
+                    fotoMiArgentina: fotoMiArgentinaBase64,
                     fotoQr: fotoQrBase64,
+                    fotoDniTitular: fotoDniTitularBase64,
                     updatedAt: Date.now()
                 };
 
@@ -639,7 +674,6 @@
     <!-- Script Principal con lógica UI -->
     <script>
         window.onload = function () {
-            // Establecer fecha por defecto (un año desde hoy)
             const defaultDate = new Date();
             defaultDate.setFullYear(defaultDate.getFullYear() + 1);
             document.getElementById('vencimiento').value = defaultDate.toISOString().split('T')[0];
@@ -914,12 +948,28 @@
                 previewAuth.classList.add('hidden');
             }
 
+            const previewMiArg = document.getElementById('preview-miargentina');
+            if (record.fotoMiArgentina) {
+                previewMiArg.querySelector('img').src = record.fotoMiArgentina;
+                previewMiArg.classList.remove('hidden');
+            } else {
+                previewMiArg.classList.add('hidden');
+            }
+
             const previewQr = document.getElementById('preview-qr');
             if (record.fotoQr) {
                 previewQr.querySelector('img').src = record.fotoQr;
                 previewQr.classList.remove('hidden');
             } else {
                 previewQr.classList.add('hidden');
+            }
+
+            const previewDni = document.getElementById('preview-dnititular');
+            if (record.fotoDniTitular) {
+                previewDni.querySelector('img').src = record.fotoDniTitular;
+                previewDni.classList.remove('hidden');
+            } else {
+                previewDni.classList.add('hidden');
             }
 
             switchTab('form');
@@ -938,7 +988,9 @@
             toggleTipoTramite('local');
 
             document.getElementById('preview-autorizacion').classList.add('hidden');
+            document.getElementById('preview-miargentina').classList.add('hidden');
             document.getElementById('preview-qr').classList.add('hidden');
+            document.getElementById('preview-dnititular').classList.add('hidden');
         }
 
         function viewRecord(id) {
@@ -956,8 +1008,42 @@
                 </a>
             ` : '';
 
-            const imageSrc = isLocal ? record.fotoAutorizacion : record.fotoQr;
-            const imageLabel = isLocal ? 'Autorización de Tránsito' : 'QR Mi Argentina';
+            let imagenesHtml = '';
+            if (isLocal) {
+                if (record.fotoAutorizacion) {
+                    imagenesHtml += `
+                        <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col items-center justify-center">
+                            <span class="text-[11px] font-bold text-slate-700 mb-1">Planilla Autorización</span>
+                            <img src="${record.fotoAutorizacion}" alt="Planilla Autorización" class="max-h-40 object-contain rounded border border-slate-300 shadow-2xs cursor-pointer" onclick="openImageLightbox('${record.fotoAutorizacion}', 'Planilla Autorización')">
+                        </div>
+                    `;
+                }
+            } else {
+                if (record.fotoMiArgentina) {
+                    imagenesHtml += `
+                        <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col items-center justify-center">
+                            <span class="text-[11px] font-bold text-slate-700 mb-1">Símbolo de MI ARGENTINA</span>
+                            <img src="${record.fotoMiArgentina}" alt="Símbolo de MI ARGENTINA" class="max-h-36 object-contain rounded border border-slate-300 shadow-2xs cursor-pointer" onclick="openImageLightbox('${record.fotoMiArgentina}', 'Símbolo de MI ARGENTINA')">
+                        </div>
+                    `;
+                }
+                if (record.fotoQr) {
+                    imagenesHtml += `
+                        <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col items-center justify-center">
+                            <span class="text-[11px] font-bold text-slate-700 mb-1">Resultado del QR</span>
+                            <img src="${record.fotoQr}" alt="Resultado del QR" class="max-h-36 object-contain rounded border border-slate-300 shadow-2xs cursor-pointer" onclick="openImageLightbox('${record.fotoQr}', 'Resultado del QR')">
+                        </div>
+                    `;
+                }
+                if (record.fotoDniTitular) {
+                    imagenesHtml += `
+                        <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col items-center justify-center">
+                            <span class="text-[11px] font-bold text-slate-700 mb-1">DNI titular</span>
+                            <img src="${record.fotoDniTitular}" alt="DNI titular" class="max-h-36 object-contain rounded border border-slate-300 shadow-2xs cursor-pointer" onclick="openImageLightbox('${record.fotoDniTitular}', 'DNI titular')">
+                        </div>
+                    `;
+                }
+            }
 
             modalBody.innerHTML = `
                 <div class="border-2 border-brand-800 rounded-xl p-5 space-y-4 bg-white shadow-2xs">
@@ -1003,17 +1089,16 @@
                         </div>
                     </div>
 
-                    <!-- Adjunto de Imagen -->
+                    <!-- Adjuntos de Imágenes -->
                     <div class="pt-2">
-                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">${imageLabel} Adjunta</h4>
-                        ${imageSrc ? `
-                            <div class="border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col items-center justify-center">
-                                <img src="${imageSrc}" alt="${imageLabel}" class="max-h-52 object-contain rounded border border-slate-300 shadow-2xs cursor-pointer" onclick="openImageLightbox('${imageSrc}', '${imageLabel}')">
-                                <span class="text-[10px] text-slate-500 mt-1 font-medium">Haga clic en la imagen para ampliar</span>
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Documentación Adjunta</h4>
+                        ${imagenesHtml ? `
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                ${imagenesHtml}
                             </div>
                         ` : `
                             <div class="p-4 border border-dashed border-slate-300 rounded-lg bg-slate-50 text-center text-slate-400 italic text-xs">
-                                No se adjuntó imagen de ${imageLabel.toLowerCase()}
+                                No se adjuntó documentación de imagen
                             </div>
                         `}
                     </div>
