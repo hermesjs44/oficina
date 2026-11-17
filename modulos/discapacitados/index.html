@@ -126,10 +126,14 @@
         </a>
 
         <!-- Pestañas de Navegación -->
-        <div class="flex border-b border-slate-200 mb-6 no-print bg-white rounded-t-xl px-4 pt-2 shadow-sm">
+        <div class="flex flex-wrap border-b border-slate-200 mb-6 no-print bg-white rounded-t-xl px-4 pt-2 shadow-sm gap-2">
             <button id="tab-list-btn" onclick="switchTab('list')" class="tab-active py-3 px-6 text-sm flex items-center gap-2 transition">
                 <i class="fa-solid fa-list-check"></i> Listado de Habilitaciones
                 <span id="badge-total-count" class="bg-brand-100 text-brand-800 text-xs px-2 py-0.5 rounded-full font-bold ml-1">0</span>
+            </button>
+            <button id="tab-alerts-btn" onclick="switchTab('alerts')" class="py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Alertas y Vencidos
+                <span id="badge-alerts-count" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold ml-1">0</span>
             </button>
             <button id="tab-form-btn" onclick="switchTab('form')" class="py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition">
                 <i class="fa-solid fa-user-plus"></i> Registrar Nuevo Trámite
@@ -185,7 +189,7 @@
             </div>
         </div>
 
-        <!-- VISTA LISTADO DE REGISTROS -->
+        <!-- VISTA LISTADO GENERAL DE REGISTROS -->
         <section id="view-list" class="space-y-4">
             <!-- Búsqueda y Filtros -->
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center no-print">
@@ -241,6 +245,53 @@
                     <h3 class="text-base font-semibold text-slate-700">No se encontraron registros</h3>
                     <p class="text-xs text-slate-500 mt-1">Pruebe ajustando los términos de búsqueda o cargando un nuevo trámite.</p>
                 </div>
+            </div>
+        </section>
+
+        <!-- VISTA ALERTAS Y VENCIDOS (DOS COLUMNAS: PRÓXIMOS Y VENCIDOS) -->
+        <section id="view-alerts" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 no-print">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Panel de Control: Próximos a Vencer y Vencidos
+                    </h2>
+                    <p class="text-xs text-slate-500">Vista comparativa de ambos estados (locales y foráneos) ordenados cronológicamente por cercanía de fecha.</p>
+                </div>
+                <div class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-alerts-input" onkeyup="renderAlertsView()" placeholder="Buscar en alertas..." class="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                </div>
+            </div>
+
+            <!-- Grilla de Dos Columnas -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- COLUMNA IZQUIERDA: PRÓXIMOS A VENCER / EN TOLERANCIA -->
+                <div class="bg-white rounded-xl border border-amber-200 shadow-sm flex flex-col overflow-hidden">
+                    <div class="bg-amber-500 text-white px-4 py-3 flex justify-between items-center">
+                        <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Próximos a Vencer / En Tolerancia
+                        </h3>
+                        <span id="badge-warning-col" class="bg-white text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div class="p-4 flex-grow overflow-y-auto max-h-[70vh] space-y-3" id="col-warning-body">
+                        <!-- Carga dinámica -->
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA: VENCIDOS / BAJA -->
+                <div class="bg-white rounded-xl border border-rose-200 shadow-sm flex flex-col overflow-hidden">
+                    <div class="bg-rose-600 text-white px-4 py-3 flex justify-between items-center">
+                        <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-xmark"></i> Vencidos / Baja Efectiva
+                        </h3>
+                        <span id="badge-expired-col" class="bg-white text-rose-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
+                    <div class="p-4 flex-grow overflow-y-auto max-h-[70vh] space-y-3" id="col-expired-body">
+                        <!-- Carga dinámica -->
+                    </div>
+                </div>
+
             </div>
         </section>
 
@@ -392,7 +443,7 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Días de Tolerancia para Baja *</label>
                             <div class="relative">
-                                <input type="number" id="diasToleranciaBaja" min="0" max="750" value="730" required placeholder="Ej: 15" class="w-full px-3 py-2 pr-12 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
+                                <input type="number" id="diasToleranciaBaja" min="0" max="3650" value="730" required placeholder="Ej: 730" class="w-full px-3 py-2 pr-12 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">días</span>
                             </div>
                         </div>
@@ -590,6 +641,7 @@
 
                 window.discapacitados = list;
                 window.renderTable();
+                window.renderAlertsView();
                 window.updateStats();
                 updateFirebaseStatus('connected', `Conectado (${list.length} reg.)`);
             }, (error) => {
@@ -637,7 +689,7 @@
             const fechaInicioTramite = document.getElementById('fechaInicioTramite').value;
             const fechaRecepcion = document.getElementById('fechaRecepcion').value;
             const vencimiento = document.getElementById('vencimiento').value;
-            const diasToleranciaBaja = parseInt(document.getElementById('diasToleranciaBaja').value, 10) || 0;
+            const diasToleranciaBaja = parseInt(document.getElementById('diasToleranciaBaja').value, 10) || 730;
 
             let numOblea = '';
             let cud = '';
@@ -749,6 +801,7 @@
             setupPhoneInputProtection();
             setupImagePreviews();
             window.renderTable();
+            window.renderAlertsView();
             window.updateStats();
         };
 
@@ -877,22 +930,34 @@
 
         function switchTab(tab) {
             const listTabBtn = document.getElementById('tab-list-btn');
+            const alertsTabBtn = document.getElementById('tab-alerts-btn');
             const formTabBtn = document.getElementById('tab-form-btn');
+
             const viewList = document.getElementById('view-list');
+            const viewAlerts = document.getElementById('view-alerts');
             const viewForm = document.getElementById('view-form');
             const stats = document.getElementById('quick-stats');
 
+            // Reset classes
+            listTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
+            alertsTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
+            formTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
+
+            viewList.classList.add('hidden');
+            viewAlerts.classList.add('hidden');
+            viewForm.classList.add('hidden');
+            stats.classList.remove('hidden');
+
             if (tab === 'list') {
                 listTabBtn.className = "tab-active py-3 px-6 text-sm flex items-center gap-2 transition";
-                formTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
                 viewList.classList.remove('hidden');
-                viewForm.classList.add('hidden');
-                stats.classList.remove('hidden');
-                resetForm();
+                renderTable();
+            } else if (tab === 'alerts') {
+                alertsTabBtn.className = "tab-active py-3 px-6 text-sm flex items-center gap-2 transition";
+                viewAlerts.classList.remove('hidden');
+                renderAlertsView();
             } else {
                 formTabBtn.className = "tab-active py-3 px-6 text-sm flex items-center gap-2 transition";
-                listTabBtn.className = "py-3 px-6 text-sm text-slate-500 hover:text-brand-600 flex items-center gap-2 transition";
-                viewList.classList.add('hidden');
                 viewForm.classList.remove('hidden');
                 stats.classList.add('hidden');
             }
@@ -903,14 +968,14 @@
             const parts = vencimientoStr.split('-');
             if (parts.length !== 3) return null;
             const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            const tol = parseInt(diasTolerancia, 10) || 0;
+            const tol = parseInt(diasTolerancia, 10) || 730;
             date.setDate(date.getDate() + tol);
             return date.toISOString().split('T')[0];
         }
 
         function getRecordStatus(record) {
             if (!record.vencimiento) {
-                return { key: 'active', label: 'Vigente', class: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'fa-circle-check' };
+                return { key: 'active', label: 'Vigente', class: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'fa-circle-check', diffDays: 999 };
             }
 
             const today = new Date();
@@ -920,7 +985,7 @@
             const vencDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
             vencDate.setHours(0, 0, 0, 0);
 
-            const tolerancia = parseInt(record.diasToleranciaBaja, 10) || 0;
+            const tolerancia = record.diasToleranciaBaja !== undefined ? parseInt(record.diasToleranciaBaja, 10) : 730;
             const bajaDate = new Date(vencDate);
             bajaDate.setDate(bajaDate.getDate() + tolerancia);
 
@@ -934,14 +999,15 @@
                         key: 'tolerance',
                         label: `En Tolerancia (${daysLeftTolerancia}d)`,
                         class: 'bg-orange-50 text-orange-700 border-orange-200',
-                        icon: 'fa-hourglass-half'
+                        icon: 'fa-hourglass-half',
+                        diffDays: diffDays
                     };
                 }
-                return { key: 'expired', label: 'Vencido / Baja', class: 'bg-rose-50 text-rose-700 border-rose-200', icon: 'fa-triangle-exclamation' };
+                return { key: 'expired', label: 'Vencido / Baja', class: 'bg-rose-50 text-rose-700 border-rose-200', icon: 'fa-triangle-exclamation', diffDays: diffDays };
             } else if (diffDays <= 30) {
-                return { key: 'warning', label: `Por Vencer (${diffDays}d)`, class: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'fa-clock' };
+                return { key: 'warning', label: `Por Vencer (${diffDays}d)`, class: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'fa-clock', diffDays: diffDays };
             } else {
-                return { key: 'active', label: 'Vigente', class: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'fa-circle-check' };
+                return { key: 'active', label: 'Vigente', class: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'fa-circle-check', diffDays: diffDays };
             }
         }
 
@@ -970,7 +1036,7 @@
 
                 const isLocal = record.tipoTramite === 'local';
                 const cleanPhone = getCleanPhone(record.telefono);
-                const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 0;
+                const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 730;
                 const fechaBaja = getBajaDate(record.vencimiento, tolerancia);
 
                 const whatsappBtn = cleanPhone ? `
@@ -1041,6 +1107,130 @@
             });
 
             document.getElementById('badge-total-count').textContent = (window.discapacitados || []).length;
+        }
+
+        function renderAlertsView() {
+            const query = (document.getElementById('search-alerts-input')?.value || '').toLowerCase().trim();
+            const allRecords = window.discapacitados || [];
+
+            const warningList = [];
+            const expiredList = [];
+
+            allRecords.forEach(record => {
+                const st = getRecordStatus(record);
+                if (st.key === 'warning' || st.key === 'tolerance') {
+                    warningList.push({ record, status: st });
+                } else if (st.key === 'expired') {
+                    expiredList.push({ record, status: st });
+                }
+            });
+
+            warningList.sort((a, b) => new Date(a.record.vencimiento || 0) - new Date(b.record.vencimiento || 0));
+            expiredList.sort((a, b) => new Date(b.record.vencimiento || 0) - new Date(a.record.vencimiento || 0));
+
+            const filteredWarning = warningList.filter(item => {
+                const r = item.record;
+                return (
+                    (r.nombreCompleto || '').toLowerCase().includes(query) ||
+                    (r.dni || '').toLowerCase().includes(query) ||
+                    (r.patente || '').toLowerCase().includes(query) ||
+                    (r.numOblea || '').toLowerCase().includes(query) ||
+                    (r.cud || '').toLowerCase().includes(query) ||
+                    (r.localidad || '').toLowerCase().includes(query)
+                );
+            });
+
+            const filteredExpired = expiredList.filter(item => {
+                const r = item.record;
+                return (
+                    (r.nombreCompleto || '').toLowerCase().includes(query) ||
+                    (r.dni || '').toLowerCase().includes(query) ||
+                    (r.patente || '').toLowerCase().includes(query) ||
+                    (r.numOblea || '').toLowerCase().includes(query) ||
+                    (r.cud || '').toLowerCase().includes(query) ||
+                    (r.localidad || '').toLowerCase().includes(query)
+                );
+            });
+
+            document.getElementById('badge-alerts-count').textContent = warningList.length + expiredList.length;
+            document.getElementById('badge-warning-col').textContent = filteredWarning.length;
+            document.getElementById('badge-expired-col').textContent = filteredExpired.length;
+
+            const colWarningBody = document.getElementById('col-warning-body');
+            const colExpiredBody = document.getElementById('col-expired-body');
+
+            colWarningBody.innerHTML = '';
+            colExpiredBody.innerHTML = '';
+
+            if (filteredWarning.length === 0) {
+                colWarningBody.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs italic">No hay registros próximos a vencer o en tolerancia.</div>`;
+            } else {
+                filteredWarning.forEach(({ record, status }) => {
+                    colWarningBody.appendChild(createAlertCard(record, status));
+                });
+            }
+
+            if (filteredExpired.length === 0) {
+                colExpiredBody.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs italic">No hay registros vencidos.</div>`;
+            } else {
+                filteredExpired.forEach(({ record, status }) => {
+                    colExpiredBody.appendChild(createAlertCard(record, status));
+                });
+            }
+        }
+
+        function createAlertCard(record, status) {
+            const isLocal = record.tipoTramite === 'local';
+            const cleanPhone = getCleanPhone(record.telefono);
+            const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 730;
+            const fechaBaja = getBajaDate(record.vencimiento, tolerancia);
+
+            const whatsappBtn = cleanPhone ? `
+                <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" title="Enviar WhatsApp" class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded text-[11px]">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                </a>
+            ` : '';
+
+            const card = document.createElement('div');
+            card.className = "p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition shadow-2xs space-y-2 text-xs";
+            card.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${isLocal ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-indigo-50 text-indigo-800 border-indigo-200'}">
+                            <i class="fa-solid ${isLocal ? 'fa-building-user' : 'fa-route'} text-[9px]"></i>
+                            ${isLocal ? 'Local' : 'Foráneo'}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${status.class}">
+                            <i class="fa-solid ${status.icon} text-[9px]"></i> ${status.label}
+                        </span>
+                    </div>
+                    <span class="px-2 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-[11px] rounded tracking-wider">
+                        ${escapeHtml(record.patente)}
+                    </span>
+                </div>
+
+                <div class="space-y-0.5">
+                    <div class="font-bold text-slate-900 text-sm">${escapeHtml(record.nombreCompleto)}</div>
+                    <div class="text-slate-500 flex items-center gap-3">
+                        <span>DNI: ${escapeHtml(record.dni)}</span>
+                        <span><i class="fa-solid fa-phone text-[9px] mr-1 text-slate-400"></i>${escapeHtml(record.telefono)}</span>
+                    </div>
+                    ${isLocal ? `<div class="text-brand-700 font-mono font-bold mt-1">Oblea: ${escapeHtml(record.numOblea)}</div>` : `<div class="text-indigo-700 font-mono font-bold mt-1">CUD: ${escapeHtml(record.cud)} (${escapeHtml(record.localidad)})</div>`}
+                </div>
+
+                <div class="flex flex-wrap justify-between items-center pt-2 border-t border-slate-200 text-[11px] gap-2">
+                    <div class="text-slate-600">
+                        Vence: <strong class="text-slate-900">${formatDate(record.vencimiento)}</strong> | Baja: <strong class="text-rose-700">${formatDate(fechaBaja)}</strong>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        ${whatsappBtn}
+                        <button onclick="viewRecord('${record.id}')" title="Ver Comprobante" class="p-1 px-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold transition">
+                            <i class="fa-solid fa-eye"></i> Ver
+                        </button>
+                    </div>
+                </div>
+            `;
+            return card;
         }
 
         function filterRecords() {
@@ -1193,7 +1383,7 @@
             const isLocal = record.tipoTramite === 'local';
             const modalBody = document.getElementById('modal-body');
 
-            const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 0;
+            const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 730;
             const fechaBaja = getBajaDate(record.vencimiento, tolerancia);
 
             const cleanPhone = getCleanPhone(record.telefono);
@@ -1363,7 +1553,7 @@
             csvContent += "Tipo,Apellido y Nombre,DNI,Domicilio,Nro Celular,Patente,Datos del Vehiculo,Nro Oblea,CUD,Localidad,Autorizado Por,Fecha Inicio Tramite,Fecha Recepcion,Vencimiento,Dias Tolerancia Baja,Fecha Baja Efectiva\n";
 
             data.forEach(r => {
-                const tolerancia = r.diasToleranciaBaja !== undefined ? r.diasToleranciaBaja : 0;
+                const tolerancia = r.diasToleranciaBaja !== undefined ? r.diasToleranciaBaja : 730;
                 const fechaBaja = getBajaDate(r.vencimiento, tolerancia) || '';
                 const row = [
                     `"${r.tipoTramite || ''}"`,
