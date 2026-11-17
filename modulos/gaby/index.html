@@ -451,6 +451,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, setDoc, getDocs, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
             apiKey: "AIzaSyD6SmWL6Y2usEZIsG7ZM0GS5x6OLgHm03k",
             authDomain: "medido-i.firebaseapp.com",
@@ -582,12 +583,11 @@
                 localStorage.setItem('sistema_usuarios', JSON.stringify(usuarios));
             }
 
-            // Asegurar que el usuario por defecto "Gaby" exista (puedes ajustar su contraseña por defecto o la requerida)
             const existeGaby = usuarios.some(u => u.user === 'Gaby');
             if (!existeGaby) {
                 usuarios.push({
                     user: 'Gaby',
-                    pass: '12345', // Contraseña por defecto para Gaby, modificable desde el panel de Diseñador
+                    pass: '12345',
                     rol: 'Operador',
                     menus: ['dashboard-licencias', 'visualizacion-hoy', 'gestion-sabado', 'listado-sabados']
                 });
@@ -609,7 +609,6 @@
                 sessionStorage.setItem('usuario_activo', JSON.stringify(usuarioEncontrado));
                 document.getElementById('modal-login').classList.add('hidden');
                 
-                // Reiniciar carga de datos con sesión activa
                 cargarDatosIniciales();
             } else {
                 errorDiv.classList.remove('hidden');
@@ -618,7 +617,7 @@
 
         function cerrarSesion() {
             sessionStorage.removeItem('usuario_activo');
-            location.reload(); // Recarga para volver a mostrar el login
+            location.reload();
         }
 
         function verificarAccesoDiseñador() {
@@ -645,7 +644,6 @@
         function aplicarPermisosMenus(usuario) {
             const esDiseñador = usuario.user === 'hermes' || usuario.rol === 'Diseñador';
             
-            // Mostrar u ocultar el candado del diseñador según corresponda
             const btnCandado = document.getElementById('btn-candado-diseñador');
             if (btnCandado) {
                 if (esDiseñador) {
