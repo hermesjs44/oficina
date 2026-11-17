@@ -1354,16 +1354,11 @@
                 const fechaObj = new Date(year, month - 1, dia);
                 const diaSemana = fechaObj.getDay();
 
-                if (turnoVal === 'TARDE') {
-                    if (diaSemana !== 0 && diaSemana !== 6) {
-                        fechasHabiles.push(fechaObj);
-                        diasHabilesCount++;
-                    }
-                } else {
-                    if (diaSemana !== 0) {
-                        fechasHabiles.push(fechaObj);
-                        diasHabilesCount++;
-                    }
+                // MODIFICACIÓN: Excluir únicamente los domingos (diaSemana !== 0), 
+                // permitiendo incluir los sábados (diaSemana === 6) incluso si el turno es TARDE.
+                if (diaSemana !== 0) {
+                    fechasHabiles.push(fechaObj);
+                    diasHabilesCount++;
                 }
             }
 
