@@ -121,9 +121,10 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
         
         <!-- Botón Volver al Panel Central -->
-        <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full mb-4">
+        <a href="../../index.html" class="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm w-full mb-4 no-print">
             <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Panel Central
         </a>
+
         <!-- Pestañas de Navegación -->
         <div class="flex border-b border-slate-200 mb-6 no-print bg-white rounded-t-xl px-4 pt-2 shadow-sm">
             <button id="tab-list-btn" onclick="switchTab('list')" class="tab-active py-3 px-6 text-sm flex items-center gap-2 transition">
@@ -175,7 +176,7 @@
             </div>
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
-                    <p class="text-[11px] text-slate-500 uppercase font-bold">Vencidos</p>
+                    <p class="text-[11px] text-slate-500 uppercase font-bold">Vencidos / Baja</p>
                     <p id="stat-expired" class="text-2xl font-bold text-rose-600">0</p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -190,7 +191,7 @@
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center no-print">
                 <div class="relative w-full md:w-96">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="search-input" onkeyup="filterRecords()" placeholder="Buscar por Apellido, Nombre, DNI, Patente, Oblea, CUD..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                    <input type="text" id="search-input" onkeyup="filterRecords()" placeholder="Buscar por Apellido, DNI, Patente, Vehículo, Domicilio, Oblea..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
                 </div>
                 
                 <div class="flex flex-wrap gap-2 w-full md:w-auto items-center">
@@ -204,7 +205,8 @@
                         <option value="all">Todos los Estados</option>
                         <option value="active">Vigentes</option>
                         <option value="warning">Por vencer (30 días)</option>
-                        <option value="expired">Vencidos</option>
+                        <option value="tolerance">En Tolerancia</option>
+                        <option value="expired">Vencidos / Baja</option>
                     </select>
 
                     <button onclick="clearFilters()" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 underline">Limpiar</button>
@@ -217,13 +219,13 @@
                     <table class="w-full text-left text-sm text-slate-600">
                         <thead class="bg-slate-100 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
                             <tr>
-                                <th class="py-3.5 px-4">Tipo</th>
-                                <th class="py-3.5 px-4">Persona / DNI</th>
-                                <th class="py-3.5 px-4">Patente</th>
+                                <th class="py-3.5 px-4">Tipo / Autorizado</th>
+                                <th class="py-3.5 px-4">Persona / Domicilio</th>
+                                <th class="py-3.5 px-4">Vehículo / Patente</th>
                                 <th class="py-3.5 px-4">Identificador (Oblea / CUD)</th>
-                                <th class="py-3.5 px-4">Teléfono / Localidad</th>
-                                <th class="py-3.5 px-4">Vencimiento</th>
-                                <th class="py-3.5 px-4">Estado</th>
+                                <th class="py-3.5 px-4">N° Celular / Origen</th>
+                                <th class="py-3.5 px-4">Fechas / Vencimiento</th>
+                                <th class="py-3.5 px-4">Estado / Tolerancia</th>
                                 <th class="py-3.5 px-4 text-right no-print">Acciones</th>
                             </tr>
                         </thead>
@@ -276,7 +278,7 @@
                             <input type="radio" name="tipoTramite" value="foraneo" onchange="toggleTipoTramite('foraneo')" class="w-4 h-4 text-brand-600 focus:ring-brand-500">
                             <div>
                                 <span class="text-sm font-bold text-slate-800 block">2) FORÁNEOS</span>
-                                <span class="text-xs text-slate-500 block">Vehículos provenientes de otras localidades. Se deberan cargar <strong>TODOS los datos al REGISTRARLO<strong></span>
+                                <span class="text-xs text-slate-500 block">Vehículos provenientes de otras localidades. Se deberán cargar <strong>TODOS los datos al REGISTRARLO</strong></span>
                             </div>
                         </label>
                     </div>
@@ -291,10 +293,10 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN: DATOS DE LA PERSONA Y VEHÍCULO -->
+                <!-- SECCIÓN: DATOS DEL BENEFICIARIO Y CONTACTO -->
                 <div class="space-y-4">
                     <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2 border-b pb-2">
-                        <i class="fa-solid fa-address-card"></i> Datos del Beneficiario y Vehículo
+                        <i class="fa-solid fa-address-card"></i> Datos del Beneficiario y Contacto
                     </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -307,18 +309,43 @@
                             <input type="text" id="dni" required placeholder="Ej: 30.123.456" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">N° Celular *</label>
+                            <div class="flex">
+                                <input type="tel" id="telefono" required value="+549" placeholder="+5493564123456" class="w-full px-3 py-2 border border-slate-300 rounded-l-lg text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none">
+                                <button type="button" onclick="sendDirectWhatsApp()" title="Enviar WhatsApp directo a este número" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-r-lg transition flex items-center justify-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-xs">
+                                    <i class="fa-brands fa-whatsapp text-base"></i>
+                                    <span class="hidden sm:inline">WhatsApp</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Domicilio *</label>
+                            <input type="text" id="domicilio" required placeholder="Ej: Av. Libertador Norte 450, B° Centro" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div id="field-localidad-container" class="hidden">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Localidad de Origen *</label>
+                            <input type="text" id="localidad" placeholder="Ej: Rosario, Santa Fe" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: DATOS DEL VEHÍCULO Y HABILITACIÓN -->
+                <div class="space-y-4 pt-2">
+                    <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2 border-b pb-2">
+                        <i class="fa-solid fa-car"></i> Datos del Vehículo e Identificación
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Patente / Dominio *</label>
                             <input type="text" id="patente" required placeholder="Ej: AA123BC" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm uppercase font-mono font-bold focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono de Contacto *</label>
-                            <input type="tel" id="telefono" required placeholder="Ej: 3564 123456" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Vencimiento *</label>
-                            <input type="date" id="vencimiento" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Datos del Vehículo (Marca, Modelo, Color) *</label>
+                            <input type="text" id="datosVehiculo" required placeholder="Ej: Toyota Corolla Sedán - Color Gris Plata" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
 
                         <!-- CAMPO EXCLUSIVO PARA LOCALES -->
@@ -327,15 +354,47 @@
                             <input type="text" id="numOblea" placeholder="Ej: OBL-2026-88" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
 
-                        <!-- CAMPOS EXCLUSIVOS PARA FORÁNEOS -->
+                        <!-- CAMPO EXCLUSIVO PARA FORÁNEOS -->
                         <div id="field-cud-container" class="hidden">
                             <label class="block text-xs font-semibold text-slate-700 mb-1">CUD (Certificado Único de Discapacidad) *</label>
                             <input type="text" id="cud" placeholder="Ej: CUD-998877" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-brand-500 outline-none">
                         </div>
 
-                        <div id="field-localidad-container" class="hidden">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Localidad de Origen *</label>
-                            <input type="text" id="localidad" placeholder="Ej: Rosario, Santa Fe" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Autorizado por *</label>
+                            <input type="text" id="autorizadoPor" required placeholder="Ej: Dirección de Tránsito / Inspector Juan Gómez" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: FECHAS Y PLAZOS DEL TRÁMITE -->
+                <div class="space-y-4 pt-2">
+                    <h3 class="text-sm font-semibold text-brand-700 uppercase tracking-wider flex items-center gap-2 border-b pb-2">
+                        <i class="fa-solid fa-calendar-days"></i> Fechas de Gestión y Plazos de Baja
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Inicio Trámite *</label>
+                            <input type="date" id="fechaInicioTramite" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Recepción *</label>
+                            <input type="date" id="fechaRecepcion" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha Vencimiento *</label>
+                            <input type="date" id="vencimiento" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Días de Tolerancia para Baja *</label>
+                            <div class="relative">
+                                <input type="number" id="diasToleranciaBaja" min="0" max="365" value="15" required placeholder="Ej: 15" class="w-full px-3 py-2 pr-12 border border-slate-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">días</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -364,7 +423,7 @@
                     <div id="upload-foraneo-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
                         <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                             <label class="block text-xs font-bold text-slate-700">
-                                Simbolo de MI ARGENTINA
+                                Símbolo de MI ARGENTINA
                             </label>
                             <p class="text-[11px] text-slate-500">Adjunte captura o foto del Símbolo de Mi Argentina (opcional).</p>
                             <input type="file" id="fotoMiArgentina" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
@@ -570,9 +629,15 @@
 
             const nombreCompleto = document.getElementById('nombreCompleto').value.trim();
             const dni = document.getElementById('dni').value.trim();
-            const patente = document.getElementById('patente').value.trim().toUpperCase();
             const telefono = document.getElementById('telefono').value.trim();
+            const domicilio = document.getElementById('domicilio').value.trim();
+            const patente = document.getElementById('patente').value.trim().toUpperCase();
+            const datosVehiculo = document.getElementById('datosVehiculo').value.trim();
+            const autorizadoPor = document.getElementById('autorizadoPor').value.trim();
+            const fechaInicioTramite = document.getElementById('fechaInicioTramite').value;
+            const fechaRecepcion = document.getElementById('fechaRecepcion').value;
             const vencimiento = document.getElementById('vencimiento').value;
+            const diasToleranciaBaja = parseInt(document.getElementById('diasToleranciaBaja').value, 10) || 0;
 
             let numOblea = '';
             let cud = '';
@@ -623,9 +688,15 @@
                     tipoTramite: tipoTramite,
                     nombreCompleto: nombreCompleto,
                     dni: dni,
-                    patente: patente,
                     telefono: telefono,
+                    domicilio: domicilio,
+                    patente: patente,
+                    datosVehiculo: datosVehiculo,
+                    autorizadoPor: autorizadoPor,
+                    fechaInicioTramite: fechaInicioTramite,
+                    fechaRecepcion: fechaRecepcion,
                     vencimiento: vencimiento,
+                    diasToleranciaBaja: diasToleranciaBaja,
                     numOblea: numOblea,
                     cud: cud,
                     localidad: localidad,
@@ -674,13 +745,86 @@
     <!-- Script Principal con lógica UI -->
     <script>
         window.onload = function () {
-            const defaultDate = new Date();
-            defaultDate.setFullYear(defaultDate.getFullYear() + 1);
-            document.getElementById('vencimiento').value = defaultDate.toISOString().split('T')[0];
-            
+            setDefaultDatesAndPrefix();
+            setupPhoneInputProtection();
+            setupImagePreviews();
             window.renderTable();
             window.updateStats();
         };
+
+        function setDefaultDatesAndPrefix() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            const defaultVenc = new Date();
+            defaultVenc.setFullYear(defaultVenc.getFullYear() + 1);
+            const defaultVencStr = defaultVenc.toISOString().split('T')[0];
+
+            document.getElementById('fechaInicioTramite').value = todayStr;
+            document.getElementById('fechaRecepcion').value = todayStr;
+            document.getElementById('vencimiento').value = defaultVencStr;
+            document.getElementById('diasToleranciaBaja').value = 15;
+
+            const telInput = document.getElementById('telefono');
+            if (!telInput.value) {
+                telInput.value = '+549';
+            }
+        }
+
+        function setupPhoneInputProtection() {
+            const telInput = document.getElementById('telefono');
+            telInput.addEventListener('focus', function () {
+                if (!this.value.trim()) {
+                    this.value = '+549';
+                }
+            });
+            telInput.addEventListener('input', function () {
+                if (!this.value.startsWith('+549')) {
+                    const digits = this.value.replace(/^\+?5?4?9?/, '');
+                    this.value = '+549' + digits;
+                }
+            });
+        }
+
+        function sendDirectWhatsApp() {
+            const rawPhone = document.getElementById('telefono').value;
+            const cleanPhone = getCleanPhone(rawPhone);
+            if (!cleanPhone || cleanPhone.length <= 3) {
+                alert("Por favor, complete el número de celular después de +549 antes de enviar un WhatsApp.");
+                document.getElementById('telefono').focus();
+                return;
+            }
+            window.open(`https://wa.me/${cleanPhone}`, '_blank', 'noopener,noreferrer');
+        }
+
+        function setupImagePreviews() {
+            const mappings = [
+                { inputId: 'fotoAutorizacion', previewId: 'preview-autorizacion' },
+                { inputId: 'fotoMiArgentina', previewId: 'preview-miargentina' },
+                { inputId: 'fotoQr', previewId: 'preview-qr' },
+                { inputId: 'fotoDniTitular', previewId: 'preview-dnititular' }
+            ];
+
+            mappings.forEach(({ inputId, previewId }) => {
+                const input = document.getElementById(inputId);
+                const preview = document.getElementById(previewId);
+                if (!input || !preview) return;
+
+                input.addEventListener('change', function () {
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            preview.querySelector('img').src = e.target.result;
+                            preview.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        preview.classList.add('hidden');
+                    }
+                });
+            });
+        }
 
         function toggleTipoTramite(tipo) {
             const labelLocal = document.getElementById('label-tipo-local');
@@ -754,6 +898,16 @@
             }
         }
 
+        function getBajaDate(vencimientoStr, diasTolerancia) {
+            if (!vencimientoStr) return null;
+            const parts = vencimientoStr.split('-');
+            if (parts.length !== 3) return null;
+            const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            const tol = parseInt(diasTolerancia, 10) || 0;
+            date.setDate(date.getDate() + tol);
+            return date.toISOString().split('T')[0];
+        }
+
         function getRecordStatus(record) {
             if (!record.vencimiento) {
                 return { key: 'active', label: 'Vigente', class: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'fa-circle-check' };
@@ -762,14 +916,28 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            const vencDate = new Date(record.vencimiento);
+            const parts = record.vencimiento.split('-');
+            const vencDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
             vencDate.setHours(0, 0, 0, 0);
+
+            const tolerancia = parseInt(record.diasToleranciaBaja, 10) || 0;
+            const bajaDate = new Date(vencDate);
+            bajaDate.setDate(bajaDate.getDate() + tolerancia);
 
             const diffTime = vencDate - today;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays < 0) {
-                return { key: 'expired', label: 'Vencido', class: 'bg-rose-50 text-rose-700 border-rose-200', icon: 'fa-triangle-exclamation' };
+                const daysLeftTolerancia = Math.ceil((bajaDate - today) / (1000 * 60 * 60 * 24));
+                if (tolerancia > 0 && daysLeftTolerancia >= 0) {
+                    return {
+                        key: 'tolerance',
+                        label: `En Tolerancia (${daysLeftTolerancia}d)`,
+                        class: 'bg-orange-50 text-orange-700 border-orange-200',
+                        icon: 'fa-hourglass-half'
+                    };
+                }
+                return { key: 'expired', label: 'Vencido / Baja', class: 'bg-rose-50 text-rose-700 border-rose-200', icon: 'fa-triangle-exclamation' };
             } else if (diffDays <= 30) {
                 return { key: 'warning', label: `Por Vencer (${diffDays}d)`, class: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'fa-clock' };
             } else {
@@ -802,6 +970,8 @@
 
                 const isLocal = record.tipoTramite === 'local';
                 const cleanPhone = getCleanPhone(record.telefono);
+                const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 0;
+                const fechaBaja = getBajaDate(record.vencimiento, tolerancia);
 
                 const whatsappBtn = cleanPhone ? `
                     <a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener noreferrer" title="Enviar WhatsApp" class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold ml-1.5">
@@ -810,20 +980,23 @@
                 ` : '';
 
                 tr.innerHTML = `
-                    <td class="py-3.5 px-4 text-xs font-semibold">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border ${isLocal ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-indigo-50 text-indigo-800 border-indigo-200'}">
+                    <td class="py-3.5 px-4 text-xs">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${isLocal ? 'bg-sky-50 text-sky-800 border-sky-200' : 'bg-indigo-50 text-indigo-800 border-indigo-200'}">
                             <i class="fa-solid ${isLocal ? 'fa-building-user' : 'fa-route'} text-[10px]"></i>
                             ${isLocal ? 'Local (Tránsito)' : 'Foráneo'}
                         </span>
+                        ${record.autorizadoPor ? `<div class="text-[11px] text-slate-500 mt-1"><span class="font-semibold text-slate-600">Aut.:</span> ${escapeHtml(record.autorizadoPor)}</div>` : ''}
                     </td>
                     <td class="py-3.5 px-4">
                         <div class="font-semibold text-slate-800">${escapeHtml(record.nombreCompleto)}</div>
                         <div class="text-xs text-slate-500">DNI: ${escapeHtml(record.dni)}</div>
+                        ${record.domicilio ? `<div class="text-[11px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-[10px] mr-1 text-slate-400"></i>${escapeHtml(record.domicilio)}</div>` : ''}
                     </td>
                     <td class="py-3.5 px-4">
                         <span class="inline-block px-2 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-xs rounded border border-slate-700 tracking-wider">
                             ${escapeHtml(record.patente)}
                         </span>
+                        ${record.datosVehiculo ? `<div class="text-[11px] text-slate-600 font-medium mt-1">${escapeHtml(record.datosVehiculo)}</div>` : ''}
                     </td>
                     <td class="py-3.5 px-4 text-xs font-mono font-medium text-slate-700">
                         ${isLocal 
@@ -833,19 +1006,24 @@
                     </td>
                     <td class="py-3.5 px-4 text-xs text-slate-600">
                         <div class="text-slate-700 flex items-center font-medium">
-                            <i class="fa-solid fa-phone text-[10px] mr-1 text-slate-400"></i>${escapeHtml(record.telefono)}
+                            <i class="fa-solid fa-mobile-screen text-[10px] mr-1 text-slate-400"></i>${escapeHtml(record.telefono)}
                             ${whatsappBtn}
                         </div>
-                        <div class="text-slate-500">${isLocal ? 'Tránsito Municipal' : escapeHtml(record.localidad || 'N/A')}</div>
+                        <div class="text-slate-500 mt-0.5">${isLocal ? 'Tránsito Municipal' : escapeHtml(record.localidad || 'N/A')}</div>
                     </td>
-                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700">
-                        ${record.vencimiento ? formatDate(record.vencimiento) : 'N/A'}
+                    <td class="py-3.5 px-4 text-xs text-slate-700">
+                        <div class="font-semibold text-slate-800">Vence: ${record.vencimiento ? formatDate(record.vencimiento) : 'N/A'}</div>
+                        ${record.fechaInicioTramite ? `<div class="text-[11px] text-slate-500">Inicio: ${formatDate(record.fechaInicioTramite)}</div>` : ''}
+                        ${record.fechaRecepcion ? `<div class="text-[11px] text-slate-500">Recep.: ${formatDate(record.fechaRecepcion)}</div>` : ''}
                     </td>
                     <td class="py-3.5 px-4">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${status.class}">
                             <i class="fa-solid ${status.icon} text-[10px]"></i>
                             ${status.label}
                         </span>
+                        <div class="text-[11px] text-slate-500 mt-1">
+                            Tolerancia: <strong>${tolerancia}d</strong> ${fechaBaja ? `(Baja: ${formatDate(fechaBaja)})` : ''}
+                        </div>
                     </td>
                     <td class="py-3.5 px-4 text-right space-x-1 no-print">
                         <button onclick="viewRecord('${record.id}')" title="Ver Comprobante / Detalles" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition">
@@ -874,10 +1052,14 @@
                 const matchesQuery = 
                     (record.nombreCompleto || '').toLowerCase().includes(query) ||
                     (record.dni || '').toLowerCase().includes(query) ||
+                    (record.domicilio || '').toLowerCase().includes(query) ||
                     (record.patente || '').toLowerCase().includes(query) ||
+                    (record.datosVehiculo || '').toLowerCase().includes(query) ||
+                    (record.autorizadoPor || '').toLowerCase().includes(query) ||
                     (record.numOblea || '').toLowerCase().includes(query) ||
                     (record.cud || '').toLowerCase().includes(query) ||
-                    (record.localidad || '').toLowerCase().includes(query);
+                    (record.localidad || '').toLowerCase().includes(query) ||
+                    (record.telefono || '').toLowerCase().includes(query);
 
                 const recordStatus = getRecordStatus(record);
 
@@ -906,7 +1088,7 @@
                 if (r.tipoTramite === 'foraneo') foraneos++;
 
                 const st = getRecordStatus(r);
-                if (st.key === 'warning') warning++;
+                if (st.key === 'warning' || st.key === 'tolerance') warning++;
                 if (st.key === 'expired') expired++;
             });
 
@@ -932,9 +1114,21 @@
 
             document.getElementById('nombreCompleto').value = record.nombreCompleto || '';
             document.getElementById('dni').value = record.dni || '';
+            
+            let tel = record.telefono || '+549';
+            if (!tel.startsWith('+549')) {
+                tel = '+549' + tel.replace(/^\+?5?4?9?/, '');
+            }
+            document.getElementById('telefono').value = tel;
+            
+            document.getElementById('domicilio').value = record.domicilio || '';
             document.getElementById('patente').value = record.patente || '';
-            document.getElementById('telefono').value = record.telefono || '';
+            document.getElementById('datosVehiculo').value = record.datosVehiculo || '';
+            document.getElementById('autorizadoPor').value = record.autorizadoPor || '';
+            document.getElementById('fechaInicioTramite').value = record.fechaInicioTramite || '';
+            document.getElementById('fechaRecepcion').value = record.fechaRecepcion || '';
             document.getElementById('vencimiento').value = record.vencimiento || '';
+            document.getElementById('diasToleranciaBaja').value = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 15;
 
             document.getElementById('numOblea').value = record.numOblea || '';
             document.getElementById('cud').value = record.cud || '';
@@ -980,9 +1174,7 @@
             document.getElementById('form-id').value = '';
             document.getElementById('form-title').textContent = "Cargar Registro de Discapacidad";
             
-            const defaultDate = new Date();
-            defaultDate.setFullYear(defaultDate.getFullYear() + 1);
-            document.getElementById('vencimiento').value = defaultDate.toISOString().split('T')[0];
+            setDefaultDatesAndPrefix();
 
             document.querySelector('input[name="tipoTramite"][value="local"]').checked = true;
             toggleTipoTramite('local');
@@ -1000,6 +1192,9 @@
             const status = getRecordStatus(record);
             const isLocal = record.tipoTramite === 'local';
             const modalBody = document.getElementById('modal-body');
+
+            const tolerancia = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 0;
+            const fechaBaja = getBajaDate(record.vencimiento, tolerancia);
 
             const cleanPhone = getCleanPhone(record.telefono);
             const modalWhatsappBtn = cleanPhone ? `
@@ -1069,15 +1264,21 @@
                     </div>
 
                     <!-- Grilla de Datos -->
-                    <div class="grid grid-cols-2 gap-4 text-xs pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
                         <div class="space-y-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
                             <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Apellido y Nombre:</span> <strong contenteditable="true" class="text-sm text-slate-900">${escapeHtml(record.nombreCompleto)}</strong></div>
                             <div><span class="text-slate-500 uppercase text-[10px] font-bold block">DNI / Documento:</span> <strong contenteditable="true">${escapeHtml(record.dni)}</strong></div>
-                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Teléfono:</span> <strong contenteditable="true">${escapeHtml(record.telefono)}</strong> ${modalWhatsappBtn}</div>
+                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Domicilio:</span> <strong contenteditable="true">${escapeHtml(record.domicilio || 'N/A')}</strong></div>
+                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">N° Celular:</span> <strong contenteditable="true">${escapeHtml(record.telefono)}</strong> ${modalWhatsappBtn}</div>
+                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Autorizado por:</span> <strong contenteditable="true">${escapeHtml(record.autorizadoPor || 'N/A')}</strong></div>
                         </div>
 
                         <div class="space-y-1.5 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Patente / Dominio:</span> <span contenteditable="true" class="inline-block px-2 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-sm rounded">${escapeHtml(record.patente)}</span></div>
+                            <div>
+                                <span class="text-slate-500 uppercase text-[10px] font-bold block">Patente / Vehículo:</span> 
+                                <span contenteditable="true" class="inline-block px-2 py-0.5 bg-slate-800 text-amber-400 font-mono font-bold text-sm rounded">${escapeHtml(record.patente)}</span>
+                                <span contenteditable="true" class="block font-semibold text-slate-800 mt-0.5">${escapeHtml(record.datosVehiculo || '')}</span>
+                            </div>
                             
                             ${isLocal ? `
                                 <div><span class="text-slate-500 uppercase text-[10px] font-bold block">N° de Oblea:</span> <strong contenteditable="true" class="text-brand-700 font-mono">${escapeHtml(record.numOblea)}</strong></div>
@@ -1085,7 +1286,15 @@
                                 <div><span class="text-slate-500 uppercase text-[10px] font-bold block">CUD / Localidad:</span> <strong contenteditable="true" class="text-indigo-700 font-mono">${escapeHtml(record.cud)}</strong> (<span contenteditable="true">${escapeHtml(record.localidad)}</span>)</div>
                             `}
 
-                            <div><span class="text-slate-500 uppercase text-[10px] font-bold block">Fecha Vencimiento:</span> <strong contenteditable="true" class="text-rose-700 font-semibold">${formatDate(record.vencimiento)}</strong></div>
+                            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                                <div><span class="text-slate-500 uppercase text-[9px] font-bold block">Inicio Trámite:</span> <strong contenteditable="true">${formatDate(record.fechaInicioTramite)}</strong></div>
+                                <div><span class="text-slate-500 uppercase text-[9px] font-bold block">Recepción:</span> <strong contenteditable="true">${formatDate(record.fechaRecepcion)}</strong></div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <div><span class="text-slate-500 uppercase text-[9px] font-bold block">Vencimiento:</span> <strong contenteditable="true" class="text-rose-700 font-semibold">${formatDate(record.vencimiento)}</strong></div>
+                                <div><span class="text-slate-500 uppercase text-[9px] font-bold block">Tolerancia / Baja:</span> <strong contenteditable="true">${tolerancia} días (${formatDate(fechaBaja)})</strong></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1111,7 +1320,7 @@
                                 <p class="text-[9.5px] text-slate-500">Firma / Titular del Beneficio</p>
                             </div>
                             <div class="border-t border-slate-800 pt-1">
-                                <p class="font-bold text-xs text-slate-900">Sello y Firma Autoridad</p>
+                                <p contenteditable="true" class="font-bold text-xs text-slate-900">${escapeHtml(record.autorizadoPor || 'Sello y Firma Autoridad')}</p>
                                 <p class="text-[9.5px] text-slate-500">Dirección de Tránsito</p>
                             </div>
                         </div>
@@ -1151,19 +1360,28 @@
             }
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Tipo,Apellido y Nombre,DNI,Patente,Telefono,Nro Oblea,CUD,Localidad,Vencimiento\n";
+            csvContent += "Tipo,Apellido y Nombre,DNI,Domicilio,Nro Celular,Patente,Datos del Vehiculo,Nro Oblea,CUD,Localidad,Autorizado Por,Fecha Inicio Tramite,Fecha Recepcion,Vencimiento,Dias Tolerancia Baja,Fecha Baja Efectiva\n";
 
             data.forEach(r => {
+                const tolerancia = r.diasToleranciaBaja !== undefined ? r.diasToleranciaBaja : 0;
+                const fechaBaja = getBajaDate(r.vencimiento, tolerancia) || '';
                 const row = [
                     `"${r.tipoTramite || ''}"`,
                     `"${r.nombreCompleto || ''}"`,
                     `"${r.dni || ''}"`,
-                    `"${r.patente || ''}"`,
+                    `"${r.domicilio || ''}"`,
                     `"${r.telefono || ''}"`,
+                    `"${r.patente || ''}"`,
+                    `"${r.datosVehiculo || ''}"`,
                     `"${r.numOblea || ''}"`,
                     `"${r.cud || ''}"`,
                     `"${r.localidad || ''}"`,
-                    `"${r.vencimiento || ''}"`
+                    `"${r.autorizadoPor || ''}"`,
+                    `"${r.fechaInicioTramite || ''}"`,
+                    `"${r.fechaRecepcion || ''}"`,
+                    `"${r.vencimiento || ''}"`,
+                    `"${tolerancia}"`,
+                    `"${fechaBaja}"`
                 ].join(",");
                 csvContent += row + "\n";
             });
@@ -1228,7 +1446,7 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str
+            return String(str)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
