@@ -763,7 +763,7 @@
             document.getElementById('fechaInicioTramite').value = todayStr;
             document.getElementById('fechaRecepcion').value = todayStr;
             document.getElementById('vencimiento').value = defaultVencStr;
-            document.getElementById('diasToleranciaBaja').value = 15;
+            document.getElementById('diasToleranciaBaja').value = 730;
 
             const telInput = document.getElementById('telefono');
             if (!telInput.value) {
@@ -1128,7 +1128,7 @@
             document.getElementById('fechaInicioTramite').value = record.fechaInicioTramite || '';
             document.getElementById('fechaRecepcion').value = record.fechaRecepcion || '';
             document.getElementById('vencimiento').value = record.vencimiento || '';
-            document.getElementById('diasToleranciaBaja').value = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 15;
+            document.getElementById('diasToleranciaBaja').value = record.diasToleranciaBaja !== undefined ? record.diasToleranciaBaja : 730;
 
             document.getElementById('numOblea').value = record.numOblea || '';
             document.getElementById('cud').value = record.cud || '';
