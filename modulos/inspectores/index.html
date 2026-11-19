@@ -69,7 +69,7 @@
                 <nav class="space-y-1">
                     <p class="text-[10px] uppercase font-bold text-sky-200 px-3 mb-2 tracking-wider">Control Diario</p>
                     <button onclick="showSection('visualizacion-hoy')" id="btn-visualizacion-hoy" class="nav-btn w-full flex items-center px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-sky-600 transition-colors bg-sky-600">
-                        <i class="fa-solid fa-eye w-6 text-center mr-2 text-amber-300"></i> Visualización (Hoy)
+                        <i class="fa-solid fa-eye w-6 text-center mr-2 text-amber-300"></i> Visualización (Jornada)
                     </button>
 
                     <p class="text-[10px] uppercase font-bold text-sky-200 px-3 pt-4 mb-2 tracking-wider">Menú Inspectores</p>
@@ -106,18 +106,32 @@
         <!-- Contenido Central del Módulo -->
         <main class="flex-1 p-8">
             
-            <!-- SECCIÓN 0: VISUALIZACIÓN HOY -->
+            <!-- SECCIÓN 0: VISUALIZACIÓN DE JORNADA (POR DEFECTO HOY, EDITABLE) -->
             <section id="visualizacion-hoy" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto">
                 <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-clock text-sky-600"></i> Estado del Personal en la Jornada de Hoy
                         </h2>
-                        <p class="text-xs text-slate-500">Nómina completa de inspectores y sus respectivos turnos para la fecha actual: <span id="lblFechaHoy" class="font-bold text-sky-800">--/--/----</span></p>
+                        <p class="text-xs text-slate-500">
+                            Nómina completa de inspectores y sus respectivos turnos para la fecha seleccionada: 
+                            <span id="lblFechaHoy" class="font-bold text-sky-800">--/--/----</span>
+                            <span id="badgeTipoFecha" class="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Hoy</span>
+                        </p>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button onclick="cargarPersonalHoy()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow transition-colors flex items-center gap-1.5">
+                    <div class="flex flex-wrap items-center gap-2 bg-sky-50 p-2 rounded-lg border border-sky-200">
+                        <label for="fechaVisualizacionHoy" class="text-[11px] font-bold text-slate-700 uppercase pl-1">Fecha:</label>
+                        <input type="date" id="fechaVisualizacionHoy" onchange="cargarPersonalHoy()" 
+                               class="px-2.5 py-1 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        
+                        <button type="button" onclick="irAFechaActual()" title="Volver a la fecha actual"
+                                class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-calendar-day"></i> Hoy
+                        </button>
+
+                        <button type="button" onclick="cargarPersonalHoy()" 
+                                class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5">
                             <i class="fa-solid fa-rotate-right"></i> Actualizar
                         </button>
                     </div>
@@ -138,7 +152,7 @@
                         </thead>
                         <tbody id="tablaPersonalHoy" class="divide-y divide-slate-200 text-slate-800">
                             <tr>
-                                <td colspan="7" class="p-4 text-center text-slate-400">Cargando datos del día actual...</td>
+                                <td colspan="7" class="p-4 text-center text-slate-400">Cargando datos de la jornada...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -324,7 +338,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes</label>
                         <select id="selectMesHorario" onchange="generarGrillaMensual()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none">
-                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10" selected>Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
                         </select>
                     </div>
                     <div>
@@ -709,16 +723,41 @@
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
         }
 
-        async function cargarDatosIniciales() {
-            await obtenerInspectoresNomina();
-            
+        function obtenerFechaActualIso() {
             const hoy = new Date();
             const yyyy = hoy.getFullYear();
             const mm = String(hoy.getMonth() + 1).padStart(2, '0');
             const dd = String(hoy.getDate()).padStart(2, '0');
-            const fechaActualIso = `${yyyy}-${mm}-${dd}`;
+            return `${yyyy}-${mm}-${dd}`;
+        }
 
+        async function cargarDatosIniciales() {
+            await obtenerInspectoresNomina();
+            
+            const hoy = new Date();
+            const mesActual = hoy.getMonth() + 1;
+            const anioActual = hoy.getFullYear();
+
+            const fechaActualIso = obtenerFechaActualIso();
+            const [yyyy, mm, dd] = fechaActualIso.split('-');
+
+            // Inicializar selector de fecha de la vista de jornada con la fecha actual
+            const inputFechaVis = document.getElementById('fechaVisualizacionHoy');
+            if (inputFechaVis) inputFechaVis.value = fechaActualIso;
             document.getElementById('lblFechaHoy').textContent = `${dd}/${mm}/${yyyy}`;
+
+            // Seleccionar por defecto el mes (y año si existe) en curso en Carga de Horarios Mensuales
+            const selectMesHor = document.getElementById('selectMesHorario');
+            if (selectMesHor) selectMesHor.value = String(mesActual);
+
+            const selectAnioHor = document.getElementById('selectAnioHorario');
+            if (selectAnioHor && Array.from(selectAnioHor.options).some(opt => Number(opt.value) === anioActual)) {
+                selectAnioHor.value = String(anioActual);
+            }
+
+            const mesSeleccionado = selectMesHor ? parseInt(selectMesHor.value) : mesActual;
+            const anioSeleccionado = selectAnioHor ? parseInt(selectAnioHor.value) : anioActual;
+            renderizarCheckboxesSabadosMes(anioSeleccionado, mesSeleccionado);
 
             // Precargar fechas por defecto en módulo de exportación
             document.getElementById('expHorarioDesde').value = `${yyyy}-${mm}-01`;
@@ -734,6 +773,14 @@
             document.getElementById('fechaSabado').value = proximoSabado.toISOString().split('T')[0];
         }
         window.cargarDatosIniciales = cargarDatosIniciales;
+
+        function irAFechaActual() {
+            const inputFechaVis = document.getElementById('fechaVisualizacionHoy');
+            if (inputFechaVis) {
+                inputFechaVis.value = obtenerFechaActualIso();
+                cargarPersonalHoy();
+            }
+        }
 
         function showSection(sectionId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
@@ -901,15 +948,39 @@
             document.getElementById('btnCancelarEdicion').classList.add('hidden');
         }
 
-        // --- PANTALLA HOY: VISUALIZACIÓN PERSONAL ---
+        // --- PANTALLA JORNADA: VISUALIZACIÓN PERSONAL POR FECHA SELECCIONADA ---
         async function cargarPersonalHoy() {
             const tbody = document.getElementById('tablaPersonalHoy');
-            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Consultando horarios de la jornada...</td></tr>';
+            const inputFecha = document.getElementById('fechaVisualizacionHoy');
+            const fechaActualIso = obtenerFechaActualIso();
 
-            const hoy = new Date();
-            const anio = hoy.getFullYear();
-            const mes = hoy.getMonth() + 1;
-            const dia = hoy.getDate();
+            if (inputFecha && !inputFecha.value) {
+                inputFecha.value = fechaActualIso;
+            }
+
+            const fechaSeleccionadaIso = inputFecha ? inputFecha.value : fechaActualIso;
+            const fechaObj = new Date(fechaSeleccionadaIso + 'T00:00:00');
+            const anio = fechaObj.getFullYear();
+            const mes = fechaObj.getMonth() + 1;
+            const dia = fechaObj.getDate();
+
+            document.getElementById('lblFechaHoy').textContent = formatearFechaLatina(fechaSeleccionadaIso);
+
+            const badge = document.getElementById('badgeTipoFecha');
+            if (badge) {
+                if (fechaSeleccionadaIso === fechaActualIso) {
+                    badge.textContent = "Hoy";
+                    badge.className = "ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800";
+                } else if (fechaSeleccionadaIso < fechaActualIso) {
+                    badge.textContent = "Fecha Anterior";
+                    badge.className = "ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800";
+                } else {
+                    badge.textContent = "Fecha Posterior";
+                    badge.className = "ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800";
+                }
+            }
+
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Consultando horarios de la jornada...</td></tr>';
 
             let plantillaHoy = [];
 
@@ -1681,7 +1752,7 @@
             const worksheet = XLSX.utils.json_to_sheet(dataToExport);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Personal");
-            XLSX.writeFile(workbook, `Nomina_Personal_Inspectores_${formatearFechaLatina(new Date().toISOString().split('T')[0]).replace(/\//g, '-')}.xlsx`);
+            XLSX.writeFile(workbook, `Nomina_Personal_Inspectores_${formatearFechaLatina(obtenerFechaActualIso()).replace(/\//g, '-')}.xlsx`);
         }
 
         // 2. Exportar Horarios por Rango (Excluyendo Domingos y Horarios 00:00) en formato dd/mm/aaaa
@@ -1756,7 +1827,6 @@
                         const ingT = configDia.ingresoTarde || '00:00';
                         const egrT = configDia.egresoTarde || '00:00';
 
-                        // Validar y agregar Ingreso Mañana (siempre que no sea 00:00)
                         if (ingM && ingM !== '00:00' && ingM !== '-') {
                             filasExportar.push({
                                 "Fecha": f.strFecha,
@@ -1767,7 +1837,6 @@
                             });
                         }
 
-                        // Validar y agregar Egreso Mañana (siempre que no sea 00:00)
                         if (egrM && egrM !== '00:00' && egrM !== '-') {
                             filasExportar.push({
                                 "Fecha": f.strFecha,
@@ -1778,7 +1847,6 @@
                             });
                         }
 
-                        // Validar y agregar Ingreso Tarde (siempre que no sea 00:00)
                         if (ingT && ingT !== '00:00' && ingT !== '-') {
                             filasExportar.push({
                                 "Fecha": f.strFecha,
@@ -1789,7 +1857,6 @@
                             });
                         }
 
-                        // Validar y agregar Egreso Tarde (siempre que no sea 00:00)
                         if (egrT && egrT !== '00:00' && egrT !== '-') {
                             filasExportar.push({
                                 "Fecha": f.strFecha,
