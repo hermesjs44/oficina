@@ -40,27 +40,40 @@
                 max-width: 100% !important;
                 border: none !important;
                 box-shadow: none !important;
-                padding: 4mm !important;
+                padding: 3mm 4mm !important;
+                min-height: 280mm !important;
             }
             
             @page print-portrait {
                 size: A4 portrait;
-                margin: 6mm;
+                margin: 5mm;
             }
             .section-stickers-print,
             .section-turnos-print {
                 page: print-portrait;
             }
 
-            /* Ajustes específicos para que la planilla de turnos impresa quede idéntica a la hoja */
+            /* Ajustes específicos para que la planilla de turnos impresa ocupe toda la hoja A4 con letra más grande */
+            body.print-turnos-mode #printableAreaTurnos {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                height: 282mm !important;
+            }
+            body.print-turnos-mode #lblTurnoTituloPeriodo {
+                font-size: 22px !important;
+                margin-bottom: 4px !important;
+            }
             body.print-turnos-mode table {
-                font-size: 13px !important;
+                font-size: 15.5px !important;
+                width: 100% !important;
                 table-layout: auto !important;
             }
             body.print-turnos-mode td,
             body.print-turnos-mode th {
-                padding: 4px 8px !important;
+                padding: 5.5px 9px !important;
                 height: auto !important;
+                line-height: 1.25 !important;
                 border: 1.5px solid #000000 !important;
             }
             body.print-turnos-mode .turno-header-gris {
@@ -180,6 +193,11 @@
         }
         .turno-header-gris {
             background-color: #d1d5db;
+        }
+        .select-renglon-turno {
+            appearance: auto !important;
+            -webkit-appearance: menulist !important;
+            -moz-appearance: menulist !important;
         }
     </style>
 </head>
@@ -567,59 +585,85 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- SECCIÓN 6: TURNOS Y HORARIOS (A4 VERTICAL) -->
+        <!-- SECCIÓN 6: TURNOS Y HORARIOS (A4 VERTICAL CON ROTACIÓN AUTOMÁTICA) -->
         <!-- ========================================== -->
         <section id="turnos-horarios" class="tab-content hidden section-turnos-print">
             <!-- Barra de Controles (No Imprimible) -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap justify-between items-center gap-4 no-print">
-                <div class="flex items-center gap-4 flex-wrap">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes y Año</label>
-                        <input type="month" id="selectTurnoMesAnio" onchange="cambiarMesTurnos()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-3 no-print">
+                <div class="flex flex-wrap justify-between items-center gap-4">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes y Año a Visualizar</label>
+                            <input type="month" id="selectTurnoMesAnio" onchange="cambiarMesTurnos()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título del Período</label>
+                            <input type="text" id="inputTurnoTituloPeriodo" readonly class="px-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-bold text-slate-700 min-w-[260px] uppercase">
+                        </div>
+                        <div id="badgeEstadoTurnos" class="self-end pb-1">
+                            <!-- Indicador dinámico de rotación / planilla base -->
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título del Período (Editable)</label>
-                        <input type="text" id="inputTurnoTituloPeriodo" oninput="actualizarTituloTurno()" placeholder="01 AL 30 DE NOVIEMBRE DE 2026" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none min-w-[260px] uppercase">
-                    </div>
-                    <div class="flex items-center gap-2 self-end pb-1">
-                        <input type="checkbox" id="chkModoEdicionTurnos" checked onchange="renderizarPlanillaTurnos()" class="w-4 h-4 text-sky-600 rounded">
-                        <label for="chkModoEdicionTurnos" class="text-xs font-bold text-slate-700 cursor-pointer">Modo Edición</label>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Guardar cambios puntuales / intercambios en el mes activo -->
+                        <button onclick="guardarTurnosMesActualFirebase()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Mes
+                        </button>
+
+                        <!-- Botón Modo Diseñador -->
+                        <button id="btnToggleModoDisenador" onclick="toggleModoDisenador()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-lock"></i> Activar Modo Diseñador
+                        </button>
+
+                        <!-- Botón Guardar Planilla Base (Visible solo en Modo Diseñador) -->
+                        <button id="btnGuardarPlanillaBase" onclick="guardarComoPlanillaBase()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-star"></i> Grabar como Planilla Base
+                        </button>
+
+                        <button onclick="imprimirTurnos()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> Imprimir A4 Vertical
+                        </button>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 flex-wrap">
-                    <button onclick="cargarPlanillaTurnosFirebase()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-rotate"></i> Recargar
-                    </button>
-                    <button onclick="guardarPlanillaTurnosFirebase()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-floppy-disk"></i> Guardar Turnos
-                    </button>
-                    <button onclick="imprimirTurnos()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-print"></i> Imprimir A4 Vertical
-                    </button>
+                <!-- Ayuda para cambios independientes por franja horaria (Mañana / Tarde / Sábados) -->
+                <div class="bg-sky-50 border border-sky-200 text-sky-900 px-3 py-2 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <i class="fa-solid fa-people-arrows text-sky-600 mr-1"></i>
+                        <strong>Modificaciones independientes por franja:</strong> Los cambios en <strong>Mañana</strong> solo afectan entre turnos de la mañana y los de <strong>Tarde</strong> solo entre turnos de la tarde. Al elegir un inspector en el desplegable de un renglón (ej: <span class="font-bold">BUSTOS HUGO</span> con <span class="font-bold">CARRANZA PABLO</span>), se colocan en el mismo renglón y se cruzan en el otro turno de su misma franja.
+                    </div>
+                </div>
+
+                <!-- Banner informativo cuando el Modo Diseñador está activo -->
+                <div id="bannerModoDisenador" class="hidden bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded-lg text-xs flex flex-wrap justify-between items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-pen-ruler text-amber-600 text-sm"></i>
+                        <span><strong>MODO DISEÑADOR ACTIVO:</strong> Estás editando la estructura de la <strong>Planilla Base</strong> (Mes Ancla: <span id="lblMesBaseAncla" class="font-bold underline"></span>). Al grabar, los meses siguientes rotarán automáticamente a partir de esta base.</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- HOJA A4 VERTICAL PARAMS (IMPRIMIBLE - DISEÑO IDÉNTICO A LA IMAGEN) -->
-            <div id="printableAreaTurnos" class="bg-white p-8 rounded-xl border border-slate-300 shadow-sm max-w-[210mm] mx-auto min-h-[285mm] text-black font-sans">
+            <!-- HOJA A4 VERTICAL PARAMS (IMPRIMIBLE - DISTRIBUIDA EN TODA LA HOJA A4) -->
+            <div id="printableAreaTurnos" class="bg-white p-6 rounded-xl border border-slate-300 shadow-sm max-w-[210mm] mx-auto min-h-[285mm] flex flex-col justify-between text-black font-sans">
                 <!-- Título Principal -->
-                <div class="text-center mb-6">
-                    <h1 id="lblTurnoTituloPeriodo" class="text-xl font-black tracking-wide uppercase text-black">
+                <div class="text-center mb-3">
+                    <h1 id="lblTurnoTituloPeriodo" class="text-2xl font-black tracking-wide uppercase text-black">
                         01 AL 30 DE NOVIEMBRE DE 2026
                     </h1>
                 </div>
 
                 <!-- Contenedor Principal 2 Columnas (Mañana Izquierda / Tarde Derecha) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-10 gap-y-6 items-start">
+                <div class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-4 flex-1 items-stretch">
                     <!-- Columna Izquierda: Turnos Mañana -->
-                    <div id="colTurnosManana" class="space-y-6"></div>
+                    <div id="colTurnosManana" class="flex flex-col justify-between gap-4"></div>
 
                     <!-- Columna Derecha: Turnos Tarde -->
-                    <div id="colTurnosTarde" class="space-y-6"></div>
+                    <div id="colTurnosTarde" class="flex flex-col justify-between gap-4"></div>
                 </div>
 
                 <!-- Sección Inferior: Sábados (2 Columnas) -->
-                <div id="gridTurnosSabados" class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-10 gap-y-6 mt-8 items-start">
+                <div id="gridTurnosSabados" class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-4 mt-4 items-stretch">
                 </div>
             </div>
         </section>
@@ -1473,27 +1517,51 @@
         }
 
         /* ========================================================= */
-        /* --- SECCIÓN TURNOS Y HORARIOS (PLANILLA A4 VERTICAL) --- */
+        /* --- SECCIÓN TURNOS Y HORARIOS (PLANILLA BASE + ROTACIÓN) --- */
         /* ========================================================= */
-        let datosTurnosActual = null;
+        let planillaBaseTurnos = null;   // Estructura maestra guardada en Firestore
+        let datosTurnosActual = null;    // Estructura calculada (o editada) para el mes activo
+        let modoDisenadorActivo = false; // Solo permite editar estructura base si está en true
 
-        function obtenerPlantillaTurnosPorDefecto(year, month) {
-            const totalDias = new Date(year, month, 0).getDate();
-            const nombreMes = nombresMesesLargo[month - 1].toUpperCase();
+        const GRUPOS_CLAVES_TURNO = {
+            manana: ['manana1', 'manana2'],
+            tarde: ['tarde1', 'tarde2', 'tarde3'],
+            sabado: ['sabado1', 'sabado2']
+        };
 
-            // Calcular sábados alternados del mes (1ro y 3ro vs 2do y 4to)
-            let sabados = [];
-            for (let d = 1; d <= totalDias; d++) {
-                if (new Date(year, month - 1, d).getDay() === 6) {
-                    sabados.push(String(d).padStart(2, '0'));
+        function obtenerFranjaDeClave(claveBloque) {
+            if (GRUPOS_CLAVES_TURNO.manana.includes(claveBloque)) return 'manana';
+            if (GRUPOS_CLAVES_TURNO.tarde.includes(claveBloque)) return 'tarde';
+            return 'sabado';
+        }
+
+        function normalizarListaInspectores(lista) {
+            if (!Array.isArray(lista)) return [];
+            return lista.map(item => {
+                if (typeof item === 'string') {
+                    return { principal: item.trim().toUpperCase(), acompanante: "" };
                 }
-            }
-            const sabGrupo1 = [sabados[0], sabados[2]].filter(Boolean).join('/') || '07/21';
-            const sabGrupo2 = [sabados[1], sabados[3]].filter(Boolean).join('/') || '14/28';
+                return {
+                    principal: (item.principal || item.nombre || "").trim().toUpperCase(),
+                    acompanante: (item.acompanante || "").trim().toUpperCase()
+                };
+            });
+        }
 
+        function normalizarBloques(bloques) {
+            const claves = ['manana1', 'manana2', 'tarde1', 'tarde2', 'tarde3', 'sabado1', 'sabado2'];
+            claves.forEach(k => {
+                if (bloques[k]) {
+                    bloques[k].inspectores = normalizarListaInspectores(bloques[k].inspectores);
+                }
+            });
+            return bloques;
+        }
+
+        function obtenerPlantillaTurnosPorDefecto() {
             return {
-                tituloPeriodo: `01 AL ${String(totalDias).padStart(2, '0')} DE ${nombreMes} DE ${year}`,
-                bloques: {
+                mesAncla: "2026-11",
+                bloques: normalizarBloques({
                     manana1: {
                         titulo: "1 er. TURNO MAÑANA",
                         horario: "DE: 07:30 A 11:30",
@@ -1551,7 +1619,6 @@
                         ]
                     },
                     sabado1: {
-                        encabezadoSabado: `SABADO ${sabGrupo1}`,
                         titulo: "TURNO MAÑANA",
                         horario: "DE 08:30 A 12:30",
                         inspectores: [
@@ -1565,7 +1632,6 @@
                         ]
                     },
                     sabado2: {
-                        encabezadoSabado: `SABADO ${sabGrupo2}`,
                         titulo: "TURNO MAÑANA",
                         horario: "DE 08:30 A 12:30",
                         inspectores: [
@@ -1577,8 +1643,146 @@
                             "PAEZ FRANCO"
                         ]
                     }
+                })
+            };
+        }
+
+        function calcularDiferenciaMeses(mesAncla, mesDestino) {
+            const [y1, m1] = mesAncla.split('-').map(Number);
+            const [y2, m2] = mesDestino.split('-').map(Number);
+            return (y2 - y1) * 12 + (m2 - m1);
+        }
+
+        function obtenerFechasSabadosMes(year, month) {
+            const totalDias = new Date(year, month, 0).getDate();
+            let sabadosImpares = [];
+            let sabadosPares = [];
+            let contador = 0;
+
+            for (let d = 1; d <= totalDias; d++) {
+                const fecha = new Date(year, month - 1, d);
+                if (fecha.getDay() === 6) {
+                    contador++;
+                    const dd = String(d).padStart(2, '0');
+                    if (contador % 2 === 1) {
+                        sabadosImpares.push(dd);
+                    } else {
+                        sabadosPares.push(dd);
+                    }
+                }
+            }
+
+            return {
+                grupoFechas1: sabadosImpares.join('/'),
+                grupoFechas2: sabadosPares.join('/')
+            };
+        }
+
+        function generarVistaTurnosParaMes(mesAnio) {
+            const base = JSON.parse(JSON.stringify(planillaBaseTurnos));
+            normalizarBloques(base.bloques);
+
+            const [year, month] = mesAnio.split('-').map(Number);
+            const totalDias = new Date(year, month, 0).getDate();
+            const nombreMes = nombresMesesLargo[month - 1].toUpperCase();
+
+            const diffMeses = calcularDiferenciaMeses(base.mesAncla, mesAnio);
+
+            const mod2 = ((diffMeses % 2) + 2) % 2;
+            const mod3 = ((diffMeses % 3) + 3) % 3;
+
+            const gruposManana = [
+                base.bloques.manana1.inspectores,
+                base.bloques.manana2.inspectores
+            ];
+            const manana1Insp = gruposManana[mod2];
+            const manana2Insp = gruposManana[(mod2 + 1) % 2];
+
+            const gruposTarde = [
+                base.bloques.tarde1.inspectores,
+                base.bloques.tarde2.inspectores,
+                base.bloques.tarde3.inspectores
+            ];
+            const idxTarde1 = ((0 - mod3) + 3) % 3;
+            const idxTarde2 = ((1 - mod3) + 3) % 3;
+            const idxTarde3 = ((2 - mod3) + 3) % 3;
+
+            const { grupoFechas1, grupoFechas2 } = obtenerFechasSabadosMes(year, month);
+            const gruposSabado = [
+                base.bloques.sabado1.inspectores,
+                base.bloques.sabado2.inspectores
+            ];
+            const sabado1Insp = gruposSabado[mod2];
+            const sabado2Insp = gruposSabado[(mod2 + 1) % 2];
+
+            return {
+                mesAnio,
+                diffMeses,
+                tituloPeriodo: `01 AL ${String(totalDias).padStart(2, '0')} DE ${nombreMes} DE ${year}`,
+                bloques: {
+                    manana1: {
+                        titulo: base.bloques.manana1.titulo,
+                        horario: base.bloques.manana1.horario,
+                        inspectores: manana1Insp
+                    },
+                    manana2: {
+                        titulo: base.bloques.manana2.titulo,
+                        horario: base.bloques.manana2.horario,
+                        inspectores: manana2Insp
+                    },
+                    tarde1: {
+                        titulo: base.bloques.tarde1.titulo,
+                        horario: base.bloques.tarde1.horario,
+                        inspectores: gruposTarde[idxTarde1]
+                    },
+                    tarde2: {
+                        titulo: base.bloques.tarde2.titulo,
+                        horario: base.bloques.tarde2.horario,
+                        inspectores: gruposTarde[idxTarde2]
+                    },
+                    tarde3: {
+                        titulo: base.bloques.tarde3.titulo,
+                        horario: base.bloques.tarde3.horario,
+                        inspectores: gruposTarde[idxTarde3]
+                    },
+                    sabado1: {
+                        encabezadoSabado: `SABADO ${grupoFechas1}`,
+                        titulo: base.bloques.sabado1.titulo,
+                        horario: base.bloques.sabado1.horario,
+                        inspectores: sabado1Insp
+                    },
+                    sabado2: {
+                        encabezadoSabado: `SABADO ${grupoFechas2}`,
+                        titulo: base.bloques.sabado2.titulo,
+                        horario: base.bloques.sabado2.horario,
+                        inspectores: sabado2Insp
+                    }
                 }
             };
+        }
+
+        // Obtiene los inspectores pertenecientes únicamente a la franja indicada (manana, tarde o sabado)
+        function obtenerInspectoresDeFranja(franja) {
+            const clavesFranja = GRUPOS_CLAVES_TURNO[franja] || [];
+            const setNombres = new Set();
+
+            if (datosTurnosActual && datosTurnosActual.bloques) {
+                clavesFranja.forEach(k => {
+                    const b = datosTurnosActual.bloques[k];
+                    if (b && Array.isArray(b.inspectores)) {
+                        b.inspectores.forEach(it => {
+                            if (it.principal) setNombres.add(it.principal.trim().toUpperCase());
+                            if (it.acompanante) setNombres.add(it.acompanante.trim().toUpperCase());
+                        });
+                    }
+                });
+            }
+
+            inspectoresFiltrados.forEach(ins => {
+                if (ins.nombre) setNombres.add(ins.nombre.trim().toUpperCase());
+            });
+
+            return Array.from(setNombres).sort((a, b) => a.localeCompare(b));
         }
 
         async function inicializarPestanaTurnos() {
@@ -1589,88 +1793,164 @@
                 const mm = String(hoy.getMonth() + 1).padStart(2, '0');
                 inputMes.value = `${yyyy}-${mm}`;
             }
-            await cargarPlanillaTurnosFirebase();
+
+            await cargarPlanillaBaseDesdeFirebase();
+            await cambiarMesTurnos();
         }
 
-        async function cambiarMesTurnos() {
-            await cargarPlanillaTurnosFirebase();
-        }
-
-        async function cargarPlanillaTurnosFirebase() {
-            const mesAnio = document.getElementById('selectTurnoMesAnio').value;
-            if (!mesAnio) return;
-
-            const [year, month] = mesAnio.split('-').map(Number);
-            datosTurnosActual = obtenerPlantillaTurnosPorDefecto(year, month);
+        async function cargarPlanillaBaseDesdeFirebase() {
+            planillaBaseTurnos = obtenerPlantillaTurnosPorDefecto();
 
             if (window.db) {
                 try {
-                    const docSnap = await window.getDoc(window.doc(window.db, "planillas_turnos", `turnos_${mesAnio}`));
+                    const docSnap = await window.getDoc(window.doc(window.db, "planillas_turnos", "planilla_base"));
                     if (docSnap.exists()) {
-                        datosTurnosActual = docSnap.data();
+                        const data = docSnap.data();
+                        planillaBaseTurnos = {
+                            mesAncla: data.mesAncla || "2026-11",
+                            bloques: normalizarBloques(data.bloques || obtenerPlantillaTurnosPorDefecto().bloques)
+                        };
                     }
                 } catch (err) {
-                    console.error("Error al cargar planilla de turnos:", err);
+                    console.error("Error al leer planilla_base:", err);
+                }
+            }
+        }
+
+        async function cambiarMesTurnos() {
+            const mesAnio = document.getElementById('selectTurnoMesAnio').value;
+            if (!mesAnio || !planillaBaseTurnos) return;
+
+            if (modoDisenadorActivo) {
+                datosTurnosActual = generarVistaTurnosParaMes(planillaBaseTurnos.mesAncla);
+                datosTurnosActual.bloques.manana1 = planillaBaseTurnos.bloques.manana1;
+                datosTurnosActual.bloques.manana2 = planillaBaseTurnos.bloques.manana2;
+                datosTurnosActual.bloques.tarde1 = planillaBaseTurnos.bloques.tarde1;
+                datosTurnosActual.bloques.tarde2 = planillaBaseTurnos.bloques.tarde2;
+                datosTurnosActual.bloques.tarde3 = planillaBaseTurnos.bloques.tarde3;
+                datosTurnosActual.bloques.sabado1.titulo = planillaBaseTurnos.bloques.sabado1.titulo;
+                datosTurnosActual.bloques.sabado1.horario = planillaBaseTurnos.bloques.sabado1.horario;
+                datosTurnosActual.bloques.sabado1.inspectores = planillaBaseTurnos.bloques.sabado1.inspectores;
+                datosTurnosActual.bloques.sabado2.titulo = planillaBaseTurnos.bloques.sabado2.titulo;
+                datosTurnosActual.bloques.sabado2.horario = planillaBaseTurnos.bloques.sabado2.horario;
+                datosTurnosActual.bloques.sabado2.inspectores = planillaBaseTurnos.bloques.sabado2.inspectores;
+            } else {
+                datosTurnosActual = generarVistaTurnosParaMes(mesAnio);
+
+                if (window.db) {
+                    try {
+                        const docSnap = await window.getDoc(window.doc(window.db, "planillas_turnos", `turnos_${mesAnio}`));
+                        if (docSnap.exists()) {
+                            const guardadoMes = docSnap.data();
+                            if (guardadoMes.bloques) {
+                                const bloquesNorm = normalizarBloques(guardadoMes.bloques);
+                                Object.keys(datosTurnosActual.bloques).forEach(k => {
+                                    if (bloquesNorm[k] && Array.isArray(bloquesNorm[k].inspectores)) {
+                                        datosTurnosActual.bloques[k].inspectores = bloquesNorm[k].inspectores;
+                                    }
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error al consultar ajustes del mes:", err);
+                    }
                 }
             }
 
             document.getElementById('inputTurnoTituloPeriodo').value = datosTurnosActual.tituloPeriodo;
             document.getElementById('lblTurnoTituloPeriodo').textContent = datosTurnosActual.tituloPeriodo;
+
+            actualizarBadgeEstadoTurnos();
             renderizarPlanillaTurnos();
         }
 
-        function actualizarTituloTurno() {
-            const val = document.getElementById('inputTurnoTituloPeriodo').value.toUpperCase();
-            if (datosTurnosActual) datosTurnosActual.tituloPeriodo = val;
-            document.getElementById('lblTurnoTituloPeriodo').textContent = val;
+        function actualizarBadgeEstadoTurnos() {
+            const badge = document.getElementById('badgeEstadoTurnos');
+            if (!badge || !datosTurnosActual) return;
+
+            if (modoDisenadorActivo) {
+                badge.innerHTML = `
+                    <span class="bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i> Editando Planilla Base (${planillaBaseTurnos.mesAncla})
+                    </span>
+                `;
+            } else if (datosTurnosActual.diffMeses === 0) {
+                badge.innerHTML = `
+                    <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-star"></i> Mes Base Original
+                    </span>
+                `;
+            } else {
+                const paso = datosTurnosActual.diffMeses > 0 ? `+${datosTurnosActual.diffMeses}` : `${datosTurnosActual.diffMeses}`;
+                badge.innerHTML = `
+                    <span class="bg-sky-100 text-sky-800 border border-sky-300 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i> Rotación Automática (${paso} mes/es desde ${planillaBaseTurnos.mesAncla})
+                    </span>
+                `;
+            }
+        }
+
+        function toggleModoDisenador() {
+            const btn = document.getElementById('btnToggleModoDisenador');
+            const btnGuardar = document.getElementById('btnGuardarPlanillaBase');
+            const banner = document.getElementById('bannerModoDisenador');
+            const inputMes = document.getElementById('selectTurnoMesAnio');
+
+            if (!modoDisenadorActivo) {
+                const confirmar = confirm("¿Desea ingresar al MODO DISEÑADOR para modificar la Planilla Base de turnos y horarios?");
+                if (!confirmar) return;
+
+                modoDisenadorActivo = true;
+                planillaBaseTurnos.mesAncla = inputMes.value;
+                document.getElementById('lblMesBaseAncla').textContent = planillaBaseTurnos.mesAncla;
+
+                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Salir Modo Diseñador';
+                btn.className = "bg-rose-600 hover:bg-rose-700 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5 transition-colors";
+                btnGuardar.classList.remove('hidden');
+                banner.classList.remove('hidden');
+            } else {
+                modoDisenadorActivo = false;
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Activar Modo Diseñador';
+                btn.className = "bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5 transition-colors";
+                btnGuardar.classList.add('hidden');
+                banner.classList.add('hidden');
+            }
+
+            cambiarMesTurnos();
         }
 
         function generarHtmlBloqueTurno(claveBloque, esSabado = false) {
             const bloque = datosTurnosActual.bloques[claveBloque];
-            const modoEdicion = document.getElementById('chkModoEdicionTurnos').checked;
+            const editableEstructura = modoDisenadorActivo;
+            const franja = obtenerFranjaDeClave(claveBloque);
+            const inspectoresFranja = obtenerInspectoresDeFranja(franja);
 
-            // Opciones del desplegable con inspectores de Firestore
-            let opcionesSelect = `<option value="">+ Agregar inspector...</option>`;
-            inspectoresFiltrados.forEach(ins => {
-                const nombreUp = (ins.nombre || '').toUpperCase();
-                if (!bloque.inspectores.includes(nombreUp)) {
-                    opcionesSelect += `<option value="${nombreUp}">${nombreUp}</option>`;
-                }
+            let opcionesAgregar = `<option value="">+ Agregar inspector...</option>`;
+            inspectoresFranja.forEach(nombreUp => {
+                opcionesAgregar += `<option value="${nombreUp}">${nombreUp}</option>`;
             });
 
-            let html = `<div class="w-full">`;
+            let html = `<div class="w-full flex-1 flex flex-col">`;
 
-            // Encabezado superior exclusivo de Sábados (SABADO 07/21)
             if (esSabado) {
-                if (modoEdicion) {
-                    html += `
-                        <div class="text-center mb-1">
-                            <input type="text" value="${bloque.encabezadoSabado}" 
-                                   onchange="editarCampoBloqueTurno('${claveBloque}', 'encabezadoSabado', this.value)"
-                                   class="text-center font-black text-base uppercase text-black border-b border-dashed border-slate-400 focus:outline-none focus:border-sky-600 w-full bg-transparent">
-                        </div>
-                    `;
-                } else {
-                    html += `<div class="text-center font-black text-base uppercase text-black mb-1">${bloque.encabezadoSabado}</div>`;
-                }
+                html += `<div class="text-center font-black text-lg uppercase text-black mb-1">${bloque.encabezadoSabado}</div>`;
             }
 
-            html += `<table class="w-full border-collapse tabla-turnos text-black">`;
+            html += `<table class="w-full h-full border-collapse tabla-turnos text-black">`;
 
-            // Fila 1: Título del turno con fondo gris
             html += `
                 <thead>
                     <tr class="turno-header-gris">
-                        <th class="py-1 px-2 text-center font-bold text-sm uppercase tracking-wide">
-                            ${modoEdicion 
-                                ? `<input type="text" value="${bloque.titulo}" onchange="editarCampoBloqueTurno('${claveBloque}', 'titulo', this.value)" class="w-full text-center font-bold text-sm uppercase bg-transparent focus:outline-none">`
+                        <th class="py-1.5 px-2.5 text-center font-bold text-base uppercase tracking-wide">
+                            ${editableEstructura 
+                                ? `<input type="text" value="${bloque.titulo}" onchange="editarCampoBloqueTurno('${claveBloque}', 'titulo', this.value)" class="w-full text-center font-bold text-base uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
                                 : bloque.titulo}
                         </th>
                     </tr>
                     <tr>
-                        <th class="py-1 px-2 text-center font-bold text-xs uppercase bg-white">
-                            ${modoEdicion 
-                                ? `<input type="text" value="${bloque.horario}" onchange="editarCampoBloqueTurno('${claveBloque}', 'horario', this.value)" class="w-full text-center font-bold text-xs uppercase bg-transparent focus:outline-none">`
+                        <th class="py-1 px-2.5 text-center font-bold text-sm uppercase bg-white">
+                            ${editableEstructura 
+                                ? `<input type="text" value="${bloque.horario}" onchange="editarCampoBloqueTurno('${claveBloque}', 'horario', this.value)" class="w-full text-center font-bold text-sm uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
                                 : bloque.horario}
                         </th>
                     </tr>
@@ -1678,43 +1958,77 @@
                 <tbody>
             `;
 
-            // Filas de Inspectores
-            bloque.inspectores.forEach((nombreInsp, idx) => {
+            bloque.inspectores.forEach((entry, idx) => {
+                const principal = entry.principal || "";
+                const acompanante = entry.acompanante || "";
+
+                // Opciones de la lista desplegable filtradas estrictamente por la franja (Mañana / Tarde / Sábado)
+                let opcionesRenglon = `<option value="">-- En este renglón... --</option>`;
+                inspectoresFranja.forEach(nombreInsp => {
+                    if (nombreInsp !== principal) {
+                        const selAttr = (nombreInsp === acompanante) ? 'selected' : '';
+                        opcionesRenglon += `<option value="${nombreInsp}" ${selAttr}>${nombreInsp}</option>`;
+                    }
+                });
+
                 html += `
                     <tr class="bg-white group">
-                        <td class="py-1 px-2.5 font-extrabold text-sm uppercase text-left relative">
-                            <div class="flex justify-between items-center gap-1">
-                                ${modoEdicion 
-                                    ? `<input type="text" value="${nombreInsp}" onchange="editarInspectorBloqueTurno('${claveBloque}', ${idx}, this.value)" class="w-full font-extrabold text-sm uppercase bg-transparent focus:outline-none focus:bg-amber-50">`
-                                    : `<span>${nombreInsp}</span>`}
-                                
-                                ${modoEdicion ? `
-                                    <div class="flex items-center gap-1 no-print shrink-0">
+                        <td class="py-1.5 px-2.5 font-extrabold text-[15px] uppercase text-left relative">
+                            <div class="flex justify-between items-center gap-2">
+                                <!-- Contenido del renglón: Principal y opcionalmente Acompañante al lado en la misma fila -->
+                                <div class="flex items-center gap-2 flex-wrap flex-1">
+                                    ${editableEstructura 
+                                        ? `<input type="text" value="${principal}" onchange="editarInspectorBloqueTurno('${claveBloque}', ${idx}, this.value)" class="font-extrabold text-[15px] uppercase bg-transparent border-b border-dashed border-slate-300 focus:outline-none focus:bg-amber-50 min-w-[130px]">`
+                                        : `<span>${principal}</span>`}
+
+                                    ${acompanante ? `
+                                        <span class="text-black font-black">|</span>
+                                        <span class="font-extrabold text-[15px] uppercase text-black">${acompanante}</span>
+                                        <button onclick="quitarAcompananteRenglon('${claveBloque}', ${idx})" title="Quitar acompañante del renglón" class="no-print text-rose-500 hover:text-rose-700 text-xs px-1">
+                                            <i class="fa-solid fa-user-minus"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Lista desplegable restringida a la misma franja horaria + botón de intercambio en la misma franja -->
+                                <div class="flex items-center gap-1 no-print shrink-0">
+                                    <select onchange="seleccionarInspectorEnRenglon('${claveBloque}', ${idx}, this.value)" 
+                                            title="Colocar inspector de la misma franja en este renglón"
+                                            class="select-renglon-turno text-[11px] font-bold text-sky-950 bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded px-1.5 py-0.5 max-w-[140px] focus:outline-none">
+                                        ${opcionesRenglon}
+                                    </select>
+
+                                    <button onclick="intercambiarBidireccionalEnRenglon('${claveBloque}', ${idx})" 
+                                            title="Intercambiar dentro de la misma franja horaria (Mañana o Tarde)" 
+                                            class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-1">
+                                        <i class="fa-solid fa-right-left"></i>
+                                    </button>
+
+                                    ${editableEstructura ? `
                                         <button onclick="moverInspectorBloqueTurno('${claveBloque}', ${idx}, -1)" title="Subir" class="text-slate-400 hover:text-sky-600 px-1 text-xs" ${idx === 0 ? 'disabled' : ''}>
                                             <i class="fa-solid fa-arrow-up"></i>
                                         </button>
                                         <button onclick="moverInspectorBloqueTurno('${claveBloque}', ${idx}, 1)" title="Bajar" class="text-slate-400 hover:text-sky-600 px-1 text-xs" ${idx === bloque.inspectores.length - 1 ? 'disabled' : ''}>
                                             <i class="fa-solid fa-arrow-down"></i>
                                         </button>
-                                        <button onclick="eliminarInspectorBloqueTurno('${claveBloque}', ${idx})" title="Quitar" class="text-rose-500 hover:text-rose-700 px-1 text-xs">
+                                        <button onclick="eliminarInspectorBloqueTurno('${claveBloque}', ${idx})" title="Quitar fila" class="text-rose-500 hover:text-rose-700 px-1 text-xs">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
-                                    </div>
-                                ` : ''}
+                                    ` : ''}
+                                </div>
                             </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Fila de control para agregar nuevo inspector (solo visible en pantalla, oculta al imprimir)
-            if (modoEdicion) {
+            if (editableEstructura) {
                 html += `
-                    <tr class="bg-slate-50 no-print">
+                    <tr class="bg-amber-50/70 no-print">
                         <td class="p-1.5">
                             <div class="flex gap-1">
-                                <select onchange="agregarInspectorDesdeSelect('${claveBloque}', this)" class="w-full text-xs font-semibold text-sky-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none">
-                                    ${opcionesSelect}
+                                <select onchange="agregarInspectorDesdeSelect('${claveBloque}', this)" class="select-renglon-turno w-full text-xs font-semibold text-sky-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none">
+                                    ${opcionesAgregar}
                                 </select>
                                 <button onclick="agregarInspectorManual('${claveBloque}')" title="Escribir nombre manual" class="bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded text-xs font-bold">
                                     <i class="fa-solid fa-plus"></i>
@@ -1750,69 +2064,182 @@
                 generarHtmlBloqueTurno('sabado2', true);
         }
 
+        // Coloca el inspector elegido en la lista desplegable al lado en el mismo renglón
+        // y lo refleja únicamente dentro de los turnos de la misma franja (Mañana o Tarde)
+        function seleccionarInspectorEnRenglon(claveBloque, index, nombreElegido) {
+            const entry = datosTurnosActual.bloques[claveBloque].inspectores[index];
+            const limpio = (nombreElegido || "").trim().toUpperCase();
+            entry.acompanante = limpio;
+
+            if (limpio) {
+                const franja = obtenerFranjaDeClave(claveBloque);
+                const clavesMismaFranja = GRUPOS_CLAVES_TURNO[franja] || [];
+                clavesMismaFranja.forEach(k => {
+                    datosTurnosActual.bloques[k].inspectores.forEach((other, i) => {
+                        if (!(k === claveBloque && i === index) && other.principal === limpio && !other.acompanante) {
+                            other.acompanante = entry.principal;
+                        }
+                    });
+                });
+            }
+
+            renderizarPlanillaTurnos();
+        }
+
+        function quitarAcompananteRenglon(claveBloque, index) {
+            datosTurnosActual.bloques[claveBloque].inspectores[index].acompanante = "";
+            renderizarPlanillaTurnos();
+        }
+
+        // Realiza el intercambio bidireccional estrictamente dentro de la misma franja (Mañana o Tarde)
+        function intercambiarBidireccionalEnRenglon(claveOrigen, idxOrigen) {
+            const bloques = datosTurnosActual.bloques;
+            const origenEntry = bloques[claveOrigen].inspectores[idxOrigen];
+            const franja = obtenerFranjaDeClave(claveOrigen);
+            const clavesMismaFranja = GRUPOS_CLAVES_TURNO[franja] || [];
+
+            if (origenEntry.acompanante) {
+                const compNombre = origenEntry.acompanante;
+                for (const k of clavesMismaFranja) {
+                    const targetIdx = bloques[k].inspectores.findIndex(
+                        (it, i) => !(k === claveOrigen && i === idxOrigen) && it.principal === compNombre
+                    );
+                    if (targetIdx !== -1) {
+                        bloques[k].inspectores[targetIdx].acompanante = origenEntry.principal;
+                        renderizarPlanillaTurnos();
+                        return;
+                    }
+                }
+            }
+
+            const candidatosFranja = [];
+            clavesMismaFranja.forEach(k => {
+                bloques[k].inspectores.forEach((it, i) => {
+                    if (!(k === claveOrigen && i === idxOrigen) && it.principal !== origenEntry.principal) {
+                        candidatosFranja.push(`[${bloques[k].titulo}] ${it.principal}`);
+                    }
+                });
+            });
+
+            if (candidatosFranja.length === 0) return;
+
+            const elegido = prompt(
+                `Intercambio en franja ${franja.toUpperCase()} para "${origenEntry.principal}".\n` +
+                `Escriba el nombre del inspector de la misma franja:\n\n${candidatosFranja.join('\n')}`
+            );
+            if (!elegido || !elegido.trim()) return;
+
+            const limpio = elegido.trim().toUpperCase();
+            origenEntry.acompanante = limpio;
+
+            for (const k of clavesMismaFranja) {
+                const targetIdx = bloques[k].inspectores.findIndex(
+                    (it, i) => !(k === claveOrigen && i === idxOrigen) && it.principal.includes(limpio)
+                );
+                if (targetIdx !== -1) {
+                    origenEntry.acompanante = bloques[k].inspectores[targetIdx].principal;
+                    bloques[k].inspectores[targetIdx].acompanante = origenEntry.principal;
+                    break;
+                }
+            }
+
+            renderizarPlanillaTurnos();
+        }
+
         function editarCampoBloqueTurno(claveBloque, campo, valor) {
-            datosTurnosActual.bloques[claveBloque][campo] = valor.trim().toUpperCase();
+            if (!modoDisenadorActivo) return;
+            planillaBaseTurnos.bloques[claveBloque][campo] = valor.trim().toUpperCase();
+            cambiarMesTurnos();
         }
 
         function editarInspectorBloqueTurno(claveBloque, index, nuevoNombre) {
+            if (!modoDisenadorActivo) return;
             const limpio = nuevoNombre.trim().toUpperCase();
             if (!limpio) {
                 eliminarInspectorBloqueTurno(claveBloque, index);
             } else {
-                datosTurnosActual.bloques[claveBloque].inspectores[index] = limpio;
+                planillaBaseTurnos.bloques[claveBloque].inspectores[index].principal = limpio;
+                cambiarMesTurnos();
             }
         }
 
         function eliminarInspectorBloqueTurno(claveBloque, index) {
-            datosTurnosActual.bloques[claveBloque].inspectores.splice(index, 1);
-            renderizarPlanillaTurnos();
+            if (!modoDisenadorActivo) return;
+            planillaBaseTurnos.bloques[claveBloque].inspectores.splice(index, 1);
+            cambiarMesTurnos();
         }
 
         function moverInspectorBloqueTurno(claveBloque, index, direccion) {
-            const lista = datosTurnosActual.bloques[claveBloque].inspectores;
+            if (!modoDisenadorActivo) return;
+            const lista = planillaBaseTurnos.bloques[claveBloque].inspectores;
             const destino = index + direccion;
             if (destino < 0 || destino >= lista.length) return;
             [lista[index], lista[destino]] = [lista[destino], lista[index]];
-            renderizarPlanillaTurnos();
+            cambiarMesTurnos();
         }
 
         function agregarInspectorDesdeSelect(claveBloque, selectEl) {
+            if (!modoDisenadorActivo) return;
             const nombre = selectEl.value;
             if (!nombre) return;
-            datosTurnosActual.bloques[claveBloque].inspectores.push(nombre);
-            renderizarPlanillaTurnos();
+            planillaBaseTurnos.bloques[claveBloque].inspectores.push({ principal: nombre, acompanante: "" });
+            cambiarMesTurnos();
         }
 
         function agregarInspectorManual(claveBloque) {
+            if (!modoDisenadorActivo) return;
             const nombre = prompt("Ingrese APELLIDO Y NOMBRE del inspector:");
             if (nombre && nombre.trim()) {
-                datosTurnosActual.bloques[claveBloque].inspectores.push(nombre.trim().toUpperCase());
-                renderizarPlanillaTurnos();
+                planillaBaseTurnos.bloques[claveBloque].inspectores.push({ principal: nombre.trim().toUpperCase(), acompanante: "" });
+                cambiarMesTurnos();
             }
         }
 
-        async function guardarPlanillaTurnosFirebase() {
+        async function guardarTurnosMesActualFirebase() {
             const mesAnio = document.getElementById('selectTurnoMesAnio').value;
             if (!mesAnio || !window.db || !datosTurnosActual) return;
 
             try {
                 await window.setDoc(window.doc(window.db, "planillas_turnos", `turnos_${mesAnio}`), {
-                    ...datosTurnosActual,
                     mesAnio,
+                    tituloPeriodo: datosTurnosActual.tituloPeriodo,
+                    bloques: datosTurnosActual.bloques,
                     actualizado: new Date().toISOString()
                 });
-                alert("Planilla de Turnos y Horarios guardada correctamente.");
+                alert(`Cambios del mes ${mesAnio} guardados correctamente.`);
             } catch (err) {
-                alert("Error al guardar turnos: " + err.message);
+                alert("Error al guardar los cambios del mes: " + err.message);
+            }
+        }
+
+        async function guardarComoPlanillaBase() {
+            if (!modoDisenadorActivo || !window.db || !planillaBaseTurnos) return;
+
+            const mesAnclaActual = document.getElementById('selectTurnoMesAnio').value;
+            planillaBaseTurnos.mesAncla = mesAnclaActual;
+
+            try {
+                await window.setDoc(window.doc(window.db, "planillas_turnos", "planilla_base"), {
+                    ...planillaBaseTurnos,
+                    actualizado: new Date().toISOString()
+                });
+                alert(`Planilla Base grabada correctamente (Mes Ancla: ${mesAnclaActual}). Al cambiar de mes, todos los grupos rotarán automáticamente.`);
+                
+                modoDisenadorActivo = false;
+                document.getElementById('btnToggleModoDisenador').innerHTML = '<i class="fa-solid fa-lock"></i> Activar Modo Diseñador';
+                document.getElementById('btnToggleModoDisenador').className = "bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5 transition-colors";
+                document.getElementById('btnGuardarPlanillaBase').classList.add('hidden');
+                document.getElementById('bannerModoDisenador').classList.add('hidden');
+                await cambiarMesTurnos();
+            } catch (err) {
+                alert("Error al grabar la Planilla Base: " + err.message);
             }
         }
 
         function imprimirTurnos() {
-            // Desactivar temporalmente los inputs de edición para impresión limpia
-            const chk = document.getElementById('chkModoEdicionTurnos');
-            const estabaEditando = chk.checked;
-            if (estabaEditando) {
-                chk.checked = false;
+            const estabaEnDisenador = modoDisenadorActivo;
+            if (estabaEnDisenador) {
+                modoDisenadorActivo = false;
                 renderizarPlanillaTurnos();
             }
 
@@ -1820,8 +2247,8 @@
             document.body.classList.add('print-turnos-mode');
             window.print();
 
-            if (estabaEditando) {
-                chk.checked = true;
+            if (estabaEnDisenador) {
+                modoDisenadorActivo = true;
                 renderizarPlanillaTurnos();
             }
         }
