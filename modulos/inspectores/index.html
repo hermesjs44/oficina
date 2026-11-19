@@ -698,8 +698,8 @@
 
         const mapIngresoManana = { "00:00": "00:00", "06:30": "06:30", "07:30": "07:30", "08:00": "08:15", "08:30": "08:45" };
         const mapEgresoManana = { "00:00": "00:00", "10:30": "10:30", "11:30": "11:15", "12:00": "11:45", "12:30": "12:15", "13:30": "13:30" };
-        const mapIngresoTarde = { "00:00": "00:00", "13:00", "13:30": "13:30", "15:00": "15:15", "16:00": "16:15", "17:00": "17:15" };
-        const mapEgresoTarde = { "00:00": "00:00", "18:00": "17:45", "19:00": "18:45", "20:00": "19:45" };
+        const mapIngresoTarde = { "00:00": "00:00", "13:00": "13:00", "13:30": "13:30", "15:00": "15:15", "16:00": "16:15", "17:00": "17:15" };
+        const mapEgresoTarde = { "00:00": "00:00", "18:00": "17:45", "19:00": "18:45", "20:00": "20:00" };
 
         // Función Auxiliar Global para Formatear Fechas en formato dd/mm/aaaa
         function formatearFechaLatina(fechaIso) {
@@ -1349,6 +1349,7 @@
                         <td class="p-2 text-center">
                             <select id="ingTarde_${d}" onchange="recalcularEfectivos(${d})" class="border rounded px-1 py-1 text-xs">
                                 <option value="00:00" ${ingT === '00:00' ? 'selected' : ''}>00:00</option>
+                                <option value="13:00" ${ingT === '13:00' ? 'selected' : ''}>13:00</option>
                                 <option value="13:30" ${ingT === '13:30' ? 'selected' : ''}>13:30</option>
                                 <option value="15:00" ${ingT === '15:00' ? 'selected' : ''}>15:00</option>
                                 <option value="16:00" ${ingT === '16:00' ? 'selected' : ''}>16:00</option>
