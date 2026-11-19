@@ -53,7 +53,21 @@
                 page: print-portrait;
             }
 
-            /* Ajustes específicos para que la planilla de turnos impresa ocupe toda la hoja A4 con encabezados resaltados y nombres de inspectores más grandes */
+            /* Títulos en fondo negro con letras blancas al imprimir Stickers */
+            body.print-stickers-mode #printableAreaStickers .bg-slate-100,
+            body.print-stickers-mode #printableAreaStickers thead tr {
+                background-color: #000000 !important;
+                color: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body.print-stickers-mode #printableAreaStickers .bg-slate-100 *,
+            body.print-stickers-mode #printableAreaStickers thead th {
+                color: #ffffff !important;
+                border-color: #000000 !important;
+            }
+
+            /* Ajustes específicos para que la planilla de turnos impresa ocupe toda la hoja A4 con títulos en negro/blanco y nombres más grandes */
             body.print-turnos-mode #printableAreaTurnos {
                 display: flex !important;
                 flex-direction: column !important;
@@ -62,12 +76,16 @@
                 padding: 2mm 3mm !important;
             }
             body.print-turnos-mode #lblTurnoTituloPeriodo {
-                font-size: 25px !important;
+                background-color: #000000 !important;
+                color: #ffffff !important;
+                font-size: 23px !important;
                 font-weight: 900 !important;
                 letter-spacing: 0.04em !important;
                 margin-bottom: 6px !important;
-                padding-bottom: 4px !important;
-                border-bottom: 2.5px solid #000000 !important;
+                padding: 5px 10px !important;
+                border: 2px solid #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             body.print-turnos-mode table.tabla-turnos {
                 width: 100% !important;
@@ -90,20 +108,25 @@
                 border: 1.75px solid #000000 !important;
             }
             body.print-turnos-mode .turno-header-gris {
-                background-color: #cbd5e1 !important;
-                color: #000000 !important;
+                background-color: #000000 !important;
+                color: #ffffff !important;
                 font-size: 17px !important;
                 font-weight: 900 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+            body.print-turnos-mode .turno-header-gris th,
+            body.print-turnos-mode .turno-header-gris input {
+                color: #ffffff !important;
+            }
             body.print-turnos-mode .sabado-titulo-print {
-                font-size: 19px !important;
+                font-size: 18.5px !important;
                 font-weight: 900 !important;
-                background-color: #e2e8f0 !important;
+                background-color: #000000 !important;
+                color: #ffffff !important;
                 border: 2px solid #000000 !important;
                 border-bottom: none !important;
-                padding: 3px 6px !important;
+                padding: 4px 8px !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -148,13 +171,15 @@
                 color: #000000 !important;
             }
 
-            /* Encabezados generales gris claro */
+            /* Títulos y encabezados en fondo negro con letras blancas al imprimir */
             th.header-habiles {
-                background-color: #e2e8f0 !important;
+                background-color: #cccccc !important;
                 color: #000000 !important;
                 padding: 6px 2px !important;
-                font-size: 16px !important;
+                font-size: 15px !important;
                 text-align: center !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             /* Encabezado de Sábados en Negro con letras Blancas */
@@ -164,6 +189,8 @@
                 padding: 6px 2px !important;
                 font-size: 11px !important;
                 text-align: center !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             td {
@@ -190,9 +217,13 @@
             }
 
             h1 {
+                background-color: #000000 !important;
+                color: #ffffff !important;
                 font-size: 18px !important;
-                color: #000000 !important;
-                margin-bottom: 2px !important;
+                padding: 5px 10px !important;
+                margin-bottom: 4px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             p {
                 font-size: 11px !important;
@@ -572,11 +603,11 @@
                     <div class="border border-black mb-2 text-xs font-bold text-black uppercase">
                         <div class="flex border-b border-black bg-slate-100">
                             <div class="w-1/2 p-1 border-r border-black flex items-center">
-                                <span class="text-xs font-black text-black tracking-wider">PLANILLA DE STICKERS</span>
+                                <span class="text-xs font-black tracking-wider">PLANILLA DE STICKERS</span>
                             </div>
                             <div class="w-1/2 p-1 flex items-center">
                                 <span class="text-[11px] font-black mr-1">TURNO:</span>
-                                <span id="lblStickerTurno" class="text-xs font-extrabold text-black">MAÑANA</span>
+                                <span id="lblStickerTurno" class="text-xs font-extrabold">MAÑANA</span>
                             </div>
                         </div>
                         <div class="flex">
@@ -1826,7 +1857,6 @@
             };
         }
 
-        // Inspectores que pertenecen a un turno específico (claveBloque)
         function obtenerInspectoresEnTurno(claveBloque) {
             const setEnTurno = new Set();
             if (!datosTurnosActual || !datosTurnosActual.bloques || !datosTurnosActual.bloques[claveBloque]) {
@@ -1838,7 +1868,6 @@
             return setEnTurno;
         }
 
-        // Inspectores de la misma franja que NO están en este mismo turno (claveBloque)
         function obtenerInspectoresOtrosTurnosFranja(claveBloque) {
             const franja = obtenerFranjaDeClave(claveBloque);
             const clavesFranja = GRUPOS_CLAVES_TURNO[franja] || [];
@@ -2059,7 +2088,6 @@
                 const principal = entry.principal || "";
                 const acompanante = entry.acompanante || "";
 
-                // Solo inspectores de la misma franja que NO estén en este mismo bloque de turno
                 let opcionesRenglon = `<option value="">-- Otro turno... --</option>`;
                 candidatosOtroTurno.forEach(nombreInsp => {
                     const selAttr = (nombreInsp === acompanante) ? 'selected' : '';
@@ -2161,7 +2189,6 @@
             const entry = datosTurnosActual.bloques[claveBloque].inspectores[index];
             const limpio = (nombreElegido || "").trim().toUpperCase();
 
-            // Verificar que el inspector elegido no esté en el mismo turno (claveBloque)
             const enMismoTurno = obtenerInspectoresEnTurno(claveBloque);
             if (limpio && enMismoTurno.has(limpio)) {
                 alert(`"${limpio}" ya figura en este mismo turno (${datosTurnosActual.bloques[claveBloque].titulo}). Seleccione un inspector de otro turno.`);
@@ -2216,7 +2243,6 @@
                 }
             }
 
-            // Solo candidatos de OTROS turnos de la misma franja que no estén en el mismo turno origen
             const candidatosOtroTurno = [];
             clavesMismaFranja.forEach(k => {
                 if (k !== claveOrigen) {
