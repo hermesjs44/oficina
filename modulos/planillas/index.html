@@ -53,31 +53,57 @@
                 page: print-portrait;
             }
 
-            /* Ajustes específicos para que la planilla de turnos impresa ocupe toda la hoja A4 con letra más grande */
+            /* Ajustes específicos para que la planilla de turnos impresa ocupe toda la hoja A4 con encabezados resaltados y nombres de inspectores más grandes */
             body.print-turnos-mode #printableAreaTurnos {
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
-                height: 282mm !important;
+                height: 284mm !important;
+                padding: 2mm 3mm !important;
             }
             body.print-turnos-mode #lblTurnoTituloPeriodo {
-                font-size: 22px !important;
-                margin-bottom: 4px !important;
+                font-size: 25px !important;
+                font-weight: 900 !important;
+                letter-spacing: 0.04em !important;
+                margin-bottom: 6px !important;
+                padding-bottom: 4px !important;
+                border-bottom: 2.5px solid #000000 !important;
             }
-            body.print-turnos-mode table {
-                font-size: 15.5px !important;
+            body.print-turnos-mode table.tabla-turnos {
                 width: 100% !important;
                 table-layout: auto !important;
+                border-collapse: collapse !important;
             }
-            body.print-turnos-mode td,
-            body.print-turnos-mode th {
-                padding: 5.5px 9px !important;
+            body.print-turnos-mode table.tabla-turnos th {
+                font-size: 16.5px !important;
+                font-weight: 900 !important;
+                padding: 5px 8px !important;
+                line-height: 1.2 !important;
+                border: 2px solid #000000 !important;
+            }
+            body.print-turnos-mode table.tabla-turnos td {
+                font-size: 18px !important;
+                font-weight: 900 !important;
+                padding: 4.5px 9px !important;
                 height: auto !important;
-                line-height: 1.25 !important;
-                border: 1.5px solid #000000 !important;
+                line-height: 1.22 !important;
+                border: 1.75px solid #000000 !important;
             }
             body.print-turnos-mode .turno-header-gris {
-                background-color: #d1d5db !important;
+                background-color: #cbd5e1 !important;
+                color: #000000 !important;
+                font-size: 17px !important;
+                font-weight: 900 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body.print-turnos-mode .sabado-titulo-print {
+                font-size: 19px !important;
+                font-weight: 900 !important;
+                background-color: #e2e8f0 !important;
+                border: 2px solid #000000 !important;
+                border-bottom: none !important;
+                padding: 3px 6px !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -192,7 +218,7 @@
             border: 1.5px solid #000000;
         }
         .turno-header-gris {
-            background-color: #d1d5db;
+            background-color: #cbd5e1;
         }
         .select-renglon-turno {
             appearance: auto !important;
@@ -627,11 +653,11 @@
                     </div>
                 </div>
 
-                <!-- Ayuda para cambios independientes por franja horaria (Mañana / Tarde / Sábados) -->
+                <!-- Ayuda para cambios en el mismo renglón restringidos a otro turno de la misma franja -->
                 <div class="bg-sky-50 border border-sky-200 text-sky-900 px-3 py-2 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <i class="fa-solid fa-people-arrows text-sky-600 mr-1"></i>
-                        <strong>Modificaciones independientes por franja:</strong> Los cambios en <strong>Mañana</strong> solo afectan entre turnos de la mañana y los de <strong>Tarde</strong> solo entre turnos de la tarde. Al elegir un inspector en el desplegable de un renglón (ej: <span class="font-bold">BUSTOS HUGO</span> con <span class="font-bold">CARRANZA PABLO</span>), se colocan en el mismo renglón y se cruzan en el otro turno de su misma franja.
+                        <strong>Cambios con otro turno:</strong> La lista desplegable de cada renglón solo ofrece inspectores que <strong>no están en ese mismo turno</strong> (de la misma franja Mañana, Tarde o Sábado) para colocarlos en el mismo renglón y cruzarlos en el otro turno. En los <strong>Sábados</strong>, el grupo que cubre el último sábado del mes cede el primer sábado del mes siguiente al otro grupo.
                     </div>
                 </div>
 
@@ -1653,29 +1679,74 @@
             return (y2 - y1) * 12 + (m2 - m1);
         }
 
-        function obtenerFechasSabadosMes(year, month) {
+        function obtenerSabadosDelMes(year, month) {
             const totalDias = new Date(year, month, 0).getDate();
-            let sabadosImpares = [];
-            let sabadosPares = [];
-            let contador = 0;
-
+            const sabados = [];
             for (let d = 1; d <= totalDias; d++) {
                 const fecha = new Date(year, month - 1, d);
                 if (fecha.getDay() === 6) {
-                    contador++;
-                    const dd = String(d).padStart(2, '0');
-                    if (contador % 2 === 1) {
-                        sabadosImpares.push(dd);
-                    } else {
-                        sabadosPares.push(dd);
-                    }
+                    sabados.push(String(d).padStart(2, '0'));
                 }
             }
+            return sabados;
+        }
 
-            return {
-                grupoFechas1: sabadosImpares.join('/'),
-                grupoFechas2: sabadosPares.join('/')
-            };
+        function avanzarMesYYYYMM(ym, delta) {
+            const [y, m] = ym.split('-').map(Number);
+            const date = new Date(y, m - 1 + delta, 1);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function calcularSabadosEncadenados(mesAncla, mesDestino) {
+            const diff = calcularDiferenciaMeses(mesAncla, mesDestino);
+            const paso = diff >= 0 ? 1 : -1;
+            const totalPasos = Math.abs(diff);
+
+            let cursorYM = mesAncla;
+            let grupoInicialMesActual = 0;
+            let ultimoGrupoDelMes = 0;
+
+            for (let s = 0; s <= totalPasos; s++) {
+                const [y, m] = cursorYM.split('-').map(Number);
+                const sabadosMes = obtenerSabadosDelMes(y, m);
+                let idxTurno = grupoInicialMesActual;
+
+                for (let i = 0; i < sabadosMes.length; i++) {
+                    ultimoGrupoDelMes = idxTurno;
+                    idxTurno = (idxTurno + 1) % 2;
+                }
+
+                if (s === totalPasos) {
+                    const fechasGrupo0 = [];
+                    const fechasGrupo1 = [];
+                    let idxAsignado = grupoInicialMesActual;
+
+                    sabadosMes.forEach((dd) => {
+                        if (idxAsignado === 0) fechasGrupo0.push(dd);
+                        else fechasGrupo1.push(dd);
+                        idxAsignado = (idxAsignado + 1) % 2;
+                    });
+
+                    return {
+                        grupoFechas1: fechasGrupo0.join('/'),
+                        grupoFechas2: fechasGrupo1.join('/'),
+                        ultimoGrupoDelMes
+                    };
+                }
+
+                if (paso === 1) {
+                    grupoInicialMesActual = (ultimoGrupoDelMes + 1) % 2;
+                } else {
+                    const [ySig, mSig] = avanzarMesYYYYMM(cursorYM, -1).split('-').map(Number);
+                    const sabadosSig = obtenerSabadosDelMes(ySig, mSig);
+                    const totalSabSig = sabadosSig.length;
+                    grupoInicialMesActual = (totalSabSig % 2 === 1)
+                        ? ((grupoInicialMesActual + 1) % 2)
+                        : grupoInicialMesActual;
+                }
+
+                cursorYM = avanzarMesYYYYMM(cursorYM, paso);
+            }
         }
 
         function generarVistaTurnosParaMes(mesAnio) {
@@ -1707,13 +1778,7 @@
             const idxTarde2 = ((1 - mod3) + 3) % 3;
             const idxTarde3 = ((2 - mod3) + 3) % 3;
 
-            const { grupoFechas1, grupoFechas2 } = obtenerFechasSabadosMes(year, month);
-            const gruposSabado = [
-                base.bloques.sabado1.inspectores,
-                base.bloques.sabado2.inspectores
-            ];
-            const sabado1Insp = gruposSabado[mod2];
-            const sabado2Insp = gruposSabado[(mod2 + 1) % 2];
+            const { grupoFechas1, grupoFechas2 } = calcularSabadosEncadenados(base.mesAncla, mesAnio);
 
             return {
                 mesAnio,
@@ -1749,19 +1814,54 @@
                         encabezadoSabado: `SABADO ${grupoFechas1}`,
                         titulo: base.bloques.sabado1.titulo,
                         horario: base.bloques.sabado1.horario,
-                        inspectores: sabado1Insp
+                        inspectores: base.bloques.sabado1.inspectores
                     },
                     sabado2: {
                         encabezadoSabado: `SABADO ${grupoFechas2}`,
                         titulo: base.bloques.sabado2.titulo,
                         horario: base.bloques.sabado2.horario,
-                        inspectores: sabado2Insp
+                        inspectores: base.bloques.sabado2.inspectores
                     }
                 }
             };
         }
 
-        // Obtiene los inspectores pertenecientes únicamente a la franja indicada (manana, tarde o sabado)
+        // Inspectores que pertenecen a un turno específico (claveBloque)
+        function obtenerInspectoresEnTurno(claveBloque) {
+            const setEnTurno = new Set();
+            if (!datosTurnosActual || !datosTurnosActual.bloques || !datosTurnosActual.bloques[claveBloque]) {
+                return setEnTurno;
+            }
+            (datosTurnosActual.bloques[claveBloque].inspectores || []).forEach(it => {
+                if (it.principal) setEnTurno.add(it.principal.trim().toUpperCase());
+            });
+            return setEnTurno;
+        }
+
+        // Inspectores de la misma franja que NO están en este mismo turno (claveBloque)
+        function obtenerInspectoresOtrosTurnosFranja(claveBloque) {
+            const franja = obtenerFranjaDeClave(claveBloque);
+            const clavesFranja = GRUPOS_CLAVES_TURNO[franja] || [];
+            const setEnTurnoActual = obtenerInspectoresEnTurno(claveBloque);
+            const setCandidatos = new Set();
+
+            clavesFranja.forEach(k => {
+                if (k !== claveBloque) {
+                    const b = datosTurnosActual.bloques[k];
+                    if (b && Array.isArray(b.inspectores)) {
+                        b.inspectores.forEach(it => {
+                            const nombreUp = (it.principal || "").trim().toUpperCase();
+                            if (nombreUp && !setEnTurnoActual.has(nombreUp)) {
+                                setCandidatos.add(nombreUp);
+                            }
+                        });
+                    }
+                }
+            });
+
+            return Array.from(setCandidatos).sort((a, b) => a.localeCompare(b));
+        }
+
         function obtenerInspectoresDeFranja(franja) {
             const clavesFranja = GRUPOS_CLAVES_TURNO[franja] || [];
             const setNombres = new Set();
@@ -1777,10 +1877,6 @@
                     }
                 });
             }
-
-            inspectoresFiltrados.forEach(ins => {
-                if (ins.nombre) setNombres.add(ins.nombre.trim().toUpperCase());
-            });
 
             return Array.from(setNombres).sort((a, b) => a.localeCompare(b));
         }
@@ -1924,6 +2020,7 @@
             const editableEstructura = modoDisenadorActivo;
             const franja = obtenerFranjaDeClave(claveBloque);
             const inspectoresFranja = obtenerInspectoresDeFranja(franja);
+            const candidatosOtroTurno = obtenerInspectoresOtrosTurnosFranja(claveBloque);
 
             let opcionesAgregar = `<option value="">+ Agregar inspector...</option>`;
             inspectoresFranja.forEach(nombreUp => {
@@ -1933,7 +2030,7 @@
             let html = `<div class="w-full flex-1 flex flex-col">`;
 
             if (esSabado) {
-                html += `<div class="text-center font-black text-lg uppercase text-black mb-1">${bloque.encabezadoSabado}</div>`;
+                html += `<div class="sabado-titulo-print text-center font-black text-lg uppercase text-black mb-1">${bloque.encabezadoSabado}</div>`;
             }
 
             html += `<table class="w-full h-full border-collapse tabla-turnos text-black">`;
@@ -1941,16 +2038,16 @@
             html += `
                 <thead>
                     <tr class="turno-header-gris">
-                        <th class="py-1.5 px-2.5 text-center font-bold text-base uppercase tracking-wide">
+                        <th class="py-1.5 px-2.5 text-center font-black text-base uppercase tracking-wide">
                             ${editableEstructura 
-                                ? `<input type="text" value="${bloque.titulo}" onchange="editarCampoBloqueTurno('${claveBloque}', 'titulo', this.value)" class="w-full text-center font-bold text-base uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
+                                ? `<input type="text" value="${bloque.titulo}" onchange="editarCampoBloqueTurno('${claveBloque}', 'titulo', this.value)" class="w-full text-center font-black text-base uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
                                 : bloque.titulo}
                         </th>
                     </tr>
                     <tr>
-                        <th class="py-1 px-2.5 text-center font-bold text-sm uppercase bg-white">
+                        <th class="py-1 px-2.5 text-center font-extrabold text-sm uppercase bg-white">
                             ${editableEstructura 
-                                ? `<input type="text" value="${bloque.horario}" onchange="editarCampoBloqueTurno('${claveBloque}', 'horario', this.value)" class="w-full text-center font-bold text-sm uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
+                                ? `<input type="text" value="${bloque.horario}" onchange="editarCampoBloqueTurno('${claveBloque}', 'horario', this.value)" class="w-full text-center font-extrabold text-sm uppercase bg-transparent focus:outline-none focus:bg-amber-100">`
                                 : bloque.horario}
                         </th>
                     </tr>
@@ -1962,20 +2059,17 @@
                 const principal = entry.principal || "";
                 const acompanante = entry.acompanante || "";
 
-                // Opciones de la lista desplegable filtradas estrictamente por la franja (Mañana / Tarde / Sábado)
-                let opcionesRenglon = `<option value="">-- En este renglón... --</option>`;
-                inspectoresFranja.forEach(nombreInsp => {
-                    if (nombreInsp !== principal) {
-                        const selAttr = (nombreInsp === acompanante) ? 'selected' : '';
-                        opcionesRenglon += `<option value="${nombreInsp}" ${selAttr}>${nombreInsp}</option>`;
-                    }
+                // Solo inspectores de la misma franja que NO estén en este mismo bloque de turno
+                let opcionesRenglon = `<option value="">-- Otro turno... --</option>`;
+                candidatosOtroTurno.forEach(nombreInsp => {
+                    const selAttr = (nombreInsp === acompanante) ? 'selected' : '';
+                    opcionesRenglon += `<option value="${nombreInsp}" ${selAttr}>${nombreInsp}</option>`;
                 });
 
                 html += `
                     <tr class="bg-white group">
                         <td class="py-1.5 px-2.5 font-extrabold text-[15px] uppercase text-left relative">
                             <div class="flex justify-between items-center gap-2">
-                                <!-- Contenido del renglón: Principal y opcionalmente Acompañante al lado en la misma fila -->
                                 <div class="flex items-center gap-2 flex-wrap flex-1">
                                     ${editableEstructura 
                                         ? `<input type="text" value="${principal}" onchange="editarInspectorBloqueTurno('${claveBloque}', ${idx}, this.value)" class="font-extrabold text-[15px] uppercase bg-transparent border-b border-dashed border-slate-300 focus:outline-none focus:bg-amber-50 min-w-[130px]">`
@@ -1990,16 +2084,15 @@
                                     ` : ''}
                                 </div>
 
-                                <!-- Lista desplegable restringida a la misma franja horaria + botón de intercambio en la misma franja -->
                                 <div class="flex items-center gap-1 no-print shrink-0">
                                     <select onchange="seleccionarInspectorEnRenglon('${claveBloque}', ${idx}, this.value)" 
-                                            title="Colocar inspector de la misma franja en este renglón"
+                                            title="Solo inspectores que no están en este mismo turno"
                                             class="select-renglon-turno text-[11px] font-bold text-sky-950 bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded px-1.5 py-0.5 max-w-[140px] focus:outline-none">
                                         ${opcionesRenglon}
                                     </select>
 
                                     <button onclick="intercambiarBidireccionalEnRenglon('${claveBloque}', ${idx})" 
-                                            title="Intercambiar dentro de la misma franja horaria (Mañana o Tarde)" 
+                                            title="Cruzar con inspector de otro turno de la misma franja" 
                                             class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-1">
                                         <i class="fa-solid fa-right-left"></i>
                                     </button>
@@ -2064,22 +2157,31 @@
                 generarHtmlBloqueTurno('sabado2', true);
         }
 
-        // Coloca el inspector elegido en la lista desplegable al lado en el mismo renglón
-        // y lo refleja únicamente dentro de los turnos de la misma franja (Mañana o Tarde)
         function seleccionarInspectorEnRenglon(claveBloque, index, nombreElegido) {
             const entry = datosTurnosActual.bloques[claveBloque].inspectores[index];
             const limpio = (nombreElegido || "").trim().toUpperCase();
+
+            // Verificar que el inspector elegido no esté en el mismo turno (claveBloque)
+            const enMismoTurno = obtenerInspectoresEnTurno(claveBloque);
+            if (limpio && enMismoTurno.has(limpio)) {
+                alert(`"${limpio}" ya figura en este mismo turno (${datosTurnosActual.bloques[claveBloque].titulo}). Seleccione un inspector de otro turno.`);
+                renderizarPlanillaTurnos();
+                return;
+            }
+
             entry.acompanante = limpio;
 
             if (limpio) {
                 const franja = obtenerFranjaDeClave(claveBloque);
                 const clavesMismaFranja = GRUPOS_CLAVES_TURNO[franja] || [];
                 clavesMismaFranja.forEach(k => {
-                    datosTurnosActual.bloques[k].inspectores.forEach((other, i) => {
-                        if (!(k === claveBloque && i === index) && other.principal === limpio && !other.acompanante) {
-                            other.acompanante = entry.principal;
-                        }
-                    });
+                    if (k !== claveBloque) {
+                        datosTurnosActual.bloques[k].inspectores.forEach((other) => {
+                            if (other.principal === limpio && !other.acompanante) {
+                                other.acompanante = entry.principal;
+                            }
+                        });
+                    }
                 });
             }
 
@@ -2091,20 +2193,61 @@
             renderizarPlanillaTurnos();
         }
 
-        // Realiza el intercambio bidireccional estrictamente dentro de la misma franja (Mañana o Tarde)
         function intercambiarBidireccionalEnRenglon(claveOrigen, idxOrigen) {
             const bloques = datosTurnosActual.bloques;
             const origenEntry = bloques[claveOrigen].inspectores[idxOrigen];
             const franja = obtenerFranjaDeClave(claveOrigen);
             const clavesMismaFranja = GRUPOS_CLAVES_TURNO[franja] || [];
+            const enMismoTurno = obtenerInspectoresEnTurno(claveOrigen);
 
             if (origenEntry.acompanante) {
                 const compNombre = origenEntry.acompanante;
                 for (const k of clavesMismaFranja) {
+                    if (k !== claveOrigen) {
+                        const targetIdx = bloques[k].inspectores.findIndex(
+                            (it) => it.principal === compNombre
+                        );
+                        if (targetIdx !== -1) {
+                            bloques[k].inspectores[targetIdx].acompanante = origenEntry.principal;
+                            renderizarPlanillaTurnos();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Solo candidatos de OTROS turnos de la misma franja que no estén en el mismo turno origen
+            const candidatosOtroTurno = [];
+            clavesMismaFranja.forEach(k => {
+                if (k !== claveOrigen) {
+                    bloques[k].inspectores.forEach((it) => {
+                        if (it.principal && !enMismoTurno.has(it.principal)) {
+                            candidatosOtroTurno.push(`[${bloques[k].titulo}] ${it.principal}`);
+                        }
+                    });
+                }
+            });
+
+            if (candidatosOtroTurno.length === 0) {
+                alert("No hay inspectores disponibles en otro turno de esta franja para realizar el cambio.");
+                return;
+            }
+
+            const elegido = prompt(
+                `Intercambio para "${origenEntry.principal}" (${bloques[claveOrigen].titulo}).\n` +
+                `Solo se permiten inspectores de OTRO turno:\n\n${candidatosOtroTurno.join('\n')}`
+            );
+            if (!elegido || !elegido.trim()) return;
+
+            const limpio = elegido.trim().toUpperCase();
+
+            for (const k of clavesMismaFranja) {
+                if (k !== claveOrigen) {
                     const targetIdx = bloques[k].inspectores.findIndex(
-                        (it, i) => !(k === claveOrigen && i === idxOrigen) && it.principal === compNombre
+                        (it) => it.principal.includes(limpio) && !enMismoTurno.has(it.principal)
                     );
                     if (targetIdx !== -1) {
+                        origenEntry.acompanante = bloques[k].inspectores[targetIdx].principal;
                         bloques[k].inspectores[targetIdx].acompanante = origenEntry.principal;
                         renderizarPlanillaTurnos();
                         return;
@@ -2112,38 +2255,7 @@
                 }
             }
 
-            const candidatosFranja = [];
-            clavesMismaFranja.forEach(k => {
-                bloques[k].inspectores.forEach((it, i) => {
-                    if (!(k === claveOrigen && i === idxOrigen) && it.principal !== origenEntry.principal) {
-                        candidatosFranja.push(`[${bloques[k].titulo}] ${it.principal}`);
-                    }
-                });
-            });
-
-            if (candidatosFranja.length === 0) return;
-
-            const elegido = prompt(
-                `Intercambio en franja ${franja.toUpperCase()} para "${origenEntry.principal}".\n` +
-                `Escriba el nombre del inspector de la misma franja:\n\n${candidatosFranja.join('\n')}`
-            );
-            if (!elegido || !elegido.trim()) return;
-
-            const limpio = elegido.trim().toUpperCase();
-            origenEntry.acompanante = limpio;
-
-            for (const k of clavesMismaFranja) {
-                const targetIdx = bloques[k].inspectores.findIndex(
-                    (it, i) => !(k === claveOrigen && i === idxOrigen) && it.principal.includes(limpio)
-                );
-                if (targetIdx !== -1) {
-                    origenEntry.acompanante = bloques[k].inspectores[targetIdx].principal;
-                    bloques[k].inspectores[targetIdx].acompanante = origenEntry.principal;
-                    break;
-                }
-            }
-
-            renderizarPlanillaTurnos();
+            alert("El inspector ingresado no pertenece a otro turno de esta franja o ya está en este mismo turno.");
         }
 
         function editarCampoBloqueTurno(claveBloque, campo, valor) {
