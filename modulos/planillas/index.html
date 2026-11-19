@@ -15,32 +15,58 @@
             margin: 6mm;
         }
 
-        /* Orientación vertical específica para la vista de stickers al imprimir */
-        body.print-stickers-mode {
+        /* Orientación vertical específica para la vista de stickers y turnos al imprimir */
+        body.print-stickers-mode,
+        body.print-turnos-mode {
             background: #ffffff !important;
         }
         @media print {
-            body.print-stickers-mode {
+            body.print-stickers-mode,
+            body.print-turnos-mode {
                 margin: 0 !important;
             }
             body.print-stickers-mode #printableAreaStickers, 
-            body.print-stickers-mode #printableAreaStickers * {
+            body.print-stickers-mode #printableAreaStickers *,
+            body.print-turnos-mode #printableAreaTurnos,
+            body.print-turnos-mode #printableAreaTurnos * {
                 visibility: visible !important;
             }
-            body.print-stickers-mode #printableAreaStickers {
+            body.print-stickers-mode #printableAreaStickers,
+            body.print-turnos-mode #printableAreaTurnos {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100% !important;
-                height: 100vh !important;
+                max-width: 100% !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 4mm !important;
             }
             
             @page print-portrait {
                 size: A4 portrait;
-                margin: 5mm;
+                margin: 6mm;
             }
-            .section-stickers-print {
+            .section-stickers-print,
+            .section-turnos-print {
                 page: print-portrait;
+            }
+
+            /* Ajustes específicos para que la planilla de turnos impresa quede idéntica a la hoja */
+            body.print-turnos-mode table {
+                font-size: 13px !important;
+                table-layout: auto !important;
+            }
+            body.print-turnos-mode td,
+            body.print-turnos-mode th {
+                padding: 4px 8px !important;
+                height: auto !important;
+                border: 1.5px solid #000000 !important;
+            }
+            body.print-turnos-mode .turno-header-gris {
+                background-color: #d1d5db !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
 
@@ -137,19 +163,23 @@
 
         /* Estilo para licencias / ausencias */
         .cell-licencia {
-            background-color: #f3e8ff !important; /* violeta claro */
+            background-color: #f3e8ff !important;
             color: #6b21a8 !important;
             font-weight: bold;
         }
         .cell-ausente {
-            background-color: #ffe4e6 !important; /* rojo suave */
+            background-color: #ffe4e6 !important;
             color: #9f1239 !important;
             font-weight: bold;
         }
 
-        /* Ajustes específicos de la tabla de Stickers */
-        .tabla-stickers th, .tabla-stickers td {
-            border: 1px solid #000000;
+        /* Ajustes específicos de la tabla de Stickers y Turnos */
+        .tabla-stickers th, .tabla-stickers td,
+        .tabla-turnos th, .tabla-turnos td {
+            border: 1.5px solid #000000;
+        }
+        .turno-header-gris {
+            background-color: #d1d5db;
         }
     </style>
 </head>
@@ -202,6 +232,9 @@
             </button>
             <button onclick="cambiarPestana('planilla-zonas')" id="tab-planilla-zonas" class="nav-tab px-4 py-2 rounded-lg bg-sky-900 text-white shadow flex items-center gap-2">
                 <i class="fa-solid fa-table-cells"></i> Planilla de Zonas
+            </button>
+            <button onclick="cambiarPestana('turnos-horarios')" id="tab-turnos-horarios" class="nav-tab px-4 py-2 rounded-lg text-sky-100 hover:bg-sky-600 transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-clock"></i> Turnos y Horarios
             </button>
             <button onclick="cambiarPestana('stickers')" id="tab-stickers" class="nav-tab px-4 py-2 rounded-lg text-sky-100 hover:bg-sky-600 transition-colors flex items-center gap-2">
                 <i class="fa-solid fa-note-sticky"></i> Stickers
@@ -533,6 +566,64 @@
             </div>
         </section>
 
+        <!-- ========================================== -->
+        <!-- SECCIÓN 6: TURNOS Y HORARIOS (A4 VERTICAL) -->
+        <!-- ========================================== -->
+        <section id="turnos-horarios" class="tab-content hidden section-turnos-print">
+            <!-- Barra de Controles (No Imprimible) -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap justify-between items-center gap-4 no-print">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mes y Año</label>
+                        <input type="month" id="selectTurnoMesAnio" onchange="cambiarMesTurnos()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título del Período (Editable)</label>
+                        <input type="text" id="inputTurnoTituloPeriodo" oninput="actualizarTituloTurno()" placeholder="01 AL 30 DE NOVIEMBRE DE 2026" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none min-w-[260px] uppercase">
+                    </div>
+                    <div class="flex items-center gap-2 self-end pb-1">
+                        <input type="checkbox" id="chkModoEdicionTurnos" checked onchange="renderizarPlanillaTurnos()" class="w-4 h-4 text-sky-600 rounded">
+                        <label for="chkModoEdicionTurnos" class="text-xs font-bold text-slate-700 cursor-pointer">Modo Edición</label>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="cargarPlanillaTurnosFirebase()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-3.5 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate"></i> Recargar
+                    </button>
+                    <button onclick="guardarPlanillaTurnosFirebase()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Turnos
+                    </button>
+                    <button onclick="imprimirTurnos()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> Imprimir A4 Vertical
+                    </button>
+                </div>
+            </div>
+
+            <!-- HOJA A4 VERTICAL PARAMS (IMPRIMIBLE - DISEÑO IDÉNTICO A LA IMAGEN) -->
+            <div id="printableAreaTurnos" class="bg-white p-8 rounded-xl border border-slate-300 shadow-sm max-w-[210mm] mx-auto min-h-[285mm] text-black font-sans">
+                <!-- Título Principal -->
+                <div class="text-center mb-6">
+                    <h1 id="lblTurnoTituloPeriodo" class="text-xl font-black tracking-wide uppercase text-black">
+                        01 AL 30 DE NOVIEMBRE DE 2026
+                    </h1>
+                </div>
+
+                <!-- Contenedor Principal 2 Columnas (Mañana Izquierda / Tarde Derecha) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-10 gap-y-6 items-start">
+                    <!-- Columna Izquierda: Turnos Mañana -->
+                    <div id="colTurnosManana" class="space-y-6"></div>
+
+                    <!-- Columna Derecha: Turnos Tarde -->
+                    <div id="colTurnosTarde" class="space-y-6"></div>
+                </div>
+
+                <!-- Sección Inferior: Sábados (2 Columnas) -->
+                <div id="gridTurnosSabados" class="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-10 gap-y-6 mt-8 items-start">
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Modal Lightbox -->
@@ -594,7 +685,7 @@
     <!-- Lógica de Negocio y Navegación de Pestañas -->
     <script>
         let inspectoresFiltrados = [];
-        let licenciasRegistradas = []; // Datos importados de licencias
+        let licenciasRegistradas = [];
         let diasQuincena = [];
         let zonasRegistradas = [];
         let planillasGuardadasLista = [];
@@ -623,6 +714,7 @@
             if (idSection === 'configuracion-zonas') cargarZonasRegistradas();
             if (idSection === 'secuencia-zonas') renderizarSecuenciaZonas();
             if (idSection === 'asignacion-zonas') cargarListaPlanillasParaAsignacion();
+            if (idSection === 'turnos-horarios') inicializarPestanaTurnos();
             if (idSection === 'stickers') inicializarPestanaStickers();
         }
 
@@ -665,7 +757,7 @@
             }
         }
 
-        /* --- OBTENER LICENCIAS DESDE FIRESTORE (MODULO LICENCIAS) --- */
+        /* --- OBTENER LICENCIAS DESDE FIRESTORE --- */
         async function obtenerLicenciasFirestore() {
             if (!window.db) return;
             try {
@@ -782,7 +874,7 @@
         async function eliminarZona(id) {
             if (!confirm("¿Está seguro de que desea eliminar esta zona?")) return;
             try {
-                await window.deleteDoc(window.doc(window.doc(window.db, "zonas_config", id)));
+                await window.deleteDoc(window.doc(window.db, "zonas_config", id));
                 await cargarZonasRegistradas();
             } catch (err) {
                 alert("Error al eliminar la zona: " + err.message);
@@ -884,7 +976,7 @@
             }
         }
 
-        /* --- ASIGNACIÓN DE ZONAS CON DETECCIÓN DE LICENCIAS Y AUSENCIAS --- */
+        /* --- ASIGNACIÓN DE ZONAS --- */
         async function cargarListaPlanillasParaAsignacion() {
             const select = document.getElementById('selectPlanillaGuardadaAsignacion');
             if (!select || !window.db) return;
@@ -983,7 +1075,6 @@
                     tbody.innerHTML += trHtml;
                 });
 
-                // Cargar opciones completas en los selects iniciales
                 diasQuincenaAsignacion.forEach(d => {
                     actualizarOpcionesDisponibles(d.fechaIso);
                 });
@@ -997,7 +1088,6 @@
             const zonasActivas = zonasRegistradas.filter(z => z.activa).map(z => z.nombre);
             const selectsDelDia = document.querySelectorAll(`.select-zona-dia-${fechaIso}`);
             
-            // Recopilar valores seleccionados actualmente en ese día
             let valoresSeleccionados = [];
             selectsDelDia.forEach(sel => {
                 const val = sel.value;
@@ -1006,19 +1096,15 @@
                 }
             });
 
-            // Actualizar cada select preservando su propia selección y excluyendo las elegidas por otros
             selectsDelDia.forEach(sel => {
                 const valorActual = sel.value;
-                
                 let htmlOpciones = `<option value="">-</option>`;
                 
-                // Si la celda tiene una licencia especial, mantenerla
                 if (['LIC', 'VAC', 'MED', 'AUS', 'SUS', 'FAL'].includes(valorActual)) {
                     htmlOpciones += `<option value="${valorActual}" selected>${valorActual}</option>`;
                 }
 
                 zonasActivas.forEach(zona => {
-                    // Mostrar si la zona no está tomada por otro inspector, o si es la que este inspector ya tiene seleccionada
                     if (!valoresSeleccionados.includes(zona) || zona === valorActual) {
                         const seleccionadaAttr = (zona === valorActual) ? 'selected' : '';
                         htmlOpciones += `<option value="${zona}" ${seleccionadaAttr}>${zona}</option>`;
@@ -1058,7 +1144,6 @@
                 if (posZonaActual !== -1) {
                     for (let i = idxBase + 1; i < diasQuincenaAsignacion.length; i++) {
                         const dSig = diasQuincenaAsignacion[i];
-                        
                         const tieneLicencia = buscarLicenciaInspectorEnFecha(ins.legajo, dSig.fechaIso);
                         const selTarget = document.getElementById(`asig_${safeLegajo}_${dSig.fechaIso}`);
 
@@ -1109,7 +1194,7 @@
             }
         }
 
-        /* --- PLANILLA QUINCENAL (GRIP PRINCIPAL) --- */
+        /* --- PLANILLA QUINCENAL (GRILLA PRINCIPAL) --- */
         function cargarFechasQuincena() {
             const fechaVal = document.getElementById('fechaLunesInicial').value;
             if (!fechaVal) return;
@@ -1292,7 +1377,7 @@
         }
 
         function imprimirPlanilla() {
-            document.body.classList.remove('print-stickers-mode');
+            document.body.classList.remove('print-stickers-mode', 'print-turnos-mode');
             window.print();
         }
 
@@ -1354,8 +1439,6 @@
                 const fechaObj = new Date(year, month - 1, dia);
                 const diaSemana = fechaObj.getDay();
 
-                // MODIFICACIÓN: Excluir únicamente los domingos (diaSemana !== 0), 
-                // permitiendo incluir los sábados (diaSemana === 6) incluso si el turno es TARDE.
                 if (diaSemana !== 0) {
                     fechasHabiles.push(fechaObj);
                     diasHabilesCount++;
@@ -1384,8 +1467,363 @@
         }
 
         function imprimirStickers() {
+            document.body.classList.remove('print-turnos-mode');
             document.body.classList.add('print-stickers-mode');
             window.print();
+        }
+
+        /* ========================================================= */
+        /* --- SECCIÓN TURNOS Y HORARIOS (PLANILLA A4 VERTICAL) --- */
+        /* ========================================================= */
+        let datosTurnosActual = null;
+
+        function obtenerPlantillaTurnosPorDefecto(year, month) {
+            const totalDias = new Date(year, month, 0).getDate();
+            const nombreMes = nombresMesesLargo[month - 1].toUpperCase();
+
+            // Calcular sábados alternados del mes (1ro y 3ro vs 2do y 4to)
+            let sabados = [];
+            for (let d = 1; d <= totalDias; d++) {
+                if (new Date(year, month - 1, d).getDay() === 6) {
+                    sabados.push(String(d).padStart(2, '0'));
+                }
+            }
+            const sabGrupo1 = [sabados[0], sabados[2]].filter(Boolean).join('/') || '07/21';
+            const sabGrupo2 = [sabados[1], sabados[3]].filter(Boolean).join('/') || '14/28';
+
+            return {
+                tituloPeriodo: `01 AL ${String(totalDias).padStart(2, '0')} DE ${nombreMes} DE ${year}`,
+                bloques: {
+                    manana1: {
+                        titulo: "1 er. TURNO MAÑANA",
+                        horario: "DE: 07:30 A 11:30",
+                        inspectores: [
+                            "AMADEI ADRIAN",
+                            "BUSTOS HUGO",
+                            "BUSTOS RUBEN",
+                            "FARIAS CLAUDIO",
+                            "MARQUEZ MIGUEL",
+                            "PAZ NICOLAS",
+                            "PAEZ FRANCO"
+                        ]
+                    },
+                    manana2: {
+                        titulo: "2 do. TURNO MAÑANA",
+                        horario: "DE: 08:30 A 12:30",
+                        inspectores: [
+                            "BARGAS JORGE",
+                            "BERT DEMIS",
+                            "CARRANZA PABLO",
+                            "LUSSIANO HUGO",
+                            "PAZ ROBERTO",
+                            "SANTILLAN PEDRO"
+                        ]
+                    },
+                    tarde1: {
+                        titulo: "1 er. TURNO TARDE",
+                        horario: "DE: 15:00 A 18:00",
+                        inspectores: [
+                            "BARGAS JORGE",
+                            "BERT DEMIS",
+                            "BUSTOS HUGO",
+                            "BUSTOS RUBEN"
+                        ]
+                    },
+                    tarde2: {
+                        titulo: "2 do. TURNO TARDE",
+                        horario: "DE: 16:00 A 19:00",
+                        inspectores: [
+                            "SANTILLAN PEDRO",
+                            "PAZ ROBERTO",
+                            "AMADEI ADRIAN",
+                            "CARRANZA PABLO"
+                        ]
+                    },
+                    tarde3: {
+                        titulo: "3 er. TURNO TARDE",
+                        horario: "DE: 17:00 A 20:00",
+                        inspectores: [
+                            "LUSSIANO HUGO",
+                            "FARIAS CLAUDIO",
+                            "MARQUEZ MIGUEL",
+                            "PAZ NICOLAS",
+                            "PAEZ FRANCO"
+                        ]
+                    },
+                    sabado1: {
+                        encabezadoSabado: `SABADO ${sabGrupo1}`,
+                        titulo: "TURNO MAÑANA",
+                        horario: "DE 08:30 A 12:30",
+                        inspectores: [
+                            "BARGAS JORGE",
+                            "BERT DEMIS",
+                            "BUSTOS HUGO",
+                            "CARRANZA PABLO",
+                            "LUSSIANO HUGO",
+                            "PAZ ROBERTO",
+                            "SANTILLAN PEDRO"
+                        ]
+                    },
+                    sabado2: {
+                        encabezadoSabado: `SABADO ${sabGrupo2}`,
+                        titulo: "TURNO MAÑANA",
+                        horario: "DE 08:30 A 12:30",
+                        inspectores: [
+                            "AMADEI ADRIAN",
+                            "BUSTOS RUBEN",
+                            "FARIAS CLAUDIO",
+                            "MARQUEZ MIGUEL",
+                            "PAZ NICOLAS",
+                            "PAEZ FRANCO"
+                        ]
+                    }
+                }
+            };
+        }
+
+        async function inicializarPestanaTurnos() {
+            const inputMes = document.getElementById('selectTurnoMesAnio');
+            if (!inputMes.value) {
+                const hoy = new Date();
+                const yyyy = hoy.getFullYear();
+                const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                inputMes.value = `${yyyy}-${mm}`;
+            }
+            await cargarPlanillaTurnosFirebase();
+        }
+
+        async function cambiarMesTurnos() {
+            await cargarPlanillaTurnosFirebase();
+        }
+
+        async function cargarPlanillaTurnosFirebase() {
+            const mesAnio = document.getElementById('selectTurnoMesAnio').value;
+            if (!mesAnio) return;
+
+            const [year, month] = mesAnio.split('-').map(Number);
+            datosTurnosActual = obtenerPlantillaTurnosPorDefecto(year, month);
+
+            if (window.db) {
+                try {
+                    const docSnap = await window.getDoc(window.doc(window.db, "planillas_turnos", `turnos_${mesAnio}`));
+                    if (docSnap.exists()) {
+                        datosTurnosActual = docSnap.data();
+                    }
+                } catch (err) {
+                    console.error("Error al cargar planilla de turnos:", err);
+                }
+            }
+
+            document.getElementById('inputTurnoTituloPeriodo').value = datosTurnosActual.tituloPeriodo;
+            document.getElementById('lblTurnoTituloPeriodo').textContent = datosTurnosActual.tituloPeriodo;
+            renderizarPlanillaTurnos();
+        }
+
+        function actualizarTituloTurno() {
+            const val = document.getElementById('inputTurnoTituloPeriodo').value.toUpperCase();
+            if (datosTurnosActual) datosTurnosActual.tituloPeriodo = val;
+            document.getElementById('lblTurnoTituloPeriodo').textContent = val;
+        }
+
+        function generarHtmlBloqueTurno(claveBloque, esSabado = false) {
+            const bloque = datosTurnosActual.bloques[claveBloque];
+            const modoEdicion = document.getElementById('chkModoEdicionTurnos').checked;
+
+            // Opciones del desplegable con inspectores de Firestore
+            let opcionesSelect = `<option value="">+ Agregar inspector...</option>`;
+            inspectoresFiltrados.forEach(ins => {
+                const nombreUp = (ins.nombre || '').toUpperCase();
+                if (!bloque.inspectores.includes(nombreUp)) {
+                    opcionesSelect += `<option value="${nombreUp}">${nombreUp}</option>`;
+                }
+            });
+
+            let html = `<div class="w-full">`;
+
+            // Encabezado superior exclusivo de Sábados (SABADO 07/21)
+            if (esSabado) {
+                if (modoEdicion) {
+                    html += `
+                        <div class="text-center mb-1">
+                            <input type="text" value="${bloque.encabezadoSabado}" 
+                                   onchange="editarCampoBloqueTurno('${claveBloque}', 'encabezadoSabado', this.value)"
+                                   class="text-center font-black text-base uppercase text-black border-b border-dashed border-slate-400 focus:outline-none focus:border-sky-600 w-full bg-transparent">
+                        </div>
+                    `;
+                } else {
+                    html += `<div class="text-center font-black text-base uppercase text-black mb-1">${bloque.encabezadoSabado}</div>`;
+                }
+            }
+
+            html += `<table class="w-full border-collapse tabla-turnos text-black">`;
+
+            // Fila 1: Título del turno con fondo gris
+            html += `
+                <thead>
+                    <tr class="turno-header-gris">
+                        <th class="py-1 px-2 text-center font-bold text-sm uppercase tracking-wide">
+                            ${modoEdicion 
+                                ? `<input type="text" value="${bloque.titulo}" onchange="editarCampoBloqueTurno('${claveBloque}', 'titulo', this.value)" class="w-full text-center font-bold text-sm uppercase bg-transparent focus:outline-none">`
+                                : bloque.titulo}
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class="py-1 px-2 text-center font-bold text-xs uppercase bg-white">
+                            ${modoEdicion 
+                                ? `<input type="text" value="${bloque.horario}" onchange="editarCampoBloqueTurno('${claveBloque}', 'horario', this.value)" class="w-full text-center font-bold text-xs uppercase bg-transparent focus:outline-none">`
+                                : bloque.horario}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            // Filas de Inspectores
+            bloque.inspectores.forEach((nombreInsp, idx) => {
+                html += `
+                    <tr class="bg-white group">
+                        <td class="py-1 px-2.5 font-extrabold text-sm uppercase text-left relative">
+                            <div class="flex justify-between items-center gap-1">
+                                ${modoEdicion 
+                                    ? `<input type="text" value="${nombreInsp}" onchange="editarInspectorBloqueTurno('${claveBloque}', ${idx}, this.value)" class="w-full font-extrabold text-sm uppercase bg-transparent focus:outline-none focus:bg-amber-50">`
+                                    : `<span>${nombreInsp}</span>`}
+                                
+                                ${modoEdicion ? `
+                                    <div class="flex items-center gap-1 no-print shrink-0">
+                                        <button onclick="moverInspectorBloqueTurno('${claveBloque}', ${idx}, -1)" title="Subir" class="text-slate-400 hover:text-sky-600 px-1 text-xs" ${idx === 0 ? 'disabled' : ''}>
+                                            <i class="fa-solid fa-arrow-up"></i>
+                                        </button>
+                                        <button onclick="moverInspectorBloqueTurno('${claveBloque}', ${idx}, 1)" title="Bajar" class="text-slate-400 hover:text-sky-600 px-1 text-xs" ${idx === bloque.inspectores.length - 1 ? 'disabled' : ''}>
+                                            <i class="fa-solid fa-arrow-down"></i>
+                                        </button>
+                                        <button onclick="eliminarInspectorBloqueTurno('${claveBloque}', ${idx})" title="Quitar" class="text-rose-500 hover:text-rose-700 px-1 text-xs">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Fila de control para agregar nuevo inspector (solo visible en pantalla, oculta al imprimir)
+            if (modoEdicion) {
+                html += `
+                    <tr class="bg-slate-50 no-print">
+                        <td class="p-1.5">
+                            <div class="flex gap-1">
+                                <select onchange="agregarInspectorDesdeSelect('${claveBloque}', this)" class="w-full text-xs font-semibold text-sky-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none">
+                                    ${opcionesSelect}
+                                </select>
+                                <button onclick="agregarInspectorManual('${claveBloque}')" title="Escribir nombre manual" class="bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded text-xs font-bold">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += `</tbody></table></div>`;
+            return html;
+        }
+
+        function renderizarPlanillaTurnos() {
+            if (!datosTurnosActual) return;
+
+            const colManana = document.getElementById('colTurnosManana');
+            const colTarde = document.getElementById('colTurnosTarde');
+            const gridSabados = document.getElementById('gridTurnosSabados');
+
+            colManana.innerHTML = 
+                generarHtmlBloqueTurno('manana1', false) + 
+                generarHtmlBloqueTurno('manana2', false);
+
+            colTarde.innerHTML = 
+                generarHtmlBloqueTurno('tarde1', false) + 
+                generarHtmlBloqueTurno('tarde2', false) + 
+                generarHtmlBloqueTurno('tarde3', false);
+
+            gridSabados.innerHTML = 
+                generarHtmlBloqueTurno('sabado1', true) + 
+                generarHtmlBloqueTurno('sabado2', true);
+        }
+
+        function editarCampoBloqueTurno(claveBloque, campo, valor) {
+            datosTurnosActual.bloques[claveBloque][campo] = valor.trim().toUpperCase();
+        }
+
+        function editarInspectorBloqueTurno(claveBloque, index, nuevoNombre) {
+            const limpio = nuevoNombre.trim().toUpperCase();
+            if (!limpio) {
+                eliminarInspectorBloqueTurno(claveBloque, index);
+            } else {
+                datosTurnosActual.bloques[claveBloque].inspectores[index] = limpio;
+            }
+        }
+
+        function eliminarInspectorBloqueTurno(claveBloque, index) {
+            datosTurnosActual.bloques[claveBloque].inspectores.splice(index, 1);
+            renderizarPlanillaTurnos();
+        }
+
+        function moverInspectorBloqueTurno(claveBloque, index, direccion) {
+            const lista = datosTurnosActual.bloques[claveBloque].inspectores;
+            const destino = index + direccion;
+            if (destino < 0 || destino >= lista.length) return;
+            [lista[index], lista[destino]] = [lista[destino], lista[index]];
+            renderizarPlanillaTurnos();
+        }
+
+        function agregarInspectorDesdeSelect(claveBloque, selectEl) {
+            const nombre = selectEl.value;
+            if (!nombre) return;
+            datosTurnosActual.bloques[claveBloque].inspectores.push(nombre);
+            renderizarPlanillaTurnos();
+        }
+
+        function agregarInspectorManual(claveBloque) {
+            const nombre = prompt("Ingrese APELLIDO Y NOMBRE del inspector:");
+            if (nombre && nombre.trim()) {
+                datosTurnosActual.bloques[claveBloque].inspectores.push(nombre.trim().toUpperCase());
+                renderizarPlanillaTurnos();
+            }
+        }
+
+        async function guardarPlanillaTurnosFirebase() {
+            const mesAnio = document.getElementById('selectTurnoMesAnio').value;
+            if (!mesAnio || !window.db || !datosTurnosActual) return;
+
+            try {
+                await window.setDoc(window.doc(window.db, "planillas_turnos", `turnos_${mesAnio}`), {
+                    ...datosTurnosActual,
+                    mesAnio,
+                    actualizado: new Date().toISOString()
+                });
+                alert("Planilla de Turnos y Horarios guardada correctamente.");
+            } catch (err) {
+                alert("Error al guardar turnos: " + err.message);
+            }
+        }
+
+        function imprimirTurnos() {
+            // Desactivar temporalmente los inputs de edición para impresión limpia
+            const chk = document.getElementById('chkModoEdicionTurnos');
+            const estabaEditando = chk.checked;
+            if (estabaEditando) {
+                chk.checked = false;
+                renderizarPlanillaTurnos();
+            }
+
+            document.body.classList.remove('print-stickers-mode');
+            document.body.classList.add('print-turnos-mode');
+            window.print();
+
+            if (estabaEditando) {
+                chk.checked = true;
+                renderizarPlanillaTurnos();
+            }
         }
     </script>
 </body>
